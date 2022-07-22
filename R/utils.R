@@ -19,6 +19,15 @@ fast_lm <- function(x,y)
 rbind_3Darray <- function(array)
 {
   #transform 3d array into a list of matrix then  concatenate the list
-  mat <- do.call(rbind, lapply(seq(dim(array)[3]), function(x)array[ , , x]))
+  if(length(dim( array))==3){
+    mat <- do.call(rbind, lapply(seq(dim(array)[3]), function(x)array[ , , x]))
+  }else{
+    if(length(dim(array))==2){
+      mat <- array
+    }else{
+      stop("Provided array is not a matrix or a 3 way tensor")
+    }
+  }
+
   return(mat)
 }

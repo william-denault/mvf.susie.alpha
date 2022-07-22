@@ -90,12 +90,6 @@ tt$Bhat/diag(tt$S)
 # then extract data to fit a mash
 
 #need to parse by variable  (most inside loop) then by wave coef then by condition
-v1 <- rep(1, N)
-
-
-lol <- array(c( 10,2,0,0, 20,0,2,0,
-         0,0,0,0), dim= c(2,2,3))
-
 
 
 
@@ -109,19 +103,10 @@ hist(marg_assoc $tens_Bhat[,,1]/marg_assoc $tens_Shat[,,1], nclass = 100)
 image(marg_assoc$tens_Bhat[,,1]/marg_assoc $tens_Shat[,,1])
 
 
+#fit mash
 
-fit_mash_level <- function(tens_marg, s, indx_lst)
-{
+G_prior <- lapply(  1: (log2(dim(Y)[2])+1) , function(s) fit_mash_level(marg_assoc, s, indx_lst))
 
-
-
-   Bhat <- rbind_3Darray( tens_marg$tens_Bhat[,indx_lst[[s]],] )
-   Shat <- rbind_3Darray( tens_marg$tens_Shat[,indx_lst[[s]],] )
-
-
-   m <- basic_mash_fit(Bhat, Shat)
-
-}
 do.call( lapply(seq(dim(array)[3]), function(x)array[ , , x]))
 
 
