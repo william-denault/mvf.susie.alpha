@@ -72,3 +72,12 @@ tensor_dwt <- function (Y )
 
 
 }
+
+
+
+
+pack_dwt <- function( Y)
+{
+  W <- DWT2(Y)
+  return(cbind( W$D,W$C))
+}

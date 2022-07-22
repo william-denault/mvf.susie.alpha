@@ -10,7 +10,7 @@ mv_reg <- function(Y,x,V)
   }
   scaling_factor <-as.numeric(crossprod(x))
 
-  out <- list( bhat =t(Y )%*%x/scaling_factor,
+  out <- list( Bhat =t(Y )%*%x/scaling_factor,
                S = V/scaling_factor)
   return(out)
 }
@@ -36,11 +36,11 @@ bmv_reg <- function(Y,x,V,U)
   temp <- mv_reg(Y,x,V)
 
   post_Sigma1 = solve(solve(U)+ solve(temp$S))
-  post_bhat   = post_Sigma1%*%solve(temp$S)%*%temp$bhat
-  lbf         = dmvnorm(x =c(temp$bhat) ,sigma = temp$S + U,log = TRUE) -
-                     dmvnorm(x = c(temp$bhat),sigma = temp$S,log = TRUE)
+  post_Bhat   = post_Sigma1%*%solve(temp$S)%*%temp$Bhat
+  lbf         = dmvnorm(x =c(temp$Bhat) ,sigma = temp$S + U,log = TRUE) -
+                     dmvnorm(x = c(temp$Bhat),sigma = temp$S,log = TRUE)
 
-  out <- list( post_bhat   = post_bhat,
+  out <- list( post_Bhat   = post_Bhat,
                post_Sigma1 = post_Sigma1,
                lbf         = lbf
               )
@@ -50,10 +50,10 @@ bmv_reg <- function(Y,x,V,U)
 
 
 
-multivariate_lbf = function (bhat, S, U) {
+multivariate_lbf = function (Bhat, S, U) {
   lbf = sapply(1:length(S),
-               function(j) dmvnorm(x = bhat[j,],sigma = S[[j]] + U,log = TRUE) -
-                 dmvnorm(x = bhat[j,],sigma = S[[j]],log = TRUE))
+               function(j) dmvnorm(x = Bhat[j,],sigma = S[[j]] + U,log = TRUE) -
+                 dmvnorm(x = Bhat[j,],sigma = S[[j]],log = TRUE))
   lbf[which(is.nan(lbf))] = 0
   return(lbf)
 }

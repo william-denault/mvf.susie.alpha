@@ -1,0 +1,111 @@
+#'@title Function to fit entry-wise lm on tensor regression
+#'
+#'@param l  wavelet coefficient index
+#'@param j  covariate index
+#'@param xi condition index
+#'@param Y observed tensor
+#'@param X observed covariate
+
+parse_lm_fit <- function(j,l,xi, v1,Y,X)
+{
+
+  out <- fast_lm(cbind(v1,X[,j]),Y[,l,xi])
+  return(c(out$be[2,1],
+           sqrt(
+             var(out$residuals)/sum(
+               (X[,j]-mean(X[,j]))^2)
+           )
+  )
+  )
+}
+
+
+
+#' @title Regress column l and condition of Y on column j of X
+#'
+#' @description Add description here.
+#'
+#' @param Y  tensor phenotype, matrix of size N by size J by xi. The underlying algorithm uses wavelets that assume that J is of the form J^2. If J is not a power of 2, susiF internally remaps the data into a grid of length 2^J
+#'
+#' @param X matrix of size n by p in
+#'
+#' @param v1 vector of 1 of length n
+#'
+#' @return list of two tensor of size pxTx xi of 2 containing the regression coefficient and standard error
+#'
+#' @importFrom stats var
+#'
+#' @export
+#'
+
+
+cal_Bhat_Shat_tensor  <- function(Y, X, v1)
+{
+  Bhat  <- list()
+  Shat  <- list()
+  h <- 1 # looping index
+  #need to parse by variable  (most inside loop) then by wave coef then by condition
+  for (xi in 1:dim(Y)[3])
+  {
+    for ( l in 1:dim(Y)[2])
+    {
+      out <-  do.call( cbind,lapply( 1:dim(X)[2], function(j) parse_lm_fit( j=j,l=l,xi=xi,v1=v1, Y=DW_tens, X=X ) ) )
+      Bhat[[h]]  <- out[1,]
+      Shat[[h]] <- out[2,]
+      h <- h+1
+    }
+  }
+
+  tens_Bhat <- array( do.call(c, Bhat), dim = c( ncol(X),dim(Y)[2], dim(Y)[3]) )
+  tens_Shat <- array( do.call(c, Shat), dim = c( ncol(X),dim(Y)[2], dim(Y)[3]) )
+
+  out <- list( tens_Bhat = tens_Bhat,
+               tens_Shat = tens_Shat)
+  return(out)
+}
+
+
+
+
+
+
+#' @title Method to fit mash
+#'
+#' @description Method to fit mash
+#'
+#' @param Bhat  matrix of the regression coefficient (MLE)
+#' @param Shat  matrix of standard error
+#'
+#' @return a mash object
+#'
+#' @importFrom mashr mash_set_data
+#' @importFrom mashr mash_1by1
+#' @importFrom mashr get_significant_results
+#' @importFrom mashr cov_pca
+#' @importFrom mashr cov_ed
+#' @importFrom mashr cov_canonical
+#' @importFrom mashr mash
+#'
+#' @export
+#'
+
+
+basic_mash_fit <- function (Bhat, Shat)
+{
+  data   = mash_set_data( Bhat,  Shat)
+  m.1by1 = mash_1by1(data)
+  strong = get_significant_results(m.1by1,0.05)
+  if( !(length(strong)==0))
+  {
+    U.pca  = cov_pca(data,min(5, ncol(Bhat)-1),subset=strong)
+    U.ed   = cov_ed(data, U.pca, subset=strong)
+    U.c    = cov_canonical(data)
+    m      = mash(data, c(U.c,U.ed))
+  }else{
+    U.c    = cov_canonical(data)
+    m      = mash(data, c(U.c))
+  }
+
+  return(m)
+}
+

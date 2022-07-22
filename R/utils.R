@@ -6,3 +6,19 @@ fast_lm <- function(x,y)
               residuals = resid)
   return(out)
 }
+
+
+
+#' @title concatenate 3d array into a
+#'
+#' @description concatenate 3d array into a matrix, code inspired from a comment of  Sven Hohenstein on stack overflow
+#'
+#' @param array  a 3 way tensor
+#' @return a matrix
+#'
+rbind_3Darray <- function(array)
+{
+  #transform 3d array into a list of matrix then  concatenate the list
+  mat <- do.call(rbind, lapply(seq(dim(array)[3]), function(x)array[ , , x]))
+  return(mat)
+}
