@@ -12,7 +12,7 @@ effect2 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
 
 
 indx_lst <- susiF.alpha::gen_wavelet_indx(lev_res = lev_res)
-N = 100
+N = 10
 
 #Number of covariates
 
@@ -26,8 +26,8 @@ pos2 <- 2
 
 
 G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
-beta1       <- 1
-beta2       <- 1
+beta1       <- 0
+beta2       <- 0
 
 
 noisy.data  <- list()
@@ -124,6 +124,17 @@ LBF <-  log_BF_tens  ( G_prior, tens_marg, indx_lst)
 
 
 
+# the EM to maximize the marginal likelihood
+
+res_EM <- EM_pi_mvfsusie(G_prior,
+                         tens_marg,
+                         indx_lst
+                         )
+#update the prior
+
+G_prior <-  update_prior_weight_mvfsusie(G_prior,
+                                         res_EM$tpi_k
+                                         )
 
 
-#Start of the EM to maximize the marginal likelihood
+## Compute posterior
