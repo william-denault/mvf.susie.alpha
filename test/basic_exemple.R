@@ -6,9 +6,9 @@ library(wavethresh)
 library(mvtnorm)
 set.seed(1)
 n_curve=3
-lev_res=7
-effect1 <- mvf_susie_per_level(lev_res=7,n_curve=3)$sim_func
-effect2 <- mvf_susie_per_level(lev_res=7,n_curve=3)$sim_func
+lev_res=5
+effect1 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
+effect2 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
 
 
 indx_lst <- susiF.alpha::gen_wavelet_indx(lev_res = lev_res)
@@ -63,7 +63,7 @@ plot(dwt_data[[1]][2,], c(wd(noisy.data[[1]][2, ])$D,
 
 
 
-DW_tens <- rearrange( dwt_data, lev_res = 7, n_curve=3)
+DW_tens <- rearrange( dwt_data, lev_res = lev_res, n_curve=3)
 
 
 dim(DW_tens)
@@ -99,16 +99,24 @@ Y <- DW_tens
 marg_assoc <- cal_Bhat_Shat_tensor  (Y, X, v1)
 
 marg_assoc
+tens_marg <- marg_assoc
+
 hist(marg_assoc $tens_Bhat[,,1]/marg_assoc $tens_Shat[,,1], nclass = 100)
 image(marg_assoc$tens_Bhat[,,1]/marg_assoc $tens_Shat[,,1])
 
 
-Bhat <- marg_assoc$tens_Bhat[,indx_lst[[7]],1]
-Shat <- marg_assoc$tens_Shat[,indx_lst[[7]],1]
+Bhat <- marg_assoc$tens_Bhat[,indx_lst[[3]],1]
+Shat <- marg_assoc$tens_Shat[,indx_lst[[3]],1]
 image(Bhat/Shat)
 
 #fit mash
 
-G_prior <- lapply(  1: (log2(dim(Y)[2])+1) , function(s) fit_mash_level(marg_assoc, s, indx_lst))
+G_prior <- lapply(  1: (log2(dim(Y)[2])+1) , function(s) fit_mash_level(marg_assoc, s, indx_lst, data.driven = FALSE))
 
-do.call( lapply(seq(dim(array)[3]), function(x)array[ , , x]))
+#or
+G_prior <- init_prior_mvfsusie(tens_marg = tens_marg,
+                               indx_list = indx_lst,
+                               data.driven=FALSE)
+
+
+#Now we need to compute the Bayes Factor to optimize the pi paramaters

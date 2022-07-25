@@ -52,7 +52,7 @@ bmv_reg <- function(Y,x,V,U)
 }
 
 
-
+#code from mvsusieR
 multivariate_lbf = function (Bhat, S, U) {
   lbf = sapply(1:length(S),
                function(j) dmvnorm(x = Bhat[j,],sigma = S[[j]] + U,log = TRUE) -

@@ -9,18 +9,20 @@ fast_lm <- function(x,y)
 
 
 
-#' @title concatenate 3d array into a
+#' @title transform 3d array into a matrix
 #'
-#' @description concatenate 3d array into a matrix, code inspired from a comment of  Sven Hohenstein on stack overflow
+#' @description transform 3d array into a matrix where the number of column is equal to the length of the third dimension, code inspired from a comment of  Sven Hohenstein on stack overflow
 #'
 #' @param array  a 3 way tensor
 #' @return a matrix
 #'
-rbind_3Darray <- function(array)
+cbind_3Darray <- function(array)
 {
-  #transform 3d array into a list of matrix then  concatenate the list
+  #transform 3d array into a list of matrix then  concatenate each matrix finally bind them
+
+
   if(length(dim( array))==3){
-    mat <- do.call(rbind, lapply(seq(dim(array)[3]), function(x)array[ , , x]))
+    mat <- do.call(cbind, lapply ( lapply(seq(dim(array)[3]), function(x)array[ , , x]),c))
   }else{
     if(length(dim(array))==2){
       mat <- array
@@ -31,3 +33,5 @@ rbind_3Darray <- function(array)
 
   return(mat)
 }
+
+
