@@ -120,3 +120,10 @@ G_prior <- init_prior_mvfsusie(tens_marg = tens_marg,
 
 
 #Now we need to compute the Bayes Factor to optimize the pi paramaters
+LBF <-  log_BF_tens  ( G_prior, tens_marg, indx_lst)
+
+
+
+
+
+#Start of the EM to maximize the marginal likelihood
