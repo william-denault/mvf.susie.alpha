@@ -26,8 +26,8 @@ pos2 <- 2
 
 
 G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
-beta1       <- 0
-beta2       <- 0
+beta1       <- 1
+beta2       <- 1
 
 
 noisy.data  <- list()
@@ -37,7 +37,7 @@ for ( i in 1:N)
 
   f1               <- effect1
   f2               <- effect2
-  noisy.data [[i]] <-  t(beta1*G[i,pos1]*effect1 + beta2*G[i,pos2]*effect2 + matrix( rnorm((2^lev_res)*n_curve), ncol=n_curve))
+  noisy.data [[i]] <-  t(beta1*G[i,pos1]*effect1 + beta2*G[i,pos2]*effect2 + matrix( rnorm(n= ((2^lev_res)*n_curve)), ncol=n_curve))
 
 }
 
@@ -71,11 +71,11 @@ dim(DW_tens)
 X <- G
 
 
-DW_tens[,1,] <- X[,1]+rnorm(N, sd=0.1)
-
-tt <- mv_reg  (DW_tens[,1,],X[,1] )# correspond to regression of covariate 1 on a n dimensional wavelet coefficient
+#DW_tens[,1,] <- X[,1]%*%matrix(c(1,1,1), ncol=3) +rnorm(N*3, sd=0.1)
+v1 <- rep( 1, N)
+tt <- mv_reg  (DW_tens[,1,],cbind(v1,X[,1] ))# correspond to regression of covariate 1 on a n dimensional wavelet coefficient
 tt
-bmv_reg(DW_tens[,1,],X[,1])
+bmv_reg(DW_tens[,1,],cbind(v1,X[,1] ))
 
 
 tt$Bhat/diag(tt$S)
@@ -103,45 +103,12 @@ hist(marg_assoc $tens_Bhat[,,1]/marg_assoc $tens_Shat[,,1], nclass = 100)
 image(marg_assoc$tens_Bhat[,,1]/marg_assoc $tens_Shat[,,1])
 
 
+Bhat <- marg_assoc$tens_Bhat[,indx_lst[[7]],1]
+Shat <- marg_assoc$tens_Shat[,indx_lst[[7]],1]
+image(Bhat/Shat)
+
 #fit mash
 
 G_prior <- lapply(  1: (log2(dim(Y)[2])+1) , function(s) fit_mash_level(marg_assoc, s, indx_lst))
 
 do.call( lapply(seq(dim(array)[3]), function(x)array[ , , x]))
-
-
-Y <- DW_tens
-
-Bhat  <- list()
-Shat  <- list()
-
-for ( l in 1:dim(Y)[2])
-{
-  out <-  do.call( cbind,lapply( 1:dim(X)[2], function(j) fit_lm(l= l,j=j, Y=Y,X=X, v1=v1  ) ) )
-  Bhat[[l]]  <- out[1,]
-  Shat[[l]] <- out[2,]
-}
-
-Bhat <- (do.call(cbind, Bhat))
-Shat <- (do.call(cbind, Shat))
-out  <- list( Bhat = Bhat,
-              Shat = Shat)
-
-lappl
-
-Tens_coef # TxPx condition tensor
-
-
-t(DW_tens[ ,1,])%*%X[,1]/(as.numeric(crossprod(X[,1])))
-
-
-Y <- DW_tens[,1,]
-
-dim(X)
-dim(Y[ ,1,])
-
-Bhat <- tt$Bhat
-S <- tt$S
-U <- diag( 1, 3)
-S_inv <- solve (S)
-multivariate_regression   (Bhat, S, U, S_inv)

@@ -97,7 +97,11 @@ basic_mash_fit <- function (Bhat, Shat)
   strong = get_significant_results(m.1by1,0.05)
   if( !(length(strong)==0))
   {
-    U.pca  = cov_pca(data,min(5, ncol(Bhat)-1),subset=strong)
+    U.pca  = cov_pca(data,
+                     npc=length(strong),
+                     subset=strong
+                         )
+    #Problem with TPCa being NAN
     U.ed   = cov_ed(data, U.pca, subset=strong)
     U.c    = cov_canonical(data)
     m      = mash(data, c(U.c,U.ed))

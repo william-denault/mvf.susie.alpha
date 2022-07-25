@@ -1,24 +1,27 @@
 
 #'@param Y a N by n_curve matrix
-#'@param x a N vector
+#'@param x a matrix in which first column is a vector of 1 and the second n is the covariate of interest
 #'@param V covariance matrix of the noise, set as I if missing
-mv_reg <- function(Y,x,V)
+mv_reg <- function(Y,x,V,v1)
 {
   if(missing(V))#TODO correct V without estimation
   {
     V= diag(rep(1, ncol(Y)))
   }
-  scaling_factor <-as.numeric(crossprod(x))
 
-  out <- list( Bhat =t(Y )%*%x/scaling_factor,
-               S = V/scaling_factor)
+  Bhat <-  t(solve(crossprod(x),crossprod(x,Y))) #first column contains intercept
+  #second colum effect
+  resid <-  Y - x %*% t(Bhat)
+  out <- list( Bhat =  Bhat[,2],
+               S =  var( resid)/sum(
+                 (x[,2]-mean(x[,2]))^2))
   return(out)
 }
 
 
 
 #'@param Y a N by n_curve matrix
-#'@param x a N vector
+#'@param x a matrix in which first column is a vector of 1 and the second n is the covariate of interest
 #'@param V covariance matrix of the noise, set as I if missing
 #'@param U prior
 #'@importFrom mvtnorm dmvnorm
@@ -30,7 +33,7 @@ bmv_reg <- function(Y,x,V,U)
   }
   if(missing(U))
   {
-    U =  diag(rep(1 ), ncol(Y))
+    U =  diag(rep( sqrt(nrow(Y)) ), ncol(Y))
   }
 
   temp <- mv_reg(Y,x,V)
