@@ -17,7 +17,8 @@ Imports:
   stats,
   ashr (>= 2.2-47),
   mixsqp (>= 0.3-43),
-  mashr (>= 0.2.57)
+  mashr (>= 0.2.57),
+  abind (>= 1.4-5)
 License: GPL (>=3)
 LazyData: true
 LazyDataCompression: xz
