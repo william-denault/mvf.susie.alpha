@@ -4,6 +4,7 @@ library(mashr)
 library(tensorr)
 library(wavethresh)
 library(mvtnorm)
+library(mixsqp)
 set.seed(1)
 n_curve=3
 lev_res=5
@@ -119,7 +120,7 @@ G_prior <- init_prior_mvfsusie(tens_marg = tens_marg,
                                data.driven=FALSE)
 
 
-#Now we need to compute the Bayes Factor to optimize the pi paramaters
+#Now we need to compute the Bayes Factor to optimize the pi parameters
 LBF <-  log_BF_tens  ( G_prior, tens_marg, indx_lst)
 
 
@@ -136,5 +137,22 @@ G_prior <-  update_prior_weight_mvfsusie(G_prior,
                                          res_EM$tpi_k
                                          )
 
+alpha <-  cal_zeta_mvfsusie(  res_EM$lBF)
+
+
+mvfsusie_obj <-  update_susiF_obj(susiF.obj = mvfsusie_obj ,
+                               l         = 1,
+                               EM_pi     = EM_out,
+                               Bhat      = Bhat,
+                               Shat      = Shat,
+                               indx_lst  = indx_lst
+)
 
 ## Compute posterior
+#How to reuse mash object
+L=2
+mvfsusie_obj  <- init_mvfsusie_obj (L, G_prior, Y,X )
+dim(mvfsusie_obj$fitted_wc[[1]])
+dim(tens_marg$tens_Bhat)
+
+
