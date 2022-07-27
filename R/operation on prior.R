@@ -69,6 +69,7 @@ get_grid <- function(G_prior,s)
 update_prior_weight_mvfsusie <- function(G_prior,tpi_k)
 {
   out <- mapply(update_mash_pi ,G_prior, tpi_k, SIMPLIFY = FALSE)
+  class(out) <- "mash_per_scale"
   return(out)
 }
 
@@ -139,16 +140,7 @@ get_pi_G_prior.mash_per_scale <- function(G_prior)
 get_pi_G_prior <- function(G_prior, ...)
   UseMethod("get_pi_G_prior")
 
-#' @rdname get_pi_G_prior
-#'
-#' @method get_pi_G_prior mixture_normal
-#'
-#' @export get_pi_G_prior.mixture_normal
-#'
-#' @export
-#'
 
-get_pi_G_prior.mixture_normal
 
 
 
@@ -172,9 +164,9 @@ update_prior <- function(G_prior, tpi, ...)
 
 #' @rdname update_prior
 #'
-#' @method update_prior mixture_normal
+#' @method update_prior mash_per_scale
 #'
-#' @export update_prior.mixture_normal
+#' @export update_prior.mash_per_scale
 #'
 #' @export
 #'

@@ -1,3 +1,7 @@
+
+'%!in%' <- function(x,y)!('%in%'(x,y))
+
+
 fast_lm <- function(x,y)
 {
   be <- solve(crossprod(x),crossprod(x,y))

@@ -57,7 +57,7 @@ init_mvfsusie_obj <- function(L, G_prior, Y,X )
     fitted_wc2[[l]]       <-  array(0, dim= c(dim(X)[2], ncol=dim(Y)[2], dim(Y)[3])  )
     alpha [[l]]           <-  rep(0, dim(X)[2])
     cs[[l]]               <-  list()
-    est_pi [[l]]          <-  get_pi_mv_G_prior(G_prior)
+    est_pi [[l]]          <-  get_pi_G_prior(G_prior)
     lBF[[l]]              <-  rep(NA, ncol(X))
     lfsr_wc[[l]]          <-  rep(1, ncol(Y))
     lfsr_func[[l]]        <-  rep(1, ncol(Y))
@@ -131,7 +131,7 @@ get_G_prior.mvfsusie <- function(mvfsusie.obj, ...)
 #'
 #' @export
 
-update_mvfsusie_obj  <- function(mvfsusie.obj, l, EM_pi, tens_marg, indx_lst, all=FALSE ...)
+update_mvfsusie  <- function(mvfsusie.obj, l, EM_pi, tens_marg, indx_lst, all=FALSE ,...)
 {
 
   if( l > length(mvfsusie.obj$est_pi))
@@ -149,7 +149,7 @@ update_mvfsusie_obj  <- function(mvfsusie.obj, l, EM_pi, tens_marg, indx_lst, al
   mvfsusie.obj         <-   update_pi( mvfsusie.obj =  mvfsusie.obj ,
                                       l             = l ,
                                       tpi           =  EM_pi$tpi_k)
-  mvfsusie.obj $G_prior    <-   update_prior(get_G_prior(mvfsusie.obj) , EM_pi$tpi_k  )
+  mvfsusie.obj$G_prior    <-   update_prior(get_G_prior(mvfsusie.obj) , EM_pi$tpi_k  )
   post_tens_res <- get_post_tens (G_prior,
                                   tens_marg,
                                   indx_lst,
@@ -163,7 +163,7 @@ update_mvfsusie_obj  <- function(mvfsusie.obj, l, EM_pi, tens_marg, indx_lst, al
   mvfsusie.obj <- update_lBF(mvfsusie.obj, l, EM_pi$lBF)
   if(all)
   {
-    mvfsusie.obj <- update_lfsr (mvfsusie.obj, l, Bhat, Shat, alpha=new_alpha, indx_lst= indx_lst )
+    mvfsusie.obj <- update_lfsr (mvfsusie.obj, l, post_tens_res)
 
   }
 

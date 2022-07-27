@@ -674,11 +674,11 @@ get_post_tens <- function(G_prior, tens_marg, indx_lst, all =FALSE)
 
         }
         out <- list(
-                   post_mean_tens    <- post_mean_tens,
-                   post_sd_tens      <- post_sd_tens,
-                   lfdr_tens         <- lfdr_tens,
-                   NegativeProb_tens <- NegativeProb_tens,
-                   lfsr_tens         <- lfsr_tens
+                   post_mean_tens    = post_mean_tens,
+                   post_sd_tens      = post_sd_tens,
+                   lfdr_tens         = lfdr_tens,
+                   NegativeProb_tens = NegativeProb_tens,
+                   lfsr_tens         = lfsr_tens
                     )
   }
 

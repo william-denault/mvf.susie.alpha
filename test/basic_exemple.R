@@ -118,7 +118,7 @@ G_prior <- lapply(  1: (log2(dim(Y)[2])+1) , function(s) fit_mash_level(marg_ass
 G_prior <- init_prior_mvfsusie(tens_marg = tens_marg,
                                indx_list = indx_lst,
                                data.driven=FALSE)
-
+class(G_prior)
 
 #Now we need to compute the Bayes Factor to optimize the pi parameters
 LBF <-  log_BF_tens  ( G_prior, tens_marg, indx_lst)
@@ -136,6 +136,7 @@ res_EM <- EM_pi_mvfsusie(G_prior,
 G_prior <-  update_prior_weight_mvfsusie(G_prior,
                                          res_EM$tpi_k
                                          )
+class(G_prior)
 
 alpha <-  cal_zeta_mvfsusie(  res_EM$lBF)
 ## Compute posterior
@@ -153,13 +154,21 @@ post_tens <- get_post_tens (G_prior, tens_marg, indx_lst, all =TRUE)
 str(post_tens)
 mvfsusie.obj <- update_pi(mvfsusie.obj, l=1, res_EM$tpi_k)
 
-mvfsusie_obj <-  update_mvsusiF_obj(susiF.obj = mvfsusie_obj ,
+mvfsusie_obj <-  update_mvfsusie (mvfsusie.obj  = mvfsusie_obj ,
                                     l         = 1,
-                                    EM_pi     = EM_out,
+                                    EM_pi     = res_EM,
                                     tens_marg = tens_marg,
-                                    indx_lst  = indx_lst
+                                    indx_lst  = indx_lst, all=FALSE
 )
 
-mvfsusie.obj
+mvfsusie.obj$lfsr_wc
 
 
+mvfsusie_obj <-  update_mvfsusie (mvfsusie.obj  = mvfsusie_obj ,
+                                  l         = 1,
+                                  EM_pi     = res_EM,
+                                  tens_marg = tens_marg,
+                                  indx_lst  = indx_lst, all=TRUE
+                                  )
+
+mvfsusie.obj$lfsr_wc
