@@ -138,21 +138,28 @@ G_prior <-  update_prior_weight_mvfsusie(G_prior,
                                          )
 
 alpha <-  cal_zeta_mvfsusie(  res_EM$lBF)
-
-
-mvfsusie_obj <-  update_susiF_obj(susiF.obj = mvfsusie_obj ,
-                               l         = 1,
-                               EM_pi     = EM_out,
-                               Bhat      = Bhat,
-                               Shat      = Shat,
-                               indx_lst  = indx_lst
-)
-
 ## Compute posterior
 #How to reuse mash object
 L=2
 mvfsusie_obj  <- init_mvfsusie_obj (L, G_prior, Y,X )
+mvfsusie.obj <- mvfsusie_obj
 dim(mvfsusie_obj$fitted_wc[[1]])
 dim(tens_marg$tens_Bhat)
+
+
+
+post_tens <- get_post_tens (G_prior, tens_marg, indx_lst, all =TRUE)
+
+str(post_tens)
+mvfsusie.obj <- update_pi(mvfsusie.obj, l=1, res_EM$tpi_k)
+
+mvfsusie_obj <-  update_mvsusiF_obj(susiF.obj = mvfsusie_obj ,
+                                    l         = 1,
+                                    EM_pi     = EM_out,
+                                    tens_marg = tens_marg,
+                                    indx_lst  = indx_lst
+)
+
+mvfsusie.obj
 
 

@@ -355,7 +355,7 @@ EM_pi_mvfsusie <- function(G_prior,tens_marg, indx_lst,
   }
 
   out <- list(tpi_k = tpi_k,lBF = lBF)
-  class(out) <- c("EM_pi","list")
+  class(out) <- c("EM_pi_mvfsusie","list")
   return(out)
 }
 
@@ -633,7 +633,7 @@ get_post_level <- function( G_prior, tens_marg, indx_lst,s, all=FALSE)
 
 get_post_tens <- function(G_prior, tens_marg, indx_lst, all =FALSE)
 {
-  post_tens
+
 
   if ( !all){
     tt <- lapply( 1: length(indx_lst),
@@ -667,10 +667,10 @@ get_post_tens <- function(G_prior, tens_marg, indx_lst, all =FALSE)
         lfsr_tens         <- array(NA,dim =dim(tens_marg$tens_Bhat))
         for ( s in 1: 1: length(indx_lst)){
           post_mean_tens   [ ,indx_lst[[s]],] <- tt[[s]]$PosteriorMean_level
-         post_sd_tens     [ ,indx_lst[[s]],] <- tt[[s]]$Posteriorsd_level
+          post_sd_tens     [ ,indx_lst[[s]],] <- tt[[s]]$Posteriorsd_level
           lfdr_tens        [ ,indx_lst[[s]],] <- tt[[s]]$lfdr_level
           NegativeProb_tens[ ,indx_lst[[s]],] <- tt[[s]]$NegativeProb_level
-         lfsr_tens        [ ,indx_lst[[s]],] <- tt[[s]]$lfsr_level
+          lfsr_tens        [ ,indx_lst[[s]],] <- tt[[s]]$lfsr_level
 
         }
         out <- list(

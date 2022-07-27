@@ -17,6 +17,7 @@ init_prior_mvfsusie <- function( tens_marg,indx_list, data.driven=TRUE)
 
 
   G_prior <- lapply(  1: (log2(sum( lengths(indx_lst)))+1) , function(s) fit_mash_level(marg_assoc, s, indx_lst, data.driven =data.driven))
+  class(G_prior) <- "mash_per_scale"
   return(G_prior)
 }
 
@@ -117,8 +118,71 @@ update_mash_pi<- function(G , tpi)
 #' @export
 
 
-get_pi_mv_G_prior <- function(G_prior)
+get_pi_G_prior.mash_per_scale <- function(G_prior)
 {
   out <- lapply( 1: length(G_prior), function(s) G_prior[[s]]$fitted_g$pi)
   return(out)
+}
+
+
+
+#' @title Get mixture proportion for mash per scale prior
+#'
+#' @description Get mixture proportion for mash per scale prior
+#'
+#' @param G_prior  mash per scale prior
+#'
+#' @return list of  mixture proportion
+#'
+#' @export
+
+get_pi_G_prior <- function(G_prior, ...)
+  UseMethod("get_pi_G_prior")
+
+#' @rdname get_pi_G_prior
+#'
+#' @method get_pi_G_prior mixture_normal
+#'
+#' @export get_pi_G_prior.mixture_normal
+#'
+#' @export
+#'
+
+get_pi_G_prior.mixture_normal
+
+
+
+#' @title Update mixture proportion for mixture normal prior
+#'
+#' @description Add description here.
+#'
+#' @param G_prior a prior of class "mixture_normal" or a prior of class "mixture_normal_per_scale"
+#'
+#' @param tpi a vector of proportion of class "pi_mixture_normal" resp "pi_mixture_normal_per_scale"
+#'
+#' @return a prior of class "mixture_normal" or a prior of class "mixture_normal_per_scale"
+#'
+#' @export
+#'
+#'
+
+update_prior <- function(G_prior, tpi, ...)
+  UseMethod("update_prior")
+
+
+#' @rdname update_prior
+#'
+#' @method update_prior mixture_normal
+#'
+#' @export update_prior.mixture_normal
+#'
+#' @export
+#'
+update_prior.mash_per_scale <- function(G_prior, tpi, ...)
+{
+
+    out <- mapply(update_mash_pi ,G_prior, tpi, SIMPLIFY = FALSE)
+    class(out ) <- "mixture_normal_per_scale"
+
+  return(G_prior)
 }
