@@ -135,7 +135,6 @@ get_pi_G_prior.mash_per_scale <- function(G_prior)
 #'
 #' @return list of  mixture proportion
 #'
-#' @export
 
 get_pi_G_prior <- function(G_prior, ...)
   UseMethod("get_pi_G_prior")
@@ -174,7 +173,8 @@ update_prior.mash_per_scale <- function(G_prior, tpi, ...)
 {
 
     out <- mapply(update_mash_pi ,G_prior, tpi, SIMPLIFY = FALSE)
-    class(out ) <- "mixture_normal_per_scale"
+    class(out) <- "mixture_normal_per_scale"
 
   return(G_prior)
 }
+

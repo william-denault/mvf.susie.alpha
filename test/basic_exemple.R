@@ -1,7 +1,7 @@
 #rm(list = ls())
 library(ashr)
 library(mashr)
-library(tensorr)
+library(abind)
 library(wavethresh)
 library(mvtnorm)
 library(mixsqp)
@@ -27,7 +27,7 @@ pos2 <- 2
 
 
 G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
-beta1       <- 0
+beta1       <- 1
 beta2       <- 0
 
 
@@ -132,6 +132,8 @@ res_EM <- EM_pi_mvfsusie(G_prior,
                          indx_lst
                          )
 #update the prior
+mvfsusie_obj  <- init_mvfsusie_obj (L, G_prior, Y,X )
+mvfsusie.obj <- mvfsusie_obj
 
 G_prior <-  update_prior_weight_mvfsusie(G_prior,
                                          res_EM$tpi_k
@@ -142,8 +144,6 @@ alpha <-  cal_zeta_mvfsusie(  res_EM$lBF)
 ## Compute posterior
 #How to reuse mash object
 L=2
-mvfsusie_obj  <- init_mvfsusie_obj (L, G_prior, Y,X )
-mvfsusie.obj <- mvfsusie_obj
 dim(mvfsusie_obj$fitted_wc[[1]])
 dim(tens_marg$tens_Bhat)
 
@@ -152,16 +152,29 @@ dim(tens_marg$tens_Bhat)
 post_tens <- get_post_tens (G_prior, tens_marg, indx_lst, all =TRUE)
 
 str(post_tens)
-mvfsusie.obj <- update_pi(mvfsusie.obj, l=1, res_EM$tpi_k)
+#mvfsusie.obj <- update_pi(mvfsusie.obj, l=1, res_EM$tpi_k)
+plot( update_pi( mvfsusie.obj =  mvfsusie.obj ,
+                 l             = 1 ,
+                 tpi           =  EM_pi$tpi_k)$est_pi[[1]][[5]],
+      EM_pi$tpi_k[[5]]
+      )
+plot( update_prior_weight_mvfsusie (get_G_prior(mvfsusie.obj)
+                                    , EM_pi$tpi_k  )[[5]]$fitted_g$pi,
+      EM_pi$tpi_k[[5]]
+)
 
-mvfsusie_obj <-  update_mvfsusie (mvfsusie.obj  = mvfsusie_obj ,
+
+mvfsusie.obj <-  update_mvfsusie (mvfsusie.obj  = mvfsusie_obj ,
                                     l         = 1,
                                     EM_pi     = res_EM,
                                     tens_marg = tens_marg,
-                                    indx_lst  = indx_lst, all=FALSE
-)
+                                    indx_lst  = indx_lst,
+                                    all=FALSE
+                                    )
 
-mvfsusie.obj$lfsr_wc
+plot( mvfsusie.obj$est_pi[[1]][[5]], res_EM$tpi_k[[5]])
+
+plot( mvfsusie.obj$fitted_wc[[1]][,,1], post_tens$post_mean_tens[,,1])
 
 
 mvfsusie_obj <-  update_mvfsusie (mvfsusie.obj  = mvfsusie_obj ,
@@ -170,5 +183,11 @@ mvfsusie_obj <-  update_mvfsusie (mvfsusie.obj  = mvfsusie_obj ,
                                   tens_marg = tens_marg,
                                   indx_lst  = indx_lst, all=TRUE
                                   )
+update_DW_tens <- cal_partial_resid.susiF  ( mvfsusie.obj,
+                                             l=1,
+                                             X=X,
+                                             D=DW_tens,
+                                             indx_lst
+                                             )
 
-mvfsusie.obj$lfsr_wc
+mvfsusie.obj$alpha

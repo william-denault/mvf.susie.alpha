@@ -2,6 +2,23 @@
 '%!in%' <- function(x,y)!('%in%'(x,y))
 
 
+
+#Product bewteen a NxJ matrix and a JxKxP tensor
+#returns a JxKxP tensor in which slice along dim 3 is the matrix product of the slice
+#and the matrix
+'%x%' <- function(mat, tens)
+{
+ out <-   abind(
+                lapply( 1:dim(tens)[3],
+                        function(xi) mat%*% tens[,,xi]
+                       ),
+                        along =3
+                )
+ return(out)
+
+}
+
+
 fast_lm <- function(x,y)
 {
   be <- solve(crossprod(x),crossprod(x,y))
