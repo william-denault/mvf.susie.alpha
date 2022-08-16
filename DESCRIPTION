@@ -18,7 +18,8 @@ Imports:
   ashr (>= 2.2-47),
   mixsqp (>= 0.3-43),
   mashr (>= 0.2.57),
-  abind (>= 1.4-5)
+  abind (>= 1.4-5),
+  susiF.alpha
 License: GPL (>=3)
 LazyData: true
 LazyDataCompression: xz

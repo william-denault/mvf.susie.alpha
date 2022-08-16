@@ -5,15 +5,16 @@ library(abind)
 library(wavethresh)
 library(mvtnorm)
 library(mixsqp)
-set.seed(1)
+set.seed(12)
 n_curve=3
 lev_res=5
 effect1 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
 effect2 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
 verbose=TRUE
-
+data.driven=FALSE
+all= TRUE
 indx_lst <- susiF.alpha::gen_wavelet_indx(lev_res = lev_res)
-N = 10
+N = 100
 
 #Number of covariates
 
@@ -28,7 +29,7 @@ pos2 <- 2
 
 G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
 beta1       <- 1
-beta2       <- 0
+beta2       <- 1
 
 
 noisy.data  <- list()
@@ -131,8 +132,9 @@ res_EM <- EM_pi_mvfsusie(G_prior,
                          tens_marg,
                          indx_lst
                          )
+EM_pi <- res_EM
 #update the prior
-mvfsusie_obj  <- init_mvfsusie_obj (L, G_prior, Y,X )
+mvfsusie_obj  <- init_mvfsusie_obj (L=4, G_prior, Y,X )
 mvfsusie.obj <- mvfsusie_obj
 
 G_prior <-  update_prior_weight_mvfsusie(G_prior,
@@ -177,17 +179,18 @@ plot( mvfsusie.obj$est_pi[[1]][[5]], res_EM$tpi_k[[5]])
 plot( mvfsusie.obj$fitted_wc[[1]][,,1], post_tens$post_mean_tens[,,1])
 
 
-mvfsusie_obj <-  update_mvfsusie (mvfsusie.obj  = mvfsusie_obj ,
-                                  l         = 1,
+mvfsusie.obj <-  update_mvfsusie (mvfsusie.obj  = mvfsusie_obj ,
+                                  l         = 2,
                                   EM_pi     = res_EM,
                                   tens_marg = tens_marg,
                                   indx_lst  = indx_lst, all=TRUE
                                   )
-update_DW_tens <- cal_partial_resid.susiF  ( mvfsusie.obj,
-                                             l=1,
-                                             X=X,
-                                             D=DW_tens,
-                                             indx_lst
-                                             )
+
 
 mvfsusie.obj$alpha
+
+
+
+out <- mvfsusie(Y=noisy.data,
+                X=X,
+                L=3, maxit = 2)

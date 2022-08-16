@@ -33,14 +33,14 @@ mvfsusie <- function(Y, X, L = 2,
 
 
   #reshaping of the data
-  if ( !(length(pos)==dim(Y)[2])) #miss matching positions and number of observations
+  if ( !(length(pos)==dim(Y[[1]])[2])) #miss matching positions and number of observations
   {
     stop("Error: number of position provided different from the number of column of Y")
   }
   original_Y <-Y
 
 
-  if(!is.wholenumber(log2(dim(Y)[2])) | !(sum( duplicated(diff( pos)))== (length(pos) -2)) ) #check wether dim(Y) not equal to 2^J or if the data are unevenly spaced
+  if(!is.wholenumber(log2(dim(Y[[1]])[2])) | !(sum( duplicated(diff( pos)))== (length(pos) -2)) ) #check wether dim(Y) not equal to 2^J or if the data are unevenly spaced
   {
     ##### TO REWORK ------------
     inter_pol.obj <- interpol_mat(Y, pos)
@@ -75,22 +75,22 @@ mvfsusie <- function(Y, X, L = 2,
                                     data.driven = data.driven,
                                     verbose     = verbose)
 
-  mvfsusie_obj  <- init_mvfsusie_obj (L, G_prior, DW_tens,X )
+  mvfsusie.obj  <- init_mvfsusie_obj (L, G_prior, DW_tens,X )
 
   # numerical value to check breaking condition of while
   check <- 1
   h     <- 0
 
-  if(mvfsusie_obj$L==1)
+  if(mvfsusie.obj$L==1)
   {
     tens_marg <- cal_Bhat_Shat_tensor  (update_D , X, v1)
-    tpi       <- get_pi(mvfsusie_obj,1)
+    tpi       <- get_pi(mvfsusie.obj,1)
     G_prior   <- update_prior.mash_per_scale(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
     res_EM    <- EM_pi_mvfsusie(G_prior,
                                 tens_marg,
                                 indx_lst
                                 )
-    mvfsusie.obj <-  update_mvfsusie( mvfsusie.obj  = mvfsusie_obj ,
+    mvfsusie.obj <-  update_mvfsusie( mvfsusie.obj  = mvfsusie.obj ,
                                       l             = 1,
                                       EM_pi         = res_EM,
                                       tens_marg     = tens_marg,
@@ -104,15 +104,19 @@ mvfsusie <- function(Y, X, L = 2,
       for( l in 1:mvfsusie.obj$L)
       {
 
-        tens_marg <- cal_Bhat_Shat_tensor  (update_D , X, v1)
-        tpi       <- get_pi(mvfsusie_obj,l)
-        G_prior   <- update_prior.mash_per_scale(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
+        tens_marg <- cal_Bhat_Shat_tensor  (Y= update_D ,X = X, v1)
+        tpi       <- get_pi(mvfsusie.obj,l)
+        G_prior   <- update_prior.mash_per_scale(G_prior, tpi = tpi ) #allow EM to start close to previous solution (to double check)
         res_EM    <- EM_pi_mvfsusie(G_prior,
                                     tens_marg,
                                     indx_lst
-                                      )
+                                    )
 
-        mvfsusie.obj <-  update_mvfsusie( mvfsusie.obj  = mvfsusie_obj ,
+
+
+        #### Problem in the updating procedure and in the residual calculations
+       # print(res_EM$lBF)
+        mvfsusie.obj <-  update_mvfsusie( mvfsusie.obj  = mvfsusie.obj ,
                                           l             = l,
                                           EM_pi         = res_EM,
                                           tens_marg     = tens_marg,
@@ -120,19 +124,22 @@ mvfsusie <- function(Y, X, L = 2,
                                           all           = all
                                         )
 
-        update_D  <-  cal_partial_resid( mvfsusie.obj = mvfsusie_obj ,
+        #mvfsusie.obj$alpha
+        update_D  <-  cal_partial_resid( mvfsusie.obj = mvfsusie.obj ,
                                          l            = l,
                                          X            = X,
                                          D            = DW_tens,
                                          indx_lst     = indx_lst
-                                             )
-
+                                        )
+        #print(update_D[1:10,1:10,1])
 
       }#end for l in 1:L
+      print(mvfsusie.obj$alpha)
+      plot( DW_tens[,,2], update_D[,,2])
+      plot( DW_tens[,,3], update_D[,,3])
 
-
-      # susiF.obj <- update_ELBO(susiF.obj,
-      #                         get_objective( susiF.obj = susiF.obj,
+      # mvfsusie.obj <- update_ELBO(mvfsusie.obj,
+      #                         get_objective( mvfsusie.obj = mvfsusie.obj,
       #                                        Y         = Y_f,
       #                                        X         = X,
       #                                        D         = W$D,
@@ -141,12 +148,12 @@ mvfsusie <- function(Y, X, L = 2,
       #                         )
       #)
 
-      sigma2       <- estimate_residual_variance(susiF.obj,Y=Y_f,X)
+      sigma2       <- estimate_residual_variance(mvfsusie.obj,DW_tens,X)
       mvfsusie.obj <- update_residual_variance(mvfsusie.obj, sigma2 = sigma2 )
 
-      if(length(susiF.obj$ELBO)>1 )#update parameter convergence,
+      if(length(mvfsusie.obj$ELBO)>1 )#update parameter convergence,
       {
-        check <- diff(susiF.obj$ELBO)[(length( susiF.obj$ELBO )-1)]
+        check <- diff(mvfsusie.obj$ELBO)[(length( mvfsusie.obj$ELBO )-1)]
 
       }
     }#end while
@@ -154,12 +161,12 @@ mvfsusie <- function(Y, X, L = 2,
 
 
   #preparing output
-  mvfsusie.obj <- out_prep(mvfsusie.obj = mvfsusie.obj,
-                        Y            = Y,
-                        X            = X,
-                        indx_lst     = indx_lst,
-                        filter.cs    = filter.cs,
-                        lfsr_curve   = lfsr_curve
-  )
+  #mvfsusie.obj <- out_prep(mvfsusie.obj = mvfsusie.obj,
+  #                      Y            = Y,
+  #                      X            = X,
+  #                      indx_lst     = indx_lst,
+  #                      filter.cs    = filter.cs,
+  #                     lfsr_curve   = lfsr_curve
+  #)
   return(mvfsusie.obj)
 }
