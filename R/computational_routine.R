@@ -91,7 +91,7 @@ cal_Bhat_Shat_tensor  <- function(Y, X, v1)
 #'
 
 
-basic_mash_fit <- function (Bhat, Shat, data.driven=TRUE)
+basic_mash_fit <- function (Bhat, Shat, data.driven=TRUE, verbose=FALSE)
 {
   data   = mash_set_data( Bhat,  Shat)
 
@@ -108,14 +108,14 @@ basic_mash_fit <- function (Bhat, Shat, data.driven=TRUE)
       #Problem with TPCa being NAN
       U.ed   = cov_ed(data, U.pca, subset=strong)
       U.c    = cov_canonical(data)
-      m      = mash(data, c(U.c,U.ed))
+      m      = mash(data, c(U.c,U.ed),verbose = verbose)
     }else{
       U.c    = cov_canonical(data)
-      m      = mash(data, c(U.c))
+      m      = mash(data, c(U.c),verbose = verbose)
     }
   }else{
     U.c    = cov_canonical(data)
-    m      = mash(data, c(U.c))
+    m      = mash(data, c(U.c),verbose = verbose)
   }
 
 
@@ -144,7 +144,7 @@ basic_mash_fit <- function (Bhat, Shat, data.driven=TRUE)
 #'
 
 
-fit_mash_level <- function(tens_marg, s, indx_lst, data.driven=TRUE)
+fit_mash_level <- function(tens_marg, s, indx_lst, data.driven=TRUE,verbose=FALSE)
 {
 
 
@@ -153,7 +153,7 @@ fit_mash_level <- function(tens_marg, s, indx_lst, data.driven=TRUE)
   Shat <- cbind_3Darray( tens_marg$tens_Shat[,indx_lst[[s]],] )
 
 
-  m <- basic_mash_fit(Bhat, Shat, data.driven = data.driven)
+  m <- basic_mash_fit(Bhat, Shat, data.driven = data.driven,verbose=verbose)
 
 }
 

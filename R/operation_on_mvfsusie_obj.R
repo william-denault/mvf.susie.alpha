@@ -3,7 +3,7 @@
 
 #' @title Compute partial residual for effect l
 #'
-#' @param mvfsusie.obj a susiF object defined by \code{\link{init_mvfsusie_obj}} function
+#' @param mvfsusie.obj a mvfsusie object defined by \code{\link{init_mvfsusie_obj}} function
 #'
 #' @param l integer larger or equal to 1. Corresponds to the effect to be accessed
 #'
@@ -29,7 +29,7 @@ cal_partial_resid  <- function( mvfsusie.obj, l, X, D, indx_lst, ... )
 #' @export
 #'
 
-cal_partial_resid.susiF  <- function( mvfsusie.obj, l, X, D, indx_lst, ... )
+cal_partial_resid.mvfsusie  <- function( mvfsusie.obj, l, X, D, indx_lst, ... )
 {
   L <- mvfsusie.obj$L
   if (L > 1){
@@ -249,7 +249,7 @@ update_mvfsusie  <- function(mvfsusie.obj, l, EM_pi, tens_marg, indx_lst, all=FA
                                   indx_lst,
                                   all = all)
 
-  print( post_tens_res$post_mean_tens)
+
   mvfsusie.obj$fitted_wc[[l]]   <- post_tens_res$post_mean_tens
   mvfsusie.obj$fitted_wc2[[l]]  <- post_tens_res$post_sd_tens
 
@@ -418,3 +418,293 @@ update_lfsr.mvfsusie <- function(mvfsusie.obj,l,post_tens,...)
 
 
 
+#' @title Compute posterior mean of the fitted effect
+#'
+#' @param mvfsusie.obj a mvfsusie object defined by \code{\link{init_mvfsusie_obj}} function
+#'
+#' @param l , optional effect to update
+#'
+#' @return  A J by T matrix of posterior wavelet coefficient,
+#' \item{if l missng}{return sum of effect posterior mean }
+#' \item{if l not missng}{return effect specific posterior mean}
+get_post_F <- function(mvfsusie.obj,l,...)
+  UseMethod("get_post_F")
+
+#' @rdname get_post_F
+#'
+#' @method get_post_F mvfsusie
+#'
+#' @export get_post_F.mvfsusie
+#'
+#' @export
+#'
+
+get_post_F.mvfsusie <- function(mvfsusie.obj,l,...)
+{
+  if(missing(l))
+  {
+    out <-  Reduce("+",lapply(1:mvfsusie.obj$L, FUN=function(l) mvfsusie.obj$alpha[[l]] %vxtens% mvfsusie.obj$fitted_wc[[l]]))
+  }else{
+    out <-   mvfsusie.obj$alpha[[l]] %vxtens% mvfsusie.obj$fitted_wc[[l]]
+  }
+
+  return(out)
+}
+
+
+
+#' @title Compute posterior second moment
+#'
+#' @param mvfsusie.obj a mvfsusie object defined by \code{\link{init_mvfsusie_obj}} function
+#' @param l , optional effect to update
+#'
+#' @return  A J by T matrix of posterior wavelet coefficient,
+#' \item{if l  missng}{return sum of the  effect  posterior second moment }
+#' \item{if l not missng}{return effect specific posterior second moment}
+
+get_post_F2 <- function(mvfsusie.obj,l,...)
+  UseMethod("get_post_F2")
+
+#' @rdname get_post_F2
+#'
+#' @method get_post_F2 mvfsusie
+#'
+#' @export get_post_F2.mvfsusie
+#'
+#' @export
+#'
+get_post_F2.mvfsusie <- function(mvfsusie.obj, l,...)
+{
+  if(missing(l))
+  {
+    out <-  Reduce("+",lapply(1:mvfsusie.obj$L, FUN=function(l) mvfsusie.obj$alpha[[l]] *(mvfsusie.obj$sigma2+ mvfsusie.obj$fitted_wc2[[l]])))
+  }else{
+    out <-   mvfsusie.obj$alpha[[l]] *(mvfsusie.obj$sigma2+ mvfsusie.obj$fitted_wc2[[l]])
+  }
+
+  return(out)
+}
+
+
+
+
+#' @title Compute Epected sum of square
+#'
+#' @param mvfsusie.obj a mvfsusie object defined by \code{\link{init_mvfsusie_obj}} function
+#'
+#' @param DW_tens tensor of  wavelet transformed  functional phenotype, size NxJxXi
+#' @param X matrix of size N by p
+#'
+#'
+#' @return estimated residual variance
+#' @export
+get_ER2 <- function(mvfsusie.obj,update_DW_tens,X, ... )
+  UseMethod("get_ER2")
+
+
+#' @rdname get_ER2
+#'
+#' @method get_ER2 mvfsusie
+#'
+#' @export get_ER2.mvfsusie
+#'
+#' @export
+
+get_ER2.mvfsusie = function (  mvfsusie.obj,DW_tens, X) {
+  postF <- get_post_F(mvfsusie.obj )# J by N matrix
+  Xr_L =  (X%x% postF)
+  postF2 <- get_post_F2(mvfsusie.obj ) # Posterior second moment.
+  return(sum((DW_tens - X%x%postF )^2)  -sum(postF)^2 + sum(postF2))
+}
+
+
+
+#' @title Update residual variance
+#'
+#' @param mvfsusie.obj a mvfsusie object defined by \code{\link{init_mvfsusie_obj}} function
+#'
+#' @param DW_tens tensor of  wavelet transformed  functional phenotype, size NxJxXi
+#' @param X matrix of size N by p
+#'
+#'
+#' @return estimated residual variance
+#' @export
+estimate_residual_variance <- function(mvfsusie,DW_tens,X, ... )
+  UseMethod("estimate_residual_variance")
+
+
+#' @rdname estimate_residual_variance
+#'
+#' @method estimate_residual_variance mvfsusie
+#'
+#' @export estimate_residual_variance.mvfsusie
+#'
+#' @export
+estimate_residual_variance.mvfsusie <- function(mvfsusie.obj,DW_tens,X, ... )
+{
+  out <-  (1/(prod(dim(DW_tens))))*get_ER2 (mvfsusie.obj,DW_tens, X  )
+  return(out)
+}
+
+
+
+
+
+
+
+
+
+#' @title Preparing output of main mvfsusie function
+#'
+#' @param mvfsusie.obj a mvfsusie object defined by \code{\link{init_mvfsusie_obj}} function
+#'
+#' @param Y functional phenotype, matrix of size N by size J. The underlying algorithm uses wavelets that assume that J is of the form J^2. If J is not a power of 2, mvfsusie internally remaps the data into a grid of length 2^J
+#'
+#' @param X matrix of size N by p
+#'
+#' @param indx_lst list generated by gen_wavelet_indx for the given level of resolution
+#'
+#' @param filter.cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
+#'
+#' @param lfsr_curve Maximum local false sign rate of the wavelet coefficients used to reconstruct lfsr_curves (see output)
+#' @return mvfsusie object
+#'
+#' @export
+#'
+out_prep <- function(mvfsusie.obj,Y, X, indx_lst, filter.cs, lfsr_curve, ...)
+  UseMethod("out_prep")
+
+#' @rdname out_prep
+#'
+#' @method out_prep mvfsusie
+#'
+#' @export out_prep.mvfsusie
+#'
+#' @export
+#'
+
+out_prep.mvfsusie <- function(mvfsusie.obj,Y, X, indx_lst, filter.cs, lfsr_curve, ...)
+{
+  mvfsusie.obj <-  update_cal_pip(mvfsusie.obj)
+  mvfsusie.obj <-  update_cal_cs(mvfsusie.obj)
+  mvfsusie.obj <-  update_cal_fit_func(mvfsusie.obj, indx_lst)
+  if(filter.cs)
+  {
+    mvfsusie.obj <- check_cs(mvfsusie.obj)
+  }
+  mvfsusie.obj <-  update_cal_indf(mvfsusie.obj, Y, X, indx_lst)
+  mvfsusie.obj <-  update_cal_lfsr_func(mvfsusie.obj, lfsr_curve, indx_lst)
+
+  return(mvfsusie.obj)
+}
+
+
+
+
+#'@title Update mvfsusie by computing PiP
+#'
+#'@param mvfsusie.obj a mvfsusie object defined by \code{\link{init_mvfsusie_obj}} function
+#'@return mvfsusie object
+#'@export
+
+update_cal_pip  <- function (mvfsusie.obj, ...)
+  UseMethod("update_cal_pip")
+
+#' @rdname update_cal_pip
+#'
+#' @method update_cal_pip mvfsusie
+#'
+#' @export update_cal_pip.mvfsusie
+#'
+#' @export
+#'
+
+update_cal_pip.mvfsusie <- function (mvfsusie.obj, ...)
+{
+  if(sum( is.na(unlist(mvfsusie.obj$alpha))))
+  {
+    stop("Error: some alpha value not updated, please update alpha value first")
+  }
+  tpip <- list()
+  for ( l in 1:mvfsusie.obj$L)
+  {
+    tpip[[l]] <- rep(1, lengths(mvfsusie.obj$alpha)[[l]])-mvfsusie.obj$alpha[[l]]
+  }
+  mvfsusie.obj$pip <- 1-  apply( do.call(rbind,tpip),2, prod)
+  return(mvfsusie.obj)
+}
+
+
+
+
+#'@title Update mvfsusie by computing credible sets
+#'
+#' @param mvfsusie.obj a mvfsusie object defined by \code{\link{init_mvfsusie_obj}} function
+#'
+#' @param cov_lev numeric between 0 and 1, corresponding to the expected level of coverage of the cs if not specified set to 0.95
+#'
+#' @return mvfsusie object
+#'
+#' @export
+
+update_cal_cs  <- function(mvfsusie.obj, cov_lev=0.95, ...)
+  UseMethod("update_cal_cs")
+
+#' @rdname update_cal_cs
+#'
+#' @method update_cal_cs mvfsusie
+#'
+#' @export update_cal_cs.mvfsusie
+#'
+#' @export
+#'
+
+update_cal_cs.mvfsusie <- function(mvfsusie.obj, cov_lev=0.95)
+{
+  if(sum( is.na(unlist(mvfsusie.obj$alpha))))
+  {
+    stop("Error: some alpha value not updated, please update alpha value first")
+  }
+  for ( l in 1:mvfsusie.obj$L)
+  {
+    temp        <- mvfsusie.obj$alpha[[l]]
+    temp_cumsum <- cumsum( temp[order(temp, decreasing =TRUE)])
+    max_indx_cs <- min(which( temp_cumsum >cov_lev ))
+    mvfsusie.obj$cs[[l]]  <- order(temp, decreasing = TRUE)[1:max_indx_cs ]
+
+  }
+
+  return(mvfsusie.obj)
+}
+
+
+
+update_cal_fit_func.mvfsusie <- function(mvfsusie.obj, indx_lst, ...)
+{
+
+  if(sum( is.na(unlist(mvfsusie.obj$alpha))))
+  {
+    stop("Error: some alpha value not updated, please update alpha value first")
+  }
+  temp <- wd(rep(0, mvfsusie.obj$n_wac))
+
+  if(class(get_G_prior(mvfsusie.obj))=="mixture_normal_per_scale" )
+  {
+    for ( l in 1:mvfsusie.obj$L)
+    {
+      temp$D                     <- (mvfsusie.obj$alpha[[l]])%*%mvfsusie.obj$fitted_wc[[l]][,-indx_lst[[length(indx_lst)]]]
+      temp$C[length(temp$C)]     <- (mvfsusie.obj$alpha[[l]])%*%mvfsusie.obj$fitted_wc[[l]][,indx_lst[[length(indx_lst)]]]
+      mvfsusie.obj$fitted_func[[l]] <- wr(temp)
+    }
+  }
+  if(class(get_G_prior(mvfsusie.obj))=="mixture_normal" )
+  {
+    for ( l in 1:mvfsusie.obj$L)
+    {
+      temp$D                     <- (mvfsusie.obj$alpha[[l]])%*%mvfsusie.obj$fitted_wc[[l]][,-dim(mvfsusie.obj$fitted_wc[[l]])[2]]
+      temp$C[length(temp$C)]     <- (mvfsusie.obj$alpha[[l]])%*%mvfsusie.obj$fitted_wc[[l]][,dim(mvfsusie.obj$fitted_wc[[l]])[2]]
+      mvfsusie.obj$fitted_func[[l]] <- wr(temp)
+    }
+  }
+  return(mvfsusie.obj)
+}

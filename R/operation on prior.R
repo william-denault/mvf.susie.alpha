@@ -12,11 +12,11 @@
 #' @param data.driven logical, if TRUE use data driven covariance matrix procedure for fitting mash otherwise uses  cov_canonical method mashr. Set as TRUE by default
 #'
 #' @return a list of mash objects
-init_prior_mvfsusie <- function( tens_marg,indx_list, data.driven=TRUE)
+init_prior_mvfsusie <- function( tens_marg,indx_list, data.driven=TRUE, verbose=FALSE)
 {
 
 
-  G_prior <- lapply(  1: (log2(sum( lengths(indx_lst)))+1) , function(s) fit_mash_level(marg_assoc, s, indx_lst, data.driven =data.driven))
+  G_prior <- lapply(  1: (log2(sum( lengths(indx_lst)))+1) , function(s) fit_mash_level(tens_marg, s, indx_lst, data.driven =data.driven, verbose=verbose))
   class(G_prior) <- "mash_per_scale"
   return(G_prior)
 }

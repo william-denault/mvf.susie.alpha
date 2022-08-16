@@ -10,7 +10,7 @@ n_curve=3
 lev_res=5
 effect1 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
 effect2 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
-
+verbose=TRUE
 
 indx_lst <- susiF.alpha::gen_wavelet_indx(lev_res = lev_res)
 N = 10

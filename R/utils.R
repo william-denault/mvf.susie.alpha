@@ -19,6 +19,25 @@
 }
 
 
+#Product bewteen a  J vector and a JxKxP tensor
+#returns a JxKxP tensor in which slice along dim 3 is the row wise product between  matrix product of the slice
+#and the vector
+
+
+'%vxtens%' <- function(vec, tens)
+{
+    out <-   abind(
+                  lapply( 1:dim(tens)[3],
+                          function(xi) vec* tens[,,xi]
+                        ),
+                  along =3
+                   )
+
+  return( out)
+}
+
+
+
 fast_lm <- function(x,y)
 {
   be <- solve(crossprod(x),crossprod(x,y))

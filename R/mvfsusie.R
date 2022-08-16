@@ -1,7 +1,13 @@
+#' @param Y list of observed time series. Length of N in which every element
+#' contains a xi (number of condition) by 2^S matrix. The matrix corresponds to the
+#' individuals multivariate time series
+#'
+#'
+#' @param  all logical set to FALSE. If set to TRUE the output contains additionnal information such as
+#' lfdr lfsr
+
 mvfsusie <- function(Y, X, L = 2,
                   pos = NULL,
-
-                  verbose = TRUE,
                   plot_out = TRUE,
                   maxit = 100,
                   tol = 1e-3,
@@ -9,7 +15,10 @@ mvfsusie <- function(Y, X, L = 2,
                   min.purity=0.5,
                   lfsr_curve = 0.05,
                   filter.cs =TRUE,
-                  data.driven=FALSE
+                  data.driven=FALSE, #Still some problem with data.driven =TRUE
+                  verbose= FALSE,
+                  all = FALSE
+
 
 )
 {
@@ -47,27 +56,24 @@ mvfsusie <- function(Y, X, L = 2,
     outing_grid <- 1:dim(Y[[1]])[2]
   }
 
+
+  # Wavelet transform of the inputs
   W <- lapply(X = Y, FUN = pack_dwt)
-  DW_tens <- rearrange( dwt_data, lev_res = lev_res, n_curve=dim(Y)[3])
+  DW_tens <- rearrange( W, lev_res = lev_res, n_curve=nrow(Y[[1]]))
 
   ### Definition of some static parameters ---
   indx_lst <-  gen_wavelet_indx(log2(length( outing_grid)))
   v1       <-  rep(1, dim(X)[1])### used in fit_lm to add a column of 1 in the design matrix
 
-  # Wavelet transform of the inputs
 
-
-  update_D <- DW_tens
   ### Definition of some dynamic parameters ---
-
-  update_Y    <-  DW_tens #Using a column like phenotype, temporary matrix that will be regularly updated
-
-
+  update_D <- DW_tens
 
   tens_marg  <- cal_Bhat_Shat_tensor  (DW_tens, X, v1)
   G_prior    <- init_prior_mvfsusie(tens_marg   = tens_marg,
                                     indx_list   = indx_lst,
-                                    data.driven = data.driven)
+                                    data.driven = data.driven,
+                                    verbose     = verbose)
 
   mvfsusie_obj  <- init_mvfsusie_obj (L, G_prior, DW_tens,X )
 
@@ -77,82 +83,66 @@ mvfsusie <- function(Y, X, L = 2,
 
   if(mvfsusie_obj$L==1)
   {
-    tens_marg <- cal_Bhat_Shat_tensor  (Y, X, v1)
-    tpi  <- get_pi(mvfsusie_obj,1)
-    G_prior <- update_prior.mash_per_scale(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
-    res_EM <- EM_pi_mvfsusie(G_prior,
-                             tens_marg,
-                             indx_lst
-    )
-    susiF.obj <-  update_susiF_obj(susiF.obj = susiF.obj ,
-                                   l         = 1,
-                                   EM_pi     = EM_out,
-                                   Bhat      = Bhat,
-                                   Shat      = Shat,
-                                   indx_lst  = indx_lst
-    )
-    susiF.obj <- update_ELBO(susiF.obj,
-                             get_objective( susiF.obj = susiF.obj,
-                                            Y         = Y_f,
-                                            X         = X,
-                                            D         = W$D,
-                                            C         = W$C,
-                                            indx_lst  = indx_lst
-                             )
-    )
+    tens_marg <- cal_Bhat_Shat_tensor  (update_D , X, v1)
+    tpi       <- get_pi(mvfsusie_obj,1)
+    G_prior   <- update_prior.mash_per_scale(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
+    res_EM    <- EM_pi_mvfsusie(G_prior,
+                                tens_marg,
+                                indx_lst
+                                )
+    mvfsusie.obj <-  update_mvfsusie( mvfsusie.obj  = mvfsusie_obj ,
+                                      l             = 1,
+                                      EM_pi         = res_EM,
+                                      tens_marg     = tens_marg,
+                                      indx_lst      = indx_lst,
+                                      all           = all
+                                    )
 
   }else{
     while(check >tol & (h/L) <maxit)
     {
-      for( l in 1:susiF.obj$L)
+      for( l in 1:mvfsusie.obj$L)
       {
 
-        h <- h+1
-        tt <- cal_Bhat_Shat(update_Y,X,v1)
-        Bhat <- tt$Bhat
-        Shat <- tt$Shat #UPDATE. could be nicer
-        tpi <-  get_pi(susiF.obj,l)
-        G_prior <- update_prior(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
+        tens_marg <- cal_Bhat_Shat_tensor  (update_D , X, v1)
+        tpi       <- get_pi(mvfsusie_obj,l)
+        G_prior   <- update_prior.mash_per_scale(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
+        res_EM    <- EM_pi_mvfsusie(G_prior,
+                                    tens_marg,
+                                    indx_lst
+                                      )
 
-        EM_out  <- EM_pi(G_prior  = G_prior,
-                         Bhat     =  Bhat,
-                         Shat     =  Shat,
-                         indx_lst =  indx_lst
-        )
+        mvfsusie.obj <-  update_mvfsusie( mvfsusie.obj  = mvfsusie_obj ,
+                                          l             = l,
+                                          EM_pi         = res_EM,
+                                          tens_marg     = tens_marg,
+                                          indx_lst      = indx_lst,
+                                          all           = all
+                                        )
 
-        susiF.obj <-  update_susiF_obj(susiF.obj = susiF.obj ,
-                                       l         = l,
-                                       EM_pi     = EM_out,
-                                       Bhat      = Bhat,
-                                       Shat      = Shat,
-                                       indx_lst  = indx_lst
-        )
-
-        update_Y  <-  cal_partial_resid(
-          susiF.obj = susiF.obj,
-          l         = l,
-          X         = X,
-          D         = W$D,
-          C         = W$C,
-          indx_lst  = indx_lst
-        )
+        update_D  <-  cal_partial_resid( mvfsusie.obj = mvfsusie_obj ,
+                                         l            = l,
+                                         X            = X,
+                                         D            = DW_tens,
+                                         indx_lst     = indx_lst
+                                             )
 
 
       }#end for l in 1:L
 
 
-      susiF.obj <- update_ELBO(susiF.obj,
-                               get_objective( susiF.obj = susiF.obj,
-                                              Y         = Y_f,
-                                              X         = X,
-                                              D         = W$D,
-                                              C         = W$C,
-                                              indx_lst  = indx_lst
-                               )
-      )
+      # susiF.obj <- update_ELBO(susiF.obj,
+      #                         get_objective( susiF.obj = susiF.obj,
+      #                                        Y         = Y_f,
+      #                                        X         = X,
+      #                                        D         = W$D,
+      #                                        C         = W$C,
+      #                                        indx_lst  = indx_lst
+      #                         )
+      #)
 
-      sigma2    <- estimate_residual_variance(susiF.obj,Y=Y_f,X)
-      susiF.obj <- update_residual_variance(susiF.obj, sigma2 = sigma2 )
+      sigma2       <- estimate_residual_variance(susiF.obj,Y=Y_f,X)
+      mvfsusie.obj <- update_residual_variance(mvfsusie.obj, sigma2 = sigma2 )
 
       if(length(susiF.obj$ELBO)>1 )#update parameter convergence,
       {
@@ -164,12 +154,12 @@ mvfsusie <- function(Y, X, L = 2,
 
 
   #preparing output
-  susiF.obj <- out_prep(susiF.obj  = susiF.obj,
-                        Y          = Y,
-                        X          = X,
-                        indx_lst   =indx_lst,
-                        filter.cs  = filter.cs,
-                        lfsr_curve = lfsr_curve
+  mvfsusie.obj <- out_prep(mvfsusie.obj = mvfsusie.obj,
+                        Y            = Y,
+                        X            = X,
+                        indx_lst     = indx_lst,
+                        filter.cs    = filter.cs,
+                        lfsr_curve   = lfsr_curve
   )
-  return(susiF.obj)
+  return(mvfsusie.obj)
 }
