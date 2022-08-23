@@ -49,7 +49,7 @@ cal_Bhat_Shat_tensor  <- function(Y, X, v1)
   {
     for ( l in 1:dim(Y)[2])
     {
-      out <-  do.call( cbind,lapply( 1:dim(X)[2], function(j) parse_lm_fit( j=j,l=l,xi=xi,v1=v1, Y=DW_tens, X=X ) ) )
+      out <-  do.call( cbind,lapply( 1:dim(X)[2], function(j) parse_lm_fit( j=j,l=l,xi=xi,v1=v1, Y=Y, X=X ) ) )
       Bhat[[h]]  <- out[1,]
       Shat[[h]]  <- out[2,]
       h <- h+1

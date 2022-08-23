@@ -239,7 +239,7 @@ update_mvfsusie  <- function(mvfsusie.obj, l, EM_pi, tens_marg, indx_lst, all=FA
     stop("Error EM_pi should be of the class EM_pi_mvfsusie")
   }
   mvfsusie.obj         <-   update_pi( mvfsusie.obj =  mvfsusie.obj ,
-                                      l             = l ,
+                                      l             =  l ,
                                       tpi           =  EM_pi$tpi_k)
 
   mvfsusie.obj$G_prior    <-   update_prior_weight_mvfsusie (get_G_prior(mvfsusie.obj) , EM_pi$tpi_k  )
