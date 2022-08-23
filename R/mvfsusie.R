@@ -62,7 +62,7 @@ mvfsusie <- function(Y, X, L = 2,
   DW_tens <- rearrange( W, lev_res = lev_res, n_curve=nrow(Y[[1]]))
 
   ### Definition of some static parameters ---
-  indx_lst <-  gen_wavelet_indx(log2(length( outing_grid)))
+  indx_lst <-  susiF.alpha::gen_wavelet_indx(log2(length( outing_grid)))
   v1       <-  rep(1, dim(X)[1])### used in fit_lm to add a column of 1 in the design matrix
 
 
@@ -114,8 +114,7 @@ mvfsusie <- function(Y, X, L = 2,
 
 
 
-        #### Problem in the updating procedure and in the residual calculations
-       # print(res_EM$lBF)
+
         mvfsusie.obj <-  update_mvfsusie( mvfsusie.obj  = mvfsusie.obj ,
                                           l             = l,
                                           EM_pi         = res_EM,
@@ -131,7 +130,7 @@ mvfsusie <- function(Y, X, L = 2,
                                          D            = DW_tens,
                                          indx_lst     = indx_lst
                                         )
-        #print(update_D[1:10,1:10,1])
+
 
       }#end for l in 1:L
       print(mvfsusie.obj$alpha)
