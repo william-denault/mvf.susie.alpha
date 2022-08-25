@@ -309,12 +309,11 @@ update_cal_fit_func.mvfsusie <- function(mvfsusie.obj, indx_lst, ...)
 
 
    #create dummy wd object
-       wr_tens(tens=temp,
-                                               temp_wd.obj=temp_wd.obj,
-                                               indx_lst =  indx_lst,
-                                               out_dim = dim(  temp )
-      )
-      mvfsusie.obj$fitted_func[[l]] <- wr(temp)
+
+      mvfsusie.obj$fitted_func[[l]] <-  wr_tens(tens=temp,
+                                                temp_wd.obj=temp_wd.obj,
+                                                indx_lst =  indx_lst,
+                                                out_dim = dim(  temp ))[1, 1:mvfsusie.obj$n_wac,1:dim(temp)[3]]
     }
 
   return(mvfsusie.obj)

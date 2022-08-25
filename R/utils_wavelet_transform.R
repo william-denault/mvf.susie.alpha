@@ -41,6 +41,20 @@ DWT2 <- function (data, filter.number = 10, family = "DaubLeAsymm")
 
 
 
+#' @title Compact code for wavelet transform on a matrix of functions
+#'
+#' @description function adapted from grove R package from Ma and Soriano. Perform wavelet transform of each row of a matrix
+#'
+#' @param Y matrix of size NxJ where J is a power of two
+#'
+#' @return A Matrix in which the C compoent is stored in the last column
+#' @export
+
+pack_dwt <- function( Y)
+{
+  W <- DWT2(Y)
+  return(cbind( W$D,W$C))
+}
 
 
 
@@ -74,13 +88,6 @@ tensor_dwt <- function (Y )
 }
 
 
-
-
-pack_dwt <- function( Y)
-{
-  W <- DWT2(Y)
-  return(cbind( W$D,W$C))
-}
 
 
 

@@ -1,6 +1,17 @@
-library(ashr)
-library(mashr)
-library(wavethresh)
+
+#'@title Simulate function under the mash per scale prior
+#'
+#'@param lev_res numerical corresponds to the resolution of the simulated function (idealy between 3 and 10)
+#'@param n_curve  dimension of the multivaraite time serie to generate
+#'@param length_grid vector numerical corresponds to the length of the grid of sigma for mixture component(cf ash)
+#'@param piO vector numerical , contain a digit  between 0 and 1, which corresponds to the null proportion ( non assocatied wavelet coefficients)
+#'@param alpha numeric >0, control smoothness of the curves, should be positive and up 4 in particular d_sl ~  pi_{0,sl}  delta_0 + sum_k  pi_k N(0, 2^{- alpha * s}   sigma_k^2)
+#'@param prop_decay numeric >0, control the proportion of non zero wavelet coefficient per scale, pi_{0,sl} = 1- exp(-prop_decay*s)
+#'
+#' @export
+#' @examples
+#'tt <- mvf_susie_per_level()
+#'
 
 #to do : add decay per scale to get same level of smoothing
 
@@ -85,4 +96,3 @@ mvf_susie_per_level  <-function( lev_res=7,
 }
 
 
-tt <- mvf_susie_per_level()

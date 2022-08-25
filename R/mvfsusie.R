@@ -133,9 +133,7 @@ mvfsusie <- function(Y, X, L = 2,
 
 
       }#end for l in 1:L
-      print(mvfsusie.obj$alpha)
-      plot( DW_tens[,,2], update_D[,,2])
-      plot( DW_tens[,,3], update_D[,,3])
+
 
       # mvfsusie.obj <- update_ELBO(mvfsusie.obj,
       #                         get_objective( mvfsusie.obj = mvfsusie.obj,

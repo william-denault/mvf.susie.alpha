@@ -134,6 +134,7 @@ res_EM <- EM_pi_mvfsusie(G_prior,
                          )
 EM_pi <- res_EM
 #update the prior
+Y <- DW_tens
 mvfsusie_obj  <- init_mvfsusie_obj (L=4, G_prior, Y,X )
 mvfsusie.obj <- mvfsusie_obj
 
