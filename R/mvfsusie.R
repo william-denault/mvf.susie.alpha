@@ -131,7 +131,7 @@ mvfsusie <- function(Y, X, L = 2,
                                          indx_lst     = indx_lst
                                         )
 
-
+        h <- h+1
       }#end for l in 1:L
 
 
@@ -153,6 +153,7 @@ mvfsusie <- function(Y, X, L = 2,
         check <- diff(mvfsusie.obj$ELBO)[(length( mvfsusie.obj$ELBO )-1)]
 
       }
+
     }#end while
   }
 
@@ -162,8 +163,7 @@ mvfsusie <- function(Y, X, L = 2,
   #                      Y            = Y,
   #                      X            = X,
   #                      indx_lst     = indx_lst,
-  #                      filter.cs    = filter.cs,
-  #                     lfsr_curve   = lfsr_curve
+  #                      filter.cs    = filter.cs
   #)
   return(mvfsusie.obj)
 }

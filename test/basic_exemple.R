@@ -5,6 +5,7 @@ library(abind)
 library(wavethresh)
 library(mvtnorm)
 library(mixsqp)
+library(mvf.susie.alpha)
 set.seed(12)
 n_curve=3
 lev_res=5
@@ -195,3 +196,4 @@ mvfsusie.obj$alpha
 out <- mvfsusie(Y=noisy.data,
                 X=X,
                 L=3, maxit = 2)
+out$alpha
