@@ -46,16 +46,30 @@ for ( i in 1:N)
 
 noisy.data[[1]]
 noisy.data[[2]]
-Y <- noisy.data
-
-library(mvf.susie.alpha)
 
 
 
-library(profvis)
 
-profvis({
-  out <- mvfsusie(Y=noisy.data,
-                  X=X,
-                  L=2, maxit = 10)
-})
+
+
+dwt_data <- lapply(X = noisy.data, FUN = pack_dwt)
+
+#line one in first matrix of dwt_data contain wt transform of condition 1 in ind 1
+plot(dwt_data[[1]][1,], c(wd(noisy.data[[1]][1, ])$D,wd(noisy.data[[1]][1, ])$C[length(wd(noisy.data[[1]][1, ])$C)]))
+
+plot(dwt_data[[1]][2,], c(wd(noisy.data[[1]][2, ])$D,
+                          wd(noisy.data[[1]][2, ])$C[length(wd(noisy.data[[1]][2, ])$C)]))
+
+
+
+
+
+
+
+DW_tens <- rearrange( dwt_data, lev_res = lev_res, n_curve=3)
+
+
+dim(DW_tens)
+
+X <- G
+

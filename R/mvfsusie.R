@@ -3,7 +3,7 @@
 #' individuals multivariate time series
 #'
 #'
-#' @param  all logical set to FALSE. If set to TRUE the output contains additionnal information such as
+#' @param  all logical set to FALSE. If set to TRUE the output contains additional information such as
 #' lfdr lfsr
 
 mvfsusie <- function(Y, X, L = 2,
@@ -130,6 +130,7 @@ mvfsusie <- function(Y, X, L = 2,
                                          D            = DW_tens,
                                          indx_lst     = indx_lst
                                         )
+
 
         h <- h+1
       }#end for l in 1:L
