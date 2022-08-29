@@ -123,3 +123,16 @@ cbind_3Darray <- function(array)
 }
 
 
+
+
+#' @Title Check mark type for multsusie
+#' @param Y list of matrices
+#' @param min_levres corresponds to the minimum amount of column for a trait to be considered as "functional"
+#' @details return of vector indicating what kind of matrices are stored in the different component of Y. USeful for multSuSiE
+is.functional <- function(Y, min_levres =4){
+  tt <- unlist((lapply(lapply(Y,dim) ,`[[`, 2)))
+  ifelse( tt < 2^min_levres, "univariate", "functional")
+
+}
+
+
