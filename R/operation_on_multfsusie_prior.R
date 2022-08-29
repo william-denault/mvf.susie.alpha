@@ -1,5 +1,5 @@
 
-#' @title Initialize the prior for multsusie method
+#' @title Initialize the prior for multfsusie method
 #'
 #' @description generate list of object corresponding to the parameters of the prior for analysis
 #'
@@ -14,7 +14,7 @@
 #' @importFrom ashr ash
 #'
 #' @export
-init_prior_multsusie <- function(Y,X, v1 , list_indx_lst )
+init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst )
 {
 
     G_prior <-lapply(1:length(Y),  function(k) susiF.alpha::init_prior( Y        = Y[[k]],
