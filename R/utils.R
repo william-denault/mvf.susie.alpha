@@ -131,7 +131,15 @@ cbind_3Darray <- function(array)
 #' @details return of vector indicating what kind of matrices are stored in the different component of Y. USeful for multfSuSiE
 is.functional <- function(Y, min_levres =4){
   tt <- unlist((lapply(lapply(Y,dim) ,`[[`, 2)))
-  ifelse( tt < 2^min_levres, "univariate", "functional")
+  tt2 <- ifelse( tt < 2^min_levres, "univariate", "functional")
+  ncond <- sum( ifelse( tt < 2^min_levres, tt, 1))
+
+  out <- list( mark_type = tt2,
+               dim_mark  =  tt,
+               ncond = ncond)
+
+  attr(out, "class") <- 'multfsusie_data_type'
+  return( out)
 
 }
 

@@ -49,7 +49,7 @@ P = 10
 
 #Choosing which variable will have an effect
 pos1 <- 1
-
+pos2 <- 2
 
 
 
@@ -72,6 +72,7 @@ for ( i in 1:N)
 
 noisy.data[[1]]
 noisy.data[[2]]
+list_dfs  <- list()
 for ( k in 1:length(noisy.data[[1]]))
 {
   list_dfs [[k]]     <- do.call(rbind, lapply(noisy.data, `[[`, k))
@@ -79,49 +80,100 @@ for ( k in 1:length(noisy.data[[1]]))
 
 type_mark <-  is.functional(list_dfs)
 type_mark
-list_dfs  <- list()
+
 list_wdfs <- list()
 list_indx_lst  <-  list()
-for ( k in which(type_mark=="functional"))
+if( "functional" %!in% type_mark$mark_type)
 {
-  list_dfs [[k]]     <- do.call(rbind, lapply(noisy.data, `[[`, k))
-  temp               <- DWT2(list_dfs[[k]])
-  list_wdfs[[k]]     <- cbind( temp$D,temp$C)
-  list_indx_lst[[k]] <- gen_wavelet_indx( log2(ncol(  list_wdfs[[k]]) ))
-
+  Y_f <- NULL
+}else{
+  h <- 1
+  for ( k in which(type_mark$mark_type=="functional"))
+  {
+    temp               <- DWT2(list_dfs[[k]])
+    list_wdfs[[h]]     <- cbind( temp$D,temp$C)
+    list_indx_lst[[h]] <- gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
+    h <- h+1
+  }
+  Y_f <- list_wdfs
+  v1  <- nrow( Y_f [[1]])
 }
-Y_u <-
-Y_f <- list_wdfs
-v1 <- nrow(Y[[1]])
-X <-G
+if("univariate" %!in% type_mark$mark_type)
+{
+  Y_u <- NULL
+}else{
+  Y_u <- do.call( cbind, list_dfs [ which(type_mark$mark_type=="univariate") ])
+  v1  <- nrow(Y_u)
+}
 
+X   <- G
+Y   <- list(Y_u =Y_u,
+            Y_f =Y_f)
 
 G_prior <- init_prior_multfsusie(Y,
                                  X,
                                  v1,
                                  list_indx_lst
                                  )
-multf
 
 
-dwt_data <- lapply(X = noisy.data, FUN = pack_dwt)
+multfsusie.obj <- init_multsusie_obj(L, G_prior, Y,X , type_mark)
 
-#line one in first matrix of dwt_data contain wt transform of condition 1 in ind 1
-plot(dwt_data[[1]][1,], c(wd(noisy.data[[1]][1, ])$D,wd(noisy.data[[1]][1, ])$C[length(wd(noisy.data[[1]][1, ])$C)]))
-
-plot(dwt_data[[1]][2,], c(wd(noisy.data[[1]][2, ])$D,
-                          wd(noisy.data[[1]][2, ])$C[length(wd(noisy.data[[1]][2, ])$C)]))
+update_Y    <-  Y
 
 
+# numerical value to check breaking condition of while
+check <- 1
+h     <- 0
+
+tt   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
+Bhat <- tt$Bhat
+Shat <- tt$Shat #UPDATE. could be nicer
+tpi  <- get_pi(multfsusie.obj ,1)
+tpi$est_pi_u[[1]][1] <-16
+G_prior <- update_prior(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
+
+ class(G_prior$G_prior_f[[1]])
+ class(G_prior$G_prior_u[[1]])
+G_prior$G_prior_u[[1]]$fitted_g$pi[[1]]==16 #good lord it works
+
+effect_estimate= tt
 
 
 
+log_BF.multfsusie_prior <- function( G_prior,effect_estimate ,list_indx_lst)
+{
 
+  if(is.null(G_prior$G_prior_f)){
+    f_logBF <- rep(0,nrow(effect_estimate$res_uni[[1]] ))
+  }else{
+    f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
+      susiF.alpha::log_BF(G_prior$G_prior_f[[k]],
+                          Bhat = effect_estimate$res_f[[k]]$Bhat,
+                          Shat = effect_estimate$res_f[[k]]$Shat,
+                          indx_lst= list_indx_lst[[k]]
+      )
+    )
+    f_logBF <- apply(do.call(rbind, f_logBF),2,sum)
+  }
+  if( is.null(G_prior$G_prior_u)){
+    u_logBF <- rep(0,nrow(effect_estimate$res_f[[1]]$Bhat  ))
+  }else{
+    u_logBF <-  lapply(1:ncol(effect_estimate$res_uni$Bhat),
+                              function(k)
+                                log_BFu(G_prior$G_prior_u[[k]],
+                                        Bhat=  effect_estimate$res_uni$Bhat[,k] ,
+                                        Shat= (effect_estimate$res_uni$Shat[,k])
+                                       )
+                        )
+    u_logBF <- apply(do.call(rbind, u_logBF),2,sum)
+  }
+  out <- f_logBF+u_logBF
+  return(out)
 
-DW_tens <- rearrange( dwt_data, lev_res = lev_res, n_curve=3)
+}
 
-
-dim(DW_tens)
-
-X <- G
-
+EM_out  <- EM_pi(G_prior  = G_prior,
+                 effect_estimate= tt,
+                 list_indx_lst =  list_indx_lst
+)
