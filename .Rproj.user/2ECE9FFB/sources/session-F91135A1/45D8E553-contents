@@ -153,7 +153,7 @@ get_pi.multfsusie <- function(multfsusie.obj, l, ...)
 #'
 #' @export
 
-update_multfsusie_  <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_indx_lst,  ...)
+update_multfsusie  <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_indx_lst,  ...)
 {
 
   if( l > length(multfsusie.obj$est_pi))
@@ -173,7 +173,7 @@ update_multfsusie_  <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
                                        tpi           =  EM_pi$tpi_k)
 
   multfsusie.obj$G_prior <-   update_prior(get_G_prior(multfsusie.obj) , EM_pi$tpi_k  )
-  post_effect <- get_post_effect_multfsusie (G_prior=multfsusie.obj$G_prior ,
+  post_effect <- get_post_effect (G_prior=multfsusie.obj$G_prior ,
                                   effect_estimate,
                                   list_indx_lst )
 
@@ -250,7 +250,7 @@ get_G_prior.multfsusie <- function(multfsusie.obj){
 #'
 #'
 #' @return  an object of the same form as effect_estimate, which corresponds to the posterior mean.
-get_post_effect_multfsusie <- function(G_prior, effect_estimate, list_indx_lst=NULL){
+get_post_effect <- function(G_prior, effect_estimate, list_indx_lst=NULL){
 
   out <- list( res_uni = NULL,
                res_f  = NULL)

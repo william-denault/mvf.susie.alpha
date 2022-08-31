@@ -9,6 +9,8 @@ library(mvf.susie.alpha)
 set.seed(12)
 n_curve=3
 lev_res=5
+#simulate effect covariate
+
 effect1 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
 effect2 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
 verbose=TRUE
@@ -132,7 +134,7 @@ LBF <-  log_BF_tens  ( G_prior, tens_marg, indx_lst)
 res_EM <- EM_pi_mvfsusie(G_prior,
                          tens_marg,
                          indx_lst
-)
+                         )
 EM_pi <- res_EM
 #update the prior
 Y <- DW_tens
@@ -141,7 +143,7 @@ mvfsusie.obj <- mvfsusie_obj
 
 G_prior <-  update_prior_weight_mvfsusie(G_prior,
                                          res_EM$tpi_k
-)
+                                         )
 class(G_prior)
 
 alpha <-  cal_zeta_mvfsusie(  res_EM$lBF)
@@ -161,7 +163,7 @@ plot( update_pi( mvfsusie.obj =  mvfsusie.obj ,
                  l             = 1 ,
                  tpi           =  EM_pi$tpi_k)$est_pi[[1]][[5]],
       EM_pi$tpi_k[[5]]
-)
+      )
 plot( update_prior_weight_mvfsusie (get_G_prior(mvfsusie.obj)
                                     , EM_pi$tpi_k  )[[5]]$fitted_g$pi,
       EM_pi$tpi_k[[5]]
@@ -169,12 +171,12 @@ plot( update_prior_weight_mvfsusie (get_G_prior(mvfsusie.obj)
 
 
 mvfsusie.obj <-  update_mvfsusie (mvfsusie.obj  = mvfsusie_obj ,
-                                  l         = 1,
-                                  EM_pi     = res_EM,
-                                  tens_marg = tens_marg,
-                                  indx_lst  = indx_lst,
-                                  all=FALSE
-)
+                                    l         = 1,
+                                    EM_pi     = res_EM,
+                                    tens_marg = tens_marg,
+                                    indx_lst  = indx_lst,
+                                    all=FALSE
+                                    )
 
 plot( mvfsusie.obj$est_pi[[1]][[5]], res_EM$tpi_k[[5]])
 
@@ -186,12 +188,10 @@ mvfsusie.obj <-  update_mvfsusie (mvfsusie.obj  = mvfsusie_obj ,
                                   EM_pi     = res_EM,
                                   tens_marg = tens_marg,
                                   indx_lst  = indx_lst, all=TRUE
-)
+                                  )
 
 
 mvfsusie.obj$alpha
-
-
 
 
 
