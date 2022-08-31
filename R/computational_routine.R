@@ -798,7 +798,7 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
   }
 
   out <- list(tpi_k = tpi_k,lBF = lBF)
-  class(out) <- c("EM_pi","list")
+  class(out) <- c("EM_pi_multfsusie","list")
   return(out)
 }
 
@@ -1026,3 +1026,25 @@ m_step_u <- function  (L, zeta , ...)
   class(out) <-  "pi_mixture_normal"
   return(out)
 }
+
+#' @title Compute posterior mean for univariate regression
+#' @description Compute posterior mean for univariate regression
+#' @param Bhat  a vector of mean estimate
+#' @param Bhat  a vector of sd estimate
+get_post_mean_u <- function(G_prior, Bhat, Shat)
+{
+  data <-  set_data(Bhat  ,Shat  )
+  return(postmean(get_fitted_g(G_prior),data))
+}
+
+
+#' @title Compute posterior sd for univariate regression
+#' @description Compute posterior sd for univariate regression
+#' @param Bhat  a vector of mean estimate
+#' @param Bhat  a vector of sd estimate
+get_post_sd_u <- function(G_prior, Bhat, Shat)
+{
+  data <-  set_data(Bhat  ,Shat  )
+  return(postsd(get_fitted_g(G_prior),data))
+}
+

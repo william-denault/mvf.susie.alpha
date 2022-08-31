@@ -118,10 +118,10 @@ G_prior <- init_prior_multfsusie(Y,
                                  )
 
 
-multfsusie.obj <- init_multsusie_obj(L, G_prior, Y,X , type_mark)
-
+multfsusie.obj <- init_multfsusie_obj(L, G_prior, Y,X , type_mark)
+class(multfsusie.obj)
 update_Y    <-  Y
-
+l=1
 
 # numerical value to check breaking condition of while
 check <- 1
@@ -147,6 +147,22 @@ EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
                            effect_estimate= tt,
                            list_indx_lst =  list_indx_lst
 )
+EM_pi <-  EM_out
 
+multfsusie.obj <- update_multfsusie(multfsusie.obj   = multfsusie.obj ,
+                                   l               = l,
+                                   EM_pi           = EM_out,
+                                   effect_estimate = effect_estimate,
+                                   list_indx_lst   = list_indx_lst)
+multfsusie.obj$lBF
+multfsusie.obj$alpha
 
-multfsusie.obj <- update_multsusie()
+multfsusie.obj$fitted_uni[[l]]
+multfsusie.obj$fitted_wc[[l]]
+
+update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
+                              l              = l ,
+                              X              = X,
+                              Y              = Y,
+                              list_indx_lst  = list_indx_lst
+                            )

@@ -127,11 +127,7 @@ update_prior.multfsusie_prior <- function(G_prior, tpi, ... ){
 
 
   if (!is.null(G_prior$G_prior_f)){
-    #G_prior$G_prior_f <- lapply( 1:length(G_prior$G_prior_f), function(k) mapply(update_ash_pi ,
-    #                                                                             G_prior$G_prior_f[[k]],
-    ##                                                                              tpi$est_pi_f[[k]],
-    #                                                                             SIMPLIFY = FALSE)
-    #)
+
     G_prior$G_prior_f <- lapply( 1:length(G_prior$G_prior_f), function(k) susiF.alpha::update_prior(
                                                                                  G_prior$G_prior_f[[k]],
                                                                                  tpi$est_pi_f[[k]])
