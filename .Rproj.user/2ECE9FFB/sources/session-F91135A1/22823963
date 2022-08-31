@@ -3,7 +3,7 @@
     "path": "D:/Document/Serieux/Travail/Package/mvf.susie.alpha/R/multfsusie.R",
     "project_path": "R/multfsusie.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "1146758620",
     "contents": "",
     "dirty": false,
     "created": 1661981569434.0,
@@ -13,15 +13,15 @@
         "tempName": "Untitled2",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "34,0",
-        "scrollLine": "0"
+        "cursorPosition": "44,34",
+        "scrollLine": "33"
     },
     "folds": "",
-    "lastKnownWriteTime": 1661982587,
+    "lastKnownWriteTime": 1661985923,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1661982587351,
+    "last_content_update": 1661985923382,
     "read_only": false,
     "read_only_alternatives": []
 }
