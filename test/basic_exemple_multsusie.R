@@ -138,8 +138,6 @@ G_prior$G_prior_u[[1]]$fitted_g$pi[[1]]==16 #good lord it works
 
 effect_estimate= tt
 
-lBF <- log_BF( G_prior,effect_estimate ,list_indx_lst)
-
 
 EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
                            effect_estimate= tt,
@@ -164,3 +162,12 @@ update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
                               Y              = Y,
                               list_indx_lst  = list_indx_lst
                             )
+out <- multfsusie(Y=noisy.data,
+                X=X,
+                L=5,maxit = 100)
+out$alpha
+
+out$fitted_wc
+out$fitted_uni
+
+plot( out$ELBO)

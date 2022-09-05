@@ -29,22 +29,26 @@
 #' @export
 init_multfsusie_obj <- function(L, G_prior, Y,X , type_mark)
 {
-
+  sigma2          <-  list()
   if(!is.null(Y$Y_f)){
   fitted_wc       <-  list()
   fitted_wc2      <-  list()
   n_wac           <-  lapply(lapply(Y$Y_f,dim) ,`[[`, 2)
+  sigma2$sd_f     <-  rep( 1, length(n_wac ))
   }else {
     fitted_wc       <-  NULL
     fitted_wc2      <-  NULL
     n_wac           <-  NULL
+    sigma2$sd_f     <-  NULL
   }
   if(!is.null(Y$Y_u)){
     fitted_uni        <-   list()
     fitted_uni2       <-   list()
+
   }else{
     fitted_uni        <-   NULL
     fitted_uni2       <-   NULL
+    sigma2$sd_u       <-   NULL
   }
   alpha           <-  list()
   alpha_hist      <-  list()
@@ -58,20 +62,22 @@ init_multfsusie_obj <- function(L, G_prior, Y,X , type_mark)
   N               <-  nrow(X)[1]
   n_cond          <-  type_mark$ncond
   P               <-  ncol(X)[2]
-  sigma2          <-  rep(1, length(Y))
   lBF             <-  list()
   KL              <-  rep(NA,L)
   ELBO            <-  c()
+
   for ( l in 1:L )
   {
 
     if(!is.null(Y$Y_f)){
-      fitted_wc[[l]]        <-    lapply( 1:length(n_wac), function(j) rep( 0, n_wac[[j]]))
-      fitted_wc2[[l]]       <-    lapply( 1:length(n_wac), function(j) rep( 0, n_wac[[j]]))
+      fitted_wc[[l]]        <-    lapply( 1:length(n_wac), function(j) matrix( 0,ncol= n_wac[[j]],  nrow = ncol(X)))
+      fitted_wc2[[l]]       <-    lapply( 1:length(n_wac), function(j) rep(  0,ncol= n_wac[[j]],  nrow = ncol(X)))
+      sigma2
     }
     if(!is.null(Y$Y_u)){
-      fitted_uni [[l]]       <-    rep(0, ncol(Y$Y_u))
-      fitted_uni2[[l]]       <-    rep(0, ncol(Y$Y_u))
+      fitted_uni [[l]]       <-    matrix(0, ncol= ncol(Y$Y_u), nrow = ncol(X))
+      fitted_uni2[[l]]       <-     matrix(0, ncol= ncol(Y$Y_u), nrow = ncol(X))
+      sigma2$sd_u            <-   rep( 1, ncol(Y$Y_u))
     }
 
 
@@ -240,6 +246,22 @@ get_G_prior.multfsusie <- function(multfsusie.obj){
 }
 
 
+
+#' @rdname get_lBF
+#'
+#' @method get_lBF multfsusie
+#'
+#' @export get_lBF.multfsusie
+#'
+#' @export
+#'
+get_lBF.multfsusie <- function(multfsusie.obj,l){
+  out <- multfsusie.obj$lBF[[l]]
+  return(out)
+}
+
+
+
 #' @title Compute posterior mean of the fitted effect
 #'
 #' @param G_prior a multfsusie_prior object
@@ -362,7 +384,10 @@ cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,l = l, 
   if( !is.null(Y$Y_u)){
     if(L>1){
       id_L <- (1:L)[ - ( (l%%L)+1) ]#Computing residuals R_{l+1} by removing all the effect except effect l+1
-      update_Y$Y_u   <- Y$Y_u - Reduce("+", lapply(id_L, function(k)pred_partial_u(multfsusie.obj,k,X)))
+      update_Y$Y_u   <- Y$Y_u - Reduce("+", lapply(id_L, function(k)
+                                                  pred_partial_u(multfsusie.obj,k,X)
+                                                  )
+                                       )
 
     }else{
       id_L <- 1
@@ -418,10 +443,235 @@ pred_partial_u <- function( multfsusie.obj, l, X )
 
 
 
+#' @rdname get_post_F
+#'
+#' @method get_post_F multfsusie
+#'
+#' @export get_post_F.multfsusie
+#'
+#' @export
+#'
+get_post_F <- function (multfsusie.obj,l){
+
+  if(missing(l))
+  {
+    if(!is.null(multfsusie.obj$fitted_wc)){
+      out_f <-  lapply(1: length(multfsusie.obj$n_wac) ,
+                       function(k) Reduce("+",
+                                          lapply(1:multfsusie.obj$L,
+                                                 FUN=function(l) multfsusie.obj$alpha[[l]] * multfsusie.obj$fitted_wc[[l]][[k]]
+                                          )
+                       )
+      )
+    }else{
+      out_f <- NULL
+    }
+    if(!is.null(multfsusie.obj$fitted_uni)){
+      out_u <-  Reduce("+",
+                       lapply(1:multfsusie.obj$L,
+                              function(l)
+                                multfsusie.obj$alpha[[l]] * multfsusie.obj$fitted_uni[[l]]
+                       )
+      )
+    }else{
+      out_u <- NULL
+    }
+
+  }else{
+
+      if(!is.null(multfsusie.obj$fitted_wc)){
+              out_f <-  lapply(1: length(multfsusie.obj$n_wac),
+                               function (k) multfsusie.obj$alpha[[l]] * multfsusie.obj$fitted_wc[[l]][[k]]
+                               )
+      }else{
+              out_f <- NULL
+      }
+      if(!is.null(multfsusie.obj$fitted_uni)){
+             out_u <-  multfsusie.obj$alpha[[l]] * multfsusie.obj$fitted_uni[[l]]
+      }else{
+             out_u <- NULL
+      }
+  }
+
+  out_post <- list(post_uni = out_u,
+                   post_f   = out_f
+                   )
+  return(out_post)
+}
 
 
 
 
 
 
+
+
+
+#' @rdname get_post_F2
+#'
+#' @method get_post_F2 multfsusie
+#'
+#' @export get_post_F2.multfsusie
+#'
+#' @export
+#'
+get_post_F2 <- function (multfsusie.obj,l){
+
+  if(missing(l))
+  {
+    if(!is.null(multfsusie.obj$fitted_wc)){
+      out_f <-  lapply(1: length(multfsusie.obj$n_wac) ,
+                       function(k) Reduce("+",
+                                          lapply(1:multfsusie.obj$L,
+                                                 FUN=function(l) multfsusie.obj$alpha[[l]] *(multfsusie.obj$sigma2$sd_f[k]+ multfsusie.obj$fitted_wc2[[l]][[k]])
+                                          )
+                       )
+      )
+    }else{
+      out_f <- NULL
+    }
+    if(!is.null(multfsusie.obj$fitted_uni)){
+      out_u <-  Reduce("+",
+                       lapply(1:multfsusie.obj$L,
+                              function(l)
+                                multfsusie.obj$alpha[[l]] *sweep(multfsusie.obj$fitted_uni2[[l]],2,multfsusie.obj$sigma2$sd_u,"+"  )
+                       )
+      )
+    }else{
+      out_u <- NULL
+    }
+
+  }else{
+
+    if(!is.null(multfsusie.obj$fitted_wc)){
+      out_f <-  lapply(1: length(multfsusie.obj$n_wac),
+                       function (k)multfsusie.obj$alpha[[l]] *(multfsusie.obj$sigma2$sd_f[k]+ multfsusie.obj$fitted_wc2[[l]][[k]])
+
+                      )
+    }else{
+      out_f <- NULL
+    }
+    if(!is.null(multfsusie.obj$fitted_uni)){
+      out_u <-  multfsusie.obj$alpha[[l]] *sweep(multfsusie.obj$fitted_uni2[[l]],2,multfsusie.obj$sigma2$sd_u,"+"  )
+    }else{
+      out_u <- NULL
+    }
+  }
+
+  out_post <- list(post_uni_sd2 = out_u,
+                   post_f_sd2    = out_f
+  )
+  return(out_post)
+}
+
+
+
+#' @rdname get_ER2
+#'
+#' @method get_ER2 multfsusie
+#'
+#' @export get_ER2.multfsusie
+#'
+#' @export
+
+get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
+  postF <- get_post_F(multfsusie.obj )# J by N matrix
+  #Xr_L = t(X%*% postF)
+  postF2 <- get_post_F2(multfsusie.obj ) # Posterior second moment.
+
+  ER2 <-  list()
+  if(! is.null(Y$Y_u)){
+
+    ER2$uni <-  do.call( c,
+                          lapply(1:ncol( Y$Y_u),
+                                function(k) sum((Y$Y_u[,k] - X%*%postF$post_uni[,k] )^2)  -sum(postF$post_uni[,k])^2 + sum(postF2$post_uni[,k])
+                          )
+    )
+
+
+  }else
+  {
+    ER2$uni <- NULL
+  }
+  if( !is.null(Y$Y_f))
+  {
+    ER2$f <-  do.call( c,
+                         lapply(1:length( Y$Y_f),
+                                function(k) sum((Y$Y_f[[k]] - X%*%postF$post_f[[k]])^2)  -sum(postF$post_f[[k]])^2 + sum(postF2$post_f[[k]])
+                         )
+    )
+
+  }else{
+    ER2$f <- NULL
+  }
+  return(ER2)
+}
+
+
+
+
+
+
+
+#' @rdname update_KL
+#'
+#' @method update_KL multfsusie
+#'
+#' @export update_KL.multfsusie
+#'
+#' @export
+#'
+
+update_KL.multfsusie <- function(multfsusie.obj, Y, X, D, C , indx_lst, ...)
+{
+  multfsusie.obj$KL <-  do.call(c,lapply(1:multfsusie.obj$L,FUN=function(l) cal_KL_l(multfsusie.obj, l, Y, X, list_indx_lst)))
+  return( multfsusie.obj)
+}
+
+
+
+#'@title Update multfsusie log Bayes factor
+#'
+#'@param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#'@param  ELBO new ELBO value
+#'@return multfsusie object
+#'@export
+
+update_ELBO  <- function    (multfsusie.obj,ELBO , ...)
+  UseMethod("update_ELBO")
+
+
+#' @rdname update_ELBO
+#'
+#' @method update_ELBO multfsusie
+#'
+#' @export update_ELBO.multfsusie
+#'
+#' @export
+#'
+
+update_ELBO.multfsusie <- function    (multfsusie.obj,ELBO, ...)
+{
+
+  multfsusie.obj$ELBO <- c(multfsusie.obj$ELBO,ELBO)
+  return(multfsusie.obj)
+}
+
+
+
+
+#' @rdname update_residual_variance
+#'
+#' @method update_residual_variance multfsusie
+#'
+#' @export update_residual_variance.multfsusie
+#'
+#' @export
+#'
+
+update_residual_variance.multfsusie <- function(multfsusie.obj,sigma2)
+{
+  multfsusie.obj$sigma2 <- sigma2
+  return(multfsusie.obj)
+}
 

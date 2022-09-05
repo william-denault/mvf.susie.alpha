@@ -1048,3 +1048,33 @@ get_post_sd_u <- function(G_prior, Bhat, Shat)
   return(postsd(get_fitted_g(G_prior),data))
 }
 
+
+
+
+
+#' @rdname estimate_residual_variance
+#'
+#' @method estimate_residual_variance susiF
+#'
+#' @export estimate_residual_variance.susiF
+#'
+#' @export
+estimate_residual_variance.multfsusie <- function(multfsusie.obj,Y,X, ... )
+{
+
+  R2 <- get_ER2( multfsusie.obj, Y, X)
+  est_sd2 <-  list()
+  if(!is.null(R2$uni))
+  {
+    est_sd2$sd_u <-  R2$uni/nrow(Y$Y_u)
+  }
+  if(!is.null(R2$f)){
+    n <- rep(nrow(Y$Y_f[[1]]), length(Y$Y_f) )
+    t <- do.call( c, lapply(1: length(Y$Y_f), function(k) ncol(Y$Y_f[[k]] ) ))
+    est_sd2$sd_f <- R2$f / (n*t)
+  }
+
+  out <-  est_sd2
+  return(out)
+}
+

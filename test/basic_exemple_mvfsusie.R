@@ -201,5 +201,6 @@ out <- mvfsusie(Y=noisy.data,
 out$alpha
 out <- mvfsusie(Y=noisy.data,
                 X=X,
-                L=3,maxit = 10)
+                L=7,maxit = 30)
 out$lBF
+out$alpha
