@@ -77,24 +77,21 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     v1  <- nrow(Y_u)
   }
 
-  Y   <- list(Y_u =Y_u,
-              Y_f =Y_f)
+  Y_data   <- list(Y_u =Y_u,
+                   Y_f =Y_f)
   v1 <- rep( 1, nrow(X))
-  G_prior <- init_prior_multfsusie(Y,
+  G_prior <- init_prior_multfsusie(Y=Y_data ,
                                    X,
                                    v1,
                                    list_indx_lst
   )
-
-
-  multfsusie.obj <- init_multfsusie_obj(L, G_prior, Y,X , type_mark)
+  multfsusie.obj <- init_multfsusie_obj(L, G_prior, Y_data,X , type_mark)
 
 
   # numerical value to check breaking condition of while
   check <- 1
   h     <- 0
-  update_Y    <-  Y
-  l=1
+  update_Y    <-  Y_data
 
   # numerical value to check breaking condition of while
   check <- 1
@@ -104,14 +101,13 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   {
 
     effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
-
-    G_prior <- update_prior(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
+    tpi               <- get_pi(multfsusie.obj,1)
+    G_prior <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
 
     EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
-                               effect_estimate= tt,
+                               effect_estimate= effect_estimate,
                                list_indx_lst =  list_indx_lst
     )
-    EM_pi <-  EM_out
 
     multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
                                         l               = 1,
@@ -119,15 +115,17 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                         effect_estimate = effect_estimate,
                                         list_indx_lst   = list_indx_lst)
 
-    #susiF.obj <- update_ELBO(susiF.obj,
-    #                         get_objective( susiF.obj = susiF.obj,
-    #                                       Y         = Y_f,
-    #                                       X         = X,
-    #                                       D         = W$D,
-    #                                       C         = W$C,
-    #                                       indx_lst  = indx_lst
-    #                        )
-    #)
+
+    multfsusie.obj <- update_ELBO(multfsusie.obj,
+                                  get_objective( multfsusie.obj = multfsusie.obj,
+                                                 Y         = Y_data ,
+                                                 X         = X,
+                                                 list_indx_lst  = indx_lst
+                                  )
+    )
+
+    sigma2    <- estimate_residual_variance(multfsusie.obj,Y=Y_data,X)
+    multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
 
   }else{
     while(check >tol & (h/L) <maxit)
@@ -137,13 +135,13 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
         h <- h+1
         effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
-
+        tpi               <- get_pi(multfsusie.obj,l)
         G_prior <- update_prior(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
 
-        EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
-                                   effect_estimate= effect_estimate,
-                                   list_indx_lst =  list_indx_lst
-        )
+        EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
+                                   effect_estimate = effect_estimate,
+                                   list_indx_lst   =  list_indx_lst
+                                  )
 
 
         multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
@@ -156,7 +154,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
         update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
                                       l              = l ,
                                       X              = X,
-                                      Y              = Y,
+                                      Y              = Y_data,
                                       list_indx_lst  = list_indx_lst
         )
 
@@ -165,22 +163,20 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
       }#end for l in 1:L
 
 
-      # multfsusie.obj <- update_ELBO(multfsusie.obj,
-      #                          get_objective( multfsusie.obj = multfsusie.obj,
-      #                                         Y         = Y_f,
-      #                                       X         = X,
-      #                                       D         = W$D,
-      ##                                       C         = W$C,
-      #                                      indx_lst  = indx_lst
-      #                        )
-      #)
+      sigma2         <- estimate_residual_variance(multfsusie.obj,Y=Y_data,X)
+      multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
 
-      #sigma2    <- estimate_residual_variance(multfsusie.obj,Y=Y_f,X)
-      #multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
+        multfsusie.obj <- update_ELBO(multfsusie.obj,
+                                 get_objective( multfsusie.obj = multfsusie.obj,
+                                                Y              = Y_data ,
+                                                X              = X,
+                                            list_indx_lst      = indx_lst
+                              )
+      )
 
       if(length(multfsusie.obj$ELBO)>1 )#update parameter convergence,
       {
-        check <- diff(multfsusie.obj$ELBO)[(length( multfsusie.obj$ELBO )-1)]
+        #check <- abs(diff(multfsusie.obj$ELBO)[(length( multfsusie.obj$ELBO )-1)])
 
       }
     }#end while

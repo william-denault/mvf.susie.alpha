@@ -7,7 +7,7 @@ library(mvtnorm)
 library(mixsqp)
 library(susiF.alpha)
 library(mvf.susie.alpha)
-set.seed(12)
+set.seed(123)
 L=2
 
 min_levres <- 4
@@ -162,12 +162,14 @@ update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
                               Y              = Y,
                               list_indx_lst  = list_indx_lst
                             )
+
+
+library(mvf.susie.alpha)
 out <- multfsusie(Y=noisy.data,
-                X=X,
-                L=5,maxit = 100)
+                X=G,
+                L=3,maxit = 20)
 out$alpha
 
-out$fitted_wc
-out$fitted_uni
+
 
 plot( out$ELBO)

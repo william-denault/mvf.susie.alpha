@@ -442,6 +442,10 @@ pred_partial_u <- function( multfsusie.obj, l, X )
 }
 
 
+get_post_F  <- function(multfsusie.obj,l, ...)
+  UseMethod("get_post_F")
+
+
 
 #' @rdname get_post_F
 #'
@@ -451,7 +455,7 @@ pred_partial_u <- function( multfsusie.obj, l, X )
 #'
 #' @export
 #'
-get_post_F <- function (multfsusie.obj,l){
+get_post_F.multfsusie <- function (multfsusie.obj,l){
 
   if(missing(l))
   {
@@ -505,6 +509,12 @@ get_post_F <- function (multfsusie.obj,l){
 
 
 
+get_post_F2  <- function(multfsusie.obj,l, ...)
+  UseMethod("get_post_F2")
+
+
+
+
 
 
 #' @rdname get_post_F2
@@ -515,7 +525,7 @@ get_post_F <- function (multfsusie.obj,l){
 #'
 #' @export
 #'
-get_post_F2 <- function (multfsusie.obj,l){
+get_post_F2.multfsusie <- function (multfsusie.obj,l){
 
   if(missing(l))
   {
@@ -657,6 +667,8 @@ update_ELBO.multfsusie <- function    (multfsusie.obj,ELBO, ...)
   return(multfsusie.obj)
 }
 
+update_residual_variance  <- function(multfsusie.obj,sigma2, ...)
+  UseMethod("update_residual_variance")
 
 
 
