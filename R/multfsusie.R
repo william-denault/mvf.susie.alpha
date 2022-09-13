@@ -42,7 +42,15 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                        min.purity=0.5,
                        data.driven=FALSE, #Still some problem with data.driven =TRUE
                        verbose= FALSE,
-                       all = FALSE){
+                       all = FALSE,
+                       control_mixsqp =  list(
+                                              eps = 1e-3,
+                                              numiter.em = 40,
+                                              verbose = FALSE
+                                             )
+                      )
+
+{
 
   list_dfs  <- list()
   for ( k in 1:length(Y[[1]]))
@@ -106,8 +114,9 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
     EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
                                effect_estimate= effect_estimate,
-                               list_indx_lst =  list_indx_lst
-    )
+                               list_indx_lst =  list_indx_lst,
+                               control_mixsqp =  control_mixsqp
+                              )
 
     multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
                                         l               = 1,
@@ -140,7 +149,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
         EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
                                    effect_estimate = effect_estimate,
-                                   list_indx_lst   =  list_indx_lst
+                                   list_indx_lst   = list_indx_lst,
+                                   control_mixsqp  = control_mixsqp
                                   )
 
 
@@ -163,22 +173,28 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
       }#end for l in 1:L
 
 
-      sigma2         <- estimate_residual_variance(multfsusie.obj,Y=Y_data,X)
-      multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
+       sigma2         <- estimate_residual_variance.multfsusie(multfsusie.obj,Y=Y_data,X)
+       multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
 
-        multfsusie.obj <- update_ELBO(multfsusie.obj,
-                                 get_objective( multfsusie.obj = multfsusie.obj,
-                                                Y              = Y_data ,
-                                                X              = X,
-                                            list_indx_lst      = indx_lst
-                              )
-      )
 
-      if(length(multfsusie.obj$ELBO)>1 )#update parameter convergence,
-      {
-        #check <- abs(diff(multfsusie.obj$ELBO)[(length( multfsusie.obj$ELBO )-1)])
+       multfsusie.obj <- update_KL(multfsusie.obj, Y_data, X, list_indx_lst)
 
-      }
+       if(h>3){
+         multfsusie.obj <- update_ELBO(multfsusie.obj,
+                                       get_objective( multfsusie.obj = multfsusie.obj,
+                                                      Y              = Y_data ,
+                                                      X              = X,
+                                                      list_indx_lst   = list_indx_lst
+                                       )
+         )
+
+         if(length(multfsusie.obj$ELBO)>1 )#update parameter convergence,
+         {
+           check <- abs(diff(multfsusie.obj$ELBO)[(length( multfsusie.obj$ELBO )-1)])
+
+         }
+       }
+
     }#end while
   }
 

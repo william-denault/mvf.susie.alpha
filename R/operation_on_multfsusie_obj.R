@@ -97,7 +97,7 @@ init_multfsusie_obj <- function(L, G_prior, Y,X , type_mark)
                lBF             = lBF,
                KL              = KL,
                ELBO            = ELBO,
-               ind_fitted_val  =  ind_fitted_val,
+               ind_fitted_val  = ind_fitted_val,
                G_prior         = G_prior,
                alpha_hist      = alpha_hist,
                N               = N,
@@ -115,6 +115,9 @@ init_multfsusie_obj <- function(L, G_prior, Y,X , type_mark)
   return(obj)
 }
 
+
+get_pi <- function(multfsusie.obj,l, ...)
+  UseMethod("get_pi")
 
 
 
@@ -193,7 +196,7 @@ update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
                                              function(k) post_effect$res_f[[k]]$Bhat)
 
        multfsusie.obj$fitted_wc2[[l]]  <- lapply(1: length( post_effect$res_f) ,
-                                            function(k) post_effect$res_f[[k]]$Shat)
+                                            function(k) (post_effect$res_f[[k]]$Shat^2))
 
       }
 
@@ -314,11 +317,11 @@ list_post_mean_sd <- function(G_prior, Bhat,Shat,  indx_lst)
   out <- list (Bhat= post_mat_mean( G_prior ,
                                     Bhat,
                                     Shat,
-                                   indx_lst ),
-               Shat=post_mat_mean( G_prior ,
-                                   Bhat,
-                                   Shat,
-                                   indx_lst )
+                                    indx_lst ),
+               Shat= post_mat_sd(   G_prior ,
+                                    Bhat,
+                                    Shat,
+                                    indx_lst )
                )
   return(out)
 
@@ -533,7 +536,7 @@ get_post_F2.multfsusie <- function (multfsusie.obj,l){
       out_f <-  lapply(1: length(multfsusie.obj$n_wac) ,
                        function(k) Reduce("+",
                                           lapply(1:multfsusie.obj$L,
-                                                 FUN=function(l) multfsusie.obj$alpha[[l]] *(multfsusie.obj$sigma2$sd_f[k]+ multfsusie.obj$fitted_wc2[[l]][[k]])
+                                                 FUN=function(l) multfsusie.obj$alpha[[l]] *(multfsusie.obj$fitted_wc[[l]][[k]]^2+ multfsusie.obj$fitted_wc2[[l]][[k]])
                                           )
                        )
       )
@@ -544,7 +547,7 @@ get_post_F2.multfsusie <- function (multfsusie.obj,l){
       out_u <-  Reduce("+",
                        lapply(1:multfsusie.obj$L,
                               function(l)
-                                multfsusie.obj$alpha[[l]] *sweep(multfsusie.obj$fitted_uni2[[l]],2,multfsusie.obj$sigma2$sd_u,"+"  )
+                                multfsusie.obj$alpha[[l]] * (multfsusie.obj$fitted_uni2[[l]]^2+multfsusie.obj$fitted_uni[[l]]^2    )
                        )
       )
     }else{
@@ -555,14 +558,16 @@ get_post_F2.multfsusie <- function (multfsusie.obj,l){
 
     if(!is.null(multfsusie.obj$fitted_wc)){
       out_f <-  lapply(1: length(multfsusie.obj$n_wac),
-                       function (k)multfsusie.obj$alpha[[l]] *(multfsusie.obj$sigma2$sd_f[k]+ multfsusie.obj$fitted_wc2[[l]][[k]])
+                       function (k)  multfsusie.obj$alpha[[l]] *(multfsusie.obj$fitted_wc[[l]][[k]]^2+ multfsusie.obj$fitted_wc2[[l]][[k]])
+                       )
 
-                      )
+
     }else{
       out_f <- NULL
     }
     if(!is.null(multfsusie.obj$fitted_uni)){
-      out_u <-  multfsusie.obj$alpha[[l]] *sweep(multfsusie.obj$fitted_uni2[[l]],2,multfsusie.obj$sigma2$sd_u,"+"  )
+      out_u <-   multfsusie.obj$alpha[[l]] * (multfsusie.obj$fitted_uni2[[l]]^2+multfsusie.obj$fitted_uni[[l]]^2    )
+
     }else{
       out_u <- NULL
     }
@@ -594,7 +599,7 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
 
     ER2$uni <-  do.call( c,
                           lapply(1:ncol( Y$Y_u),
-                                function(k) sum((Y$Y_u[,k] - X%*%postF$post_uni[,k] )^2)  -sum(postF$post_uni[,k])^2 + sum(postF2$post_uni[,k])
+                                function(k) sum((Y$Y_u[,k] - X%*%postF$post_uni[,k] )^2) -sum( postF$post_uni_sd2[,k]^2) +sum( postF2$post_uni_sd2[,k])
                           )
     )
 
@@ -607,7 +612,7 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
   {
     ER2$f <-  do.call( c,
                          lapply(1:length( Y$Y_f),
-                                function(k) sum((Y$Y_f[[k]] - X%*%postF$post_f[[k]])^2)  -sum(postF$post_f[[k]])^2 + sum(postF2$post_f[[k]])
+                                function(k) sum((Y$Y_f[[k]] - X%*%postF$post_f[[k]])^2)  -sum(postF$post_f[[k]]^2) + sum( postF2$post_f_sd2 [[k]])
                          )
     )
 
@@ -632,9 +637,11 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
 #' @export
 #'
 
-update_KL.multfsusie <- function(multfsusie.obj, Y, X, D, C , indx_lst, ...)
+update_KL.multfsusie <- function(multfsusie.obj, Y, X , list_indx_lst, ...)
 {
-  multfsusie.obj$KL <-  do.call(c,lapply(1:multfsusie.obj$L,FUN=function(l) cal_KL_l(multfsusie.obj, l, Y, X, list_indx_lst)))
+  multfsusie.obj$KL <-  do.call(c,lapply(1:multfsusie.obj$L,
+                                         FUN=function(l)
+                                           cal_KL_l(multfsusie.obj, l, Y, X, list_indx_lst)))
   return( multfsusie.obj)
 }
 

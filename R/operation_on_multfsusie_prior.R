@@ -55,6 +55,14 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL )
 
 }
 
+
+
+
+
+get_pi_G_prior <- function(G_prior, ...)
+  UseMethod("get_pi_G_prior")
+
+
 #'@title Extract mixture component from a multfsusie_prior
 #'
 #'@param G_prior an object of class "multfsusie_prior"

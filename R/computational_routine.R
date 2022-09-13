@@ -380,7 +380,7 @@ EM_pi_mvfsusie <- function(G_prior,tens_marg, indx_lst,
   {
     # E step----
     oldloglik <- cal_lik_mvfsusie (lBF,zeta)
-    zeta      <- cal_zeta_mvfsusie(lBF)
+    #zeta      <- cal_zeta_mvfsusie(lBF)
 
     # M step ----
     tpi_k   <- m_step_mvfsusie(Lmat,zeta,indx_lst)
@@ -505,11 +505,11 @@ scale_m_step_mvfsusie <- function(L,s,zeta, indx_lst)
   tlength <- dim(L[[s]])[2]-1
   mixsqp_out <- mixsqp( L[[s]] ,
                         w,
-                        #x0 = c(1, rep(1e-30,  tlength )),
+                        #x0 = c(1, rep(1e-1,  tlength )),
                         log=TRUE ,
                         control = list(
-                          eps = 1e-6,
-                          numiter.em = 20,
+                          eps = 1e-3,
+                          numiter.em = 40,
                           verbose=FALSE
                         )
   )
@@ -759,7 +759,8 @@ get_post_tens <- function(G_prior, tens_marg, indx_lst, all =FALSE)
 #'
 EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
                            max_step = 100,
-                           espsilon = 0.0001)
+                           espsilon = 0.0001,
+                           control_mixsqp )
 {
 
 
@@ -788,10 +789,11 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
     zeta      <- cal_zeta(lBF)
 
     # M step ----
-    tpi_k   <- m_step_multsusie(L_mat,zeta,list_indx_lst)
+    tpi_k   <- m_step_multsusie(L_mat,zeta,list_indx_lst, control_mixsqp = control_mixsqp )
     G_prior <- update_prior(G_prior,tpi_k)
 
     lBF <- log_BF(G_prior,effect_estimate ,list_indx_lst)
+    lBF <- ifelse(lBF==-Inf,0,lBF)
     newloglik <- susiF.alpha::cal_lik(lBF,zeta)
     k <- k+1
 
@@ -819,17 +821,18 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
 
 log_BFu <- function (G_prior, Bhat, Shat, ...) {
 
-    m    <- G_prior
-    tt   <- rep(0,length(Shat))
-    pi_k <- m$fitted_g$pi
-    sd_k <- m$fitted_g$sd
 
+
+    tt   <- rep(0,length(Shat))
+    pi_k <- G_prior$fitted_g$pi
+    sd_k <- G_prior$fitted_g$sd
     # Speed Gain: could potential skip the one that are exactly zero.
-    for (k in 1:length(m$fitted_g$pi)){
-      tt <- tt + pi_k[k] * dnorm(Bhat ,sd = sqrt(sd_k[k]^2 + Shat ^2))
+    for (o in 1:length(G_prior$fitted_g$pi)){
+      tt <- tt + pi_k[o] * dnorm(Bhat ,sd = sqrt(sd_k[o]^2 + Shat ^2))
     }
 
     out <-  (log(tt) - dnorm(Bhat ,sd = Shat ,log = TRUE))
+
   return(out)
 }
 
@@ -854,9 +857,9 @@ log_BF.multfsusie_prior <- function( G_prior,effect_estimate ,list_indx_lst)
   }else{
     u_logBF <-  lapply(1:ncol(effect_estimate$res_uni$Bhat),
                        function(k)
-                         log_BFu(G_prior$G_prior_u[[k]],
+                         log_BFu(G_prior= G_prior$G_prior_u[[k]],
                                  Bhat=  effect_estimate$res_uni$Bhat[,k] ,
-                                 Shat= (effect_estimate$res_uni$Shat[,k])
+                                 Shat=  effect_estimate$res_uni$Shat[,k]
                          )
     )
     u_logBF <- apply(do.call(rbind, u_logBF),2,sum)
@@ -865,7 +868,7 @@ log_BF.multfsusie_prior <- function( G_prior,effect_estimate ,list_indx_lst)
     f_logBF <- rep(0,nrow(effect_estimate$res_uni[[1]] ))
   }else{
     f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
-      susiF.alpha::log_BF(G_prior$G_prior_f[[k]],
+      susiF.alpha::log_BF(G_prior= G_prior$G_prior_f[[k]],
                           Bhat = effect_estimate$res_f[[k]]$Bhat,
                           Shat = effect_estimate$res_f[[k]]$Shat,
                           indx_lst= list_indx_lst[[k]]
@@ -959,7 +962,7 @@ L_mixsq_u <- function(G_prior, Bhat, Shat){
 #'
 #' @export
 
-m_step_multsusie <- function(L_mat, zeta, list_indx_lst, ...)
+m_step_multsusie <- function(L_mat, zeta, list_indx_lst,  control_mixsqp,...)
 {
   #setting the weight to fit the weighted ash problem
   if (is.null(L_mat$L_mat_u)){
@@ -967,7 +970,8 @@ m_step_multsusie <- function(L_mat, zeta, list_indx_lst, ...)
   }else{
     est_pi_u <- lapply(1:length(L_mat$L_mat_u) ,
                        function(k) m_step_u (L_mat$L_mat_u[[k]],
-                                          zeta )
+                                          zeta,
+                                          control_mixsqp = control_mixsqp )
     )
   }
   if (is.null(L_mat$L_mat_f)){
@@ -976,7 +980,8 @@ m_step_multsusie <- function(L_mat, zeta, list_indx_lst, ...)
     est_pi_f <- lapply(1:length(L_mat$L_mat_f) ,
                        function(k) m_step(L_mat$L_mat_f[[k]],
                                           zeta,
-                                          list_indx_lst[[k]]
+                                          list_indx_lst[[k]],
+                                          control_mixsqp = control_mixsqp
                                           )
                       )
   }
@@ -1008,19 +1013,15 @@ m_step_multsusie <- function(L_mat, zeta, list_indx_lst, ...)
 #'
 #' @export
 
-m_step_u <- function  (L, zeta , ...)
+m_step_u <- function  (L, zeta , control_mixsqp, ...)
 {
   w <-zeta # setting the weight to fit the weighted ash problem
   tlength <- ncol(L) - 1
   mixsqp_out <- mixsqp(L,
                        w,
                        log = TRUE,
-                       x0 = c(1,rep(1e-30,tlength)), # put starting point close to sparse solution
-                       control = list(
-                         eps = 1e-6,
-                         numiter.em = 20,
-                         verbose = FALSE
-                       )
+                       x0 = c(0.5,rep(1e-1,tlength)), # put starting point close to sparse solution
+                       control = control_mixsqp
   )
   out <- mixsqp_out$x
   class(out) <-  "pi_mixture_normal"

@@ -38,16 +38,16 @@ cal_KL_l.multfsusie <- function(multfsusie.obj, l, Y, X, list_indx_lst, ...)
 
 
   R_l <- cal_partial_resid(
-    multfsusie.obj = multfsusie.obj,
-    l         =  (l-1 ) ,
-    X         =  X,
-    Y         =  Y,
-    list_indx_lst   =  list_indx_lst
+                           multfsusie.obj = multfsusie.obj,
+                                l         =  (l-1),
+                                X         =  X,
+                                Y         =  Y,
+                          list_indx_lst   =  list_indx_lst
   )
 
 
 
-  out <-  - loglik_SFR(multfsusie.obj, l,Y,X)+ loglik_SFR_post(multfsusie.obj, l,R_l,X)
+  out <-   loglik_SFR(multfsusie.obj, l,Y,X)- loglik_SFR_post(multfsusie.obj, l,R_l,X)
   return(out)
 }
 
@@ -112,7 +112,7 @@ loglik_SFR.multfsusie <- function(multfsusie.obj, l,Y ,X )
     )
   }
 
-  loglik <- lBF_model + sum_over_effect
+  loglik <- lBF_model #+ sum_over_effect
 
   return(loglik)
 }
@@ -154,7 +154,7 @@ loglik_SFR_post.multfsusie <- function(multfsusie.obj, l,Y,X)
   {
     n <- nrow(Y$Y_u)
     out <-  Reduce("+",lapply(1: ncol(Y$Y_u),
-                              function(k) -0.5*n*log(2*pi*s2$sd_u[k]) - 0.5/s2$sd_u[k]*(sum(Y$Y_u[,k]*Y$Y_u[,k])- 2*sum(Y$Y_u[,k]*X%*%EF$post_uni[,k])+ sum(attr(X,"d") * EF2$post_uni[,k]))
+                              function(k) -0.5*n*log(2*pi*s2$sd_u[k]) - 0.5/s2$sd_u[k]*(sum(Y$Y_u[,k]*Y$Y_u[,k])- 2*sum(Y$Y_u[,k]*X%*%EF$post_uni[,k])+ sum(attr(X,"d") * EF2$post_uni_sd2[,k]))
     )
     )
   }
@@ -249,8 +249,7 @@ get_objective <- function    (multfsusie.obj,  Y, X, D, C , indx_lst,  ...)
 #' @export
 get_objective.multfsusie <- function    (multfsusie.obj, Y, X , list_indx_lst,  ...)
 {
-  multfsusie.obj <- update_KL(multfsusie.obj, Y, X, indx_lst)
-  out <- Eloglik(multfsusie.obj, Y, X) - sum(multfsusie.obj$KL)
+    out <- Eloglik(multfsusie.obj, Y, X) - sum(multfsusie.obj$KL)
   return(out)
 
 }
