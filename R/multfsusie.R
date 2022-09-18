@@ -43,8 +43,9 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                        data.driven=FALSE, #Still some problem with data.driven =TRUE
                        verbose= FALSE,
                        all = FALSE,
+                       init_pi0_w= 0.999,
                        control_mixsqp =  list(
-                                              eps = 1e-3,
+                                              eps = 1e-6,
                                               numiter.em = 40,
                                               verbose = FALSE
                                              )
@@ -115,6 +116,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
                                effect_estimate= effect_estimate,
                                list_indx_lst =  list_indx_lst,
+                               init_pi0_w= init_pi0_w,
                                control_mixsqp =  control_mixsqp
                               )
 
@@ -150,6 +152,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
         EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
                                    effect_estimate = effect_estimate,
                                    list_indx_lst   = list_indx_lst,
+                                   init_pi0_w= init_pi0_w,
                                    control_mixsqp  = control_mixsqp
                                   )
 

@@ -47,7 +47,7 @@ cal_KL_l.multfsusie <- function(multfsusie.obj, l, Y, X, list_indx_lst, ...)
 
 
 
-  out <-  - loglik_SFR(multfsusie.obj, l,Y,X)- loglik_SFR_post(multfsusie.obj, l,R_l,X)
+  out <-  - loglik_SFR(multfsusie.obj, l,Y,X)+ loglik_SFR_post(multfsusie.obj, l,R_l,X)
   return(out)
 }
 
@@ -112,7 +112,7 @@ loglik_SFR.multfsusie <- function(multfsusie.obj, l,Y ,X )
     )
   }
 
-  loglik <- lBF_model# + sum_over_effect
+  loglik <- lBF_model + sum_over_effect
 
   return(loglik)
 }

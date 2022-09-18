@@ -508,7 +508,7 @@ scale_m_step_mvfsusie <- function(L,s,zeta, indx_lst)
                         #x0 = c(1, rep(1e-1,  tlength )),
                         log=TRUE ,
                         control = list(
-                          eps = 1e-3,
+                          eps = 1e-6,
                           numiter.em = 40,
                           verbose=FALSE
                         )
@@ -760,6 +760,7 @@ get_post_tens <- function(G_prior, tens_marg, indx_lst, all =FALSE)
 EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
                            max_step = 100,
                            espsilon = 0.0001,
+                           init_pi0_w= 0.9,
                            control_mixsqp )
 {
 
@@ -789,7 +790,11 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
     zeta      <- cal_zeta(lBF)
 
     # M step ----
-    tpi_k   <- m_step_multsusie(L_mat,zeta,list_indx_lst, control_mixsqp = control_mixsqp )
+    tpi_k   <- m_step_multsusie(L_mat,
+                                zeta,
+                                list_indx_lst,
+                                init_pi0_w= init_pi0_w,
+                                control_mixsqp = control_mixsqp )
     G_prior <- update_prior(G_prior,tpi_k)
 
     lBF <- log_BF(G_prior,effect_estimate ,list_indx_lst)
@@ -962,7 +967,7 @@ L_mixsq_u <- function(G_prior, Bhat, Shat){
 #'
 #' @export
 
-m_step_multsusie <- function(L_mat, zeta, list_indx_lst,  control_mixsqp,...)
+m_step_multsusie <- function(L_mat, zeta, list_indx_lst, init_pi0_w,  control_mixsqp,...)
 {
   #setting the weight to fit the weighted ash problem
   if (is.null(L_mat$L_mat_u)){
@@ -971,6 +976,7 @@ m_step_multsusie <- function(L_mat, zeta, list_indx_lst,  control_mixsqp,...)
     est_pi_u <- lapply(1:length(L_mat$L_mat_u) ,
                        function(k) m_step_u (L_mat$L_mat_u[[k]],
                                           zeta,
+                                          init_pi0_w= init_pi0_w,
                                           control_mixsqp = control_mixsqp )
     )
   }
@@ -981,6 +987,7 @@ m_step_multsusie <- function(L_mat, zeta, list_indx_lst,  control_mixsqp,...)
                        function(k) m_step(L_mat$L_mat_f[[k]],
                                           zeta,
                                           list_indx_lst[[k]],
+                                          init_pi0_w= init_pi0_w,
                                           control_mixsqp = control_mixsqp
                                           )
                       )
@@ -1013,14 +1020,14 @@ m_step_multsusie <- function(L_mat, zeta, list_indx_lst,  control_mixsqp,...)
 #'
 #' @export
 
-m_step_u <- function  (L, zeta , control_mixsqp, ...)
+m_step_u <- function  (L, zeta , init_pi0_w , control_mixsqp, ...)
 {
   w <-zeta # setting the weight to fit the weighted ash problem
   tlength <- ncol(L) - 1
   mixsqp_out <- mixsqp(L,
                        w,
                        log = TRUE,
-                       x0 = c(0.5,rep(1e-1,tlength)), # put starting point close to sparse solution
+                       x0 = c(init_pi0_w ,rep(1e-12,tlength)), # put starting point close to sparse solution
                        control = control_mixsqp
   )
   out <- mixsqp_out$x

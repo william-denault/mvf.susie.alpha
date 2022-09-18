@@ -300,10 +300,12 @@ multfsusie.obj$est_pi[[3]]
 library(mvf.susie.alpha)
 out <- multfsusie(Y=noisy.data,
                 X=G,
-                L=6,maxit = 20)
+                L=10,maxit = 20,
+                init_pi0_w = 1)
 out$alpha
 
 
 
 plot( out$ELBO)
-
+diff(out$ELBO)
+plot( out$ELBO[-1])
