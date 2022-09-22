@@ -1,0 +1,43 @@
+L <- L_mat$L_mat_f[[1]]
+indx_lst <- list_indx_lst[[1]]
+
+L2  <- lapply(1:length(indx_lst  ) , 
+              function(s)
+                cal_L_mixsq_s_per_scale (G_prior=G_prior$G_prior_f[[1]],
+                                         s,
+                                         Bhat=effect_estimate$res_f[[1]]$Bhat, 
+                                         Shat=effect_estimate$res_f[[1]]$Shat,
+                                         indx_lst)
+)
+
+
+s=7
+Bhat=effect_estimate$res_f[[1]]$Bhat[pos1,indx_lst[[s]]]
+Shat=effect_estimate$res_f[[1]]$Shat[pos1,indx_lst[[s]]]
+
+
+hist(Bhat/Shat)
+w <- rep(zeta,length(indx_lst[[s]] ))
+tlength <- dim(L[[s]])[2]-1
+mixsqp_out <- mixsqp( L[[s]] ,
+                      w,
+                      x0 = c(init_pi0_w, rep(1e-12,  tlength )),
+                      log=TRUE ,
+                      control = control_mixsqp
+)
+
+ mixsqp_out$x
+ 
+ 
+ w <- rep(zeta,length(indx_lst[[s]] ))
+ tlength <- dim(L2[[s]])[2]-1
+ mixsqp_out <- mixsqp( L[[s]] ,
+                       w,
+                       x0 = c(init_pi0_w, rep(1e-12,  tlength )),
+                       log=TRUE ,
+                       control = control_mixsqp
+ )
+ 
+ mixsqp_out$x
+ effect_estimate$res_f[[1]]$Bhat[pos1,-128]
+

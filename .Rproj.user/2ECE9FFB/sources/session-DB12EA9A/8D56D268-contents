@@ -1,0 +1,43 @@
+lapply(1:ncol(effect_estimate$res_uni$Bhat),
+       function(k) log_BFu(G_prior= G_prior$G_prior_u[[k]],
+                           Bhat=  effect_estimate$res_uni$Bhat[,k] ,
+                           Shat= (effect_estimate$res_uni$Shat[,k])
+       )
+)
+k=3
+log_BFu(G_prior$G_prior_u[[k]],
+        Bhat=  effect_estimate$res_uni$Bhat[,k] ,
+        Shat= (effect_estimate$res_uni$Shat[,k])
+)
+
+
+k=3
+m    <- G_prior$G_prior_u[[k]]
+Bhat <-  effect_estimate$res_uni$Bhat[,k]
+Shat <-  effect_estimate$res_uni$Shat[,k]
+Bhat/Shat
+
+tt   <- rep(0,length(Shat))
+pi_k <- m$fitted_g$pi
+sd_k <- m$fitted_g$sd
+# Speed Gain: could potential skip the one that are exactly zero.
+for (o in 1:length(m$fitted_g$pi)){
+  tt <- tt + pi_k[o] * dnorm(Bhat ,sd = sqrt(sd_k[o]^2 + Shat ^2))
+}
+
+out <-  (log(tt) - dnorm(Bhat ,sd = Shat ,log = TRUE))
+out
+
+k=1
+
+tout <- log_BFu  ( G_prior$G_prior_u[[k]], 
+                     effect_estimate$res_uni$Bhat[,k],
+                     effect_estimate$res_uni$Shat[,k])
+plot(out,tout)
+
+
+
+
+
+
+plot(X[,9], update_Y$Y_f[[2]])
