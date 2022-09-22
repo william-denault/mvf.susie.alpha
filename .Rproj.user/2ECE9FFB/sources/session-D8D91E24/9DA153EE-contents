@@ -80,7 +80,7 @@ noisy.data[[2]]
 library(mvf.susie.alpha)
 out <- multfsusie(Y=noisy.data,
                   X=G,
-                  L=10,maxit = 20,
+                  L=5,maxit = 20,
                   init_pi0_w = 1)
 out$alpha
 plot(out$ELBO)

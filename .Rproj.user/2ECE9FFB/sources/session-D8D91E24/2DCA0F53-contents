@@ -806,9 +806,9 @@ out_prep.multfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
 
   if(filter.cs)
   {
-    multfsusie.obj <- check_cs(multfsusie.obj)
+    multfsusie.obj <- check_cs(multfsusie.obj,min.purity=0.5,X=X)
   }
- return( multfsusie.obj)
+  return( multfsusie.obj)
 }
 
 
@@ -817,13 +817,13 @@ out_prep.multfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
 #'
 #' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
 #' @param min.purity minimal purity within a CS
-#'
+#' @param X matrix of covariate
 #' @return a multfsusie.obj without "dummy" credible s
 #'
 #' @export
 #'
 #'
-check_cs <- function(multfsusie.obj, min.purity=0.5,...)
+check_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
   UseMethod("check_cs")
 
 
@@ -837,7 +837,7 @@ check_cs <- function(multfsusie.obj, min.purity=0.5,...)
 #' @export
 #'
 
-check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5 )
+check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X )
 {
   dummy.cs<- c()
 
