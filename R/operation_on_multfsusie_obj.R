@@ -694,3 +694,317 @@ update_residual_variance.multfsusie <- function(multfsusie.obj,sigma2)
   return(multfsusie.obj)
 }
 
+
+
+
+#'@title Update multfsusie by computing PiP
+#'
+#'@param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#'@return multfsusie object
+#'@export
+
+update_cal_pip  <- function (multfsusie.obj, ...)
+  UseMethod("update_cal_pip")
+
+#' @rdname update_cal_pip
+#'
+#' @method update_cal_pip multfsusie
+#'
+#' @export update_cal_pip.multfsusie
+#'
+#' @export
+#'
+
+update_cal_pip.multfsusie <- function (multfsusie.obj, ...)
+{
+  if(sum( is.na(unlist(multfsusie.obj$alpha))))
+  {
+    stop("Error: some alpha value not updated, please update alpha value first")
+  }
+  tpip <- list()
+  for ( l in 1:multfsusie.obj$L)
+  {
+    tpip[[l]] <- rep(1, lengths(multfsusie.obj$alpha)[[l]])-multfsusie.obj$alpha[[l]]
+  }
+  multfsusie.obj$pip <- 1-  apply( do.call(rbind,tpip),2, prod)
+  return(multfsusie.obj)
+}
+
+
+
+
+#'@title Update multfsusie by computing credible sets
+#'
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#'
+#' @param cov_lev numeric between 0 and 1, corresponding to the expected level of coverage of the cs if not specified set to 0.95
+#'
+#' @return multfsusie object
+#'
+#' @export
+
+update_cal_cs  <- function(multfsusie.obj, cov_lev=0.95, ...)
+  UseMethod("update_cal_cs")
+
+#' @rdname update_cal_cs
+#'
+#' @method update_cal_cs multfsusie
+#'
+#' @export update_cal_cs.multfsusie
+#'
+#' @export
+#'
+
+update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95)
+{
+  if(sum( is.na(unlist(multfsusie.obj$alpha))))
+  {
+    stop("Error: some alpha value not updated, please update alpha value first")
+  }
+  for ( l in 1:multfsusie.obj$L)
+  {
+    temp        <- multfsusie.obj$alpha[[l]]
+    temp_cumsum <- cumsum( temp[order(temp, decreasing =TRUE)])
+    max_indx_cs <- min(which( temp_cumsum >cov_lev ))
+    multfsusie.obj$cs[[l]]  <- order(temp, decreasing = TRUE)[1:max_indx_cs ]
+
+  }
+
+  return(multfsusie.obj)
+}
+
+
+out_prep.mvfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
+{
+  multfsusie.obj <-  update_cal_pip(multfsusie.obj)
+  multfsusie.obj <-  update_cal_cs(multfsusie.obj)
+  multfsusie.obj$cs
+  if(filter.cs)
+  {
+    multfsusie.obj <- check_cs(multfsusie.obj)
+  }
+  multfsusie.obj$cs
+}
+
+
+#'
+#' @title Check purity credible sets
+#'
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param min.purity minimal purity within a CS
+#'
+#' @return a multfsusie.obj without "dummy" credible s
+#'
+#' @export
+#'
+#'
+check_cs <- function(multfsusie.obj, min.purity=0.5,...)
+  UseMethod("check_cs")
+
+
+
+#' @rdname check_cs
+#'
+#' @method check_cs multfsusie
+#'
+#' @export check_cs.multfsusie
+#'
+#' @export
+#'
+
+check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5 )
+{
+  dummy.cs<- c()
+
+  if(is.null(multfsusie.obj$G_prior$G_prior_u)){
+    for (l in 1:multfsusie.obj$L )
+    {
+
+      if (length(multfsusie.obj$cs[[l]])==1)
+      {
+
+        if(  mean( sapply(
+          sapply(multfsusie.obj$est_pi[[l]]$est_pi_f,"[[",1)
+          ,"[[",1)
+        )==1
+        ){# check if the estimated prior is exactly 0
+
+          dummy.cs<-  c( dummy.cs,l)
+        }
+
+      }else{
+
+        if( min(cor( X[,multfsusie.obj$cs[[l]]])) <  min.purity){#check if the purity of cs l is lower that min.purity
+
+          dummy.cs<-  c( dummy.cs,l)
+
+        }else{
+          if(  mean( sapply(
+            sapply(multfsusie.obj$est_pi[[l]]$est_pi_f,"[[",1)
+            ,"[[",1)
+          )==1
+          ){
+            dummy.cs<-  c( dummy.cs,l)
+          }
+
+        }
+      }
+
+    }
+  }
+
+
+
+
+  if(is.null(multfsusie.obj$G_prior$G_prior_f))
+  {
+    for (l in 1:multfsusie.obj$L )
+    {
+
+      if (length(multfsusie.obj$cs[[l]])==1)
+      {
+
+        if(  mean( sapply(
+                    sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
+                    ,"[[",1)
+                    )==1
+                  ){# check if the estimated prior is exactly 0
+
+          dummy.cs<-  c( dummy.cs,l)
+        }
+
+      }else{
+
+        if( min(cor( X[,multfsusie.obj$cs[[l]]])) <  min.purity){#check if the purity of cs l is lower that min.purity
+
+          dummy.cs<-  c( dummy.cs,l)
+
+        }else{
+          if( mean( sapply(
+                            sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
+                          ,"[[",1)
+                   )==1){
+            dummy.cs<-  c( dummy.cs,l)
+          }
+
+        }
+      }
+
+    }
+
+  }
+
+
+    if ((!is.null(multfsusie.obj$G_prior$G_prior_f))& (!is.null(multfsusie.obj$G_prior$G_prior_u))){
+      for (l in 1:multfsusie.obj$L )
+      {
+
+        if (length(multfsusie.obj$cs[[l]])==1)
+        {
+
+          m_u <-mean( sapply(
+            sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
+            ,"[[",1)
+          )
+          m_f <- mean( sapply(
+            sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
+            ,"[[",1)
+          )
+
+          if( mean(c(m_u,m_f))==1){# check if the estimated prior is exactly 0
+
+            dummy.cs<-  c( dummy.cs,l)
+          }
+
+        }else{
+
+          if( min(cor( X[,multfsusie.obj$cs[[l]]])) <  min.purity){#check if the purity of cs l is lower that min.purity
+
+            dummy.cs<-  c( dummy.cs,l)
+
+          }else{
+            m_u <-mean( sapply(
+              sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
+              ,"[[",1)
+            )
+            m_f <- mean( sapply(
+              sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
+              ,"[[",1)
+            )
+
+            if( mean(c(m_u,m_f))==1){
+              dummy.cs<-  c( dummy.cs,l)
+            }
+
+          }
+        }
+
+    }
+
+  }
+    if( length(dummy.cs)==0)
+    {
+      return(multfsusie.obj)
+    }else{
+      if(length(dummy.cs)==multfsusie.obj$L) #avoid returning empty results
+      {
+        dummy.cs <- dummy.cs[-length(dummy.cs)]
+      }
+      multfsusie.obj <- discard_cs( multfsusie.obj,cs=dummy.cs)
+      return(multfsusie.obj)
+    }
+
+}
+
+
+
+
+
+
+#' @title Discard credible sets
+#'
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#'
+#' @param cs vector of integer containing the credible sets to discard
+#'
+#' @return a multfsusie.obj without "dummy" credible sets
+#'
+#' @export
+
+
+
+discard_cs <- function(multfsusie.obj, cs,...)
+  UseMethod("discard_cs")
+
+
+
+#' @rdname discard_cs
+#'
+#' @method discard_cs multfsusie
+#'
+#' @export discard_cs.multfsusie
+#'
+#' @export
+#'
+
+discard_cs.multfsusie <- function(multfsusie.obj, cs)
+{
+
+  multfsusie.obj$alpha       <-  multfsusie.obj$alpha[ -cs]
+  multfsusie.obj$lBF         <-  multfsusie.obj$lBF[ -cs]
+  if(!is.null(multfsusie.obj$G_prior$G_prior_f)){
+    multfsusie.obj$fitted_wc   <-  multfsusie.obj$fitted_wc[ -cs]
+    multfsusie.obj$fitted_wc2  <-  multfsusie.obj$fitted_wc2[ -cs]
+  }
+  if(!is.null(multfsusie.obj$G_prior$G_prior_u)){
+    multfsusie.obj$fitted_uni  <-  multfsusie.obj$fitted_uni[-cs]
+    multfsusie.obj$fitted_uni2 <-  multfsusie.obj$fitted_uni2[-cs]
+  }
+
+  multfsusie.obj$cs          <-  multfsusie.obj$cs[ -cs]
+  multfsusie.obj$est_pi           <-  multfsusie.obj$est_pi[ -cs]
+  multfsusie.obj$L                <-  multfsusie.obj$L -length(cs)
+  multfsusie.obj$est_pi      <- multfsusie.obj$est_pi[ -cs]
+  return(multfsusie.obj)
+}
+

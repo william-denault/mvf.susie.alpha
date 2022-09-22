@@ -43,6 +43,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                        data.driven=FALSE, #Still some problem with data.driven =TRUE
                        verbose= FALSE,
                        all = FALSE,
+                       filter.cs =TRUE,
                        init_pi0_w= 0.999,
                        control_mixsqp =  list(
                                               eps = 1e-6,
@@ -203,12 +204,12 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
 
   #preparing output
-  #multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,
-  #                      Y          = Y,
-  #                      X          = X,
-  #                      indx_lst   = indx_lst,
-  #                     filter.cs  = filter.cs
-  # )
+   multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,
+                         Y          = Y_data,
+                         X          = X,
+                         list_indx_lst   = list_indx_lst,
+                         filter.cs  = filter.cs
+    )
   return(multfsusie.obj)
 
 }
