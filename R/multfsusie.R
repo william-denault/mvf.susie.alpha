@@ -103,6 +103,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   if(data.format=="list_df"){
 
     h <- 1
+    list_wdfs <- list()
+    list_indx_lst  <-  list()
     for ( k in 1:length(Y$Y_f))
     {
       temp               <- DWT2(Y$Y_f[[k]])
