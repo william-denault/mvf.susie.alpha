@@ -84,7 +84,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     {
       temp               <- DWT2(list_dfs[[k]])
       list_wdfs[[h]]     <- cbind( temp$D,temp$C)
-      list_indx_lst[[h]] <- gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
+      list_indx_lst[[h]] <- susiF.alpha::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
       h <- h+1
     }
     Y_f <- list_wdfs
