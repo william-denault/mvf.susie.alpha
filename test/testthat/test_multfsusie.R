@@ -22,10 +22,11 @@ beta1       <- 1
 pos1 <- 5
 noisy.data  <- list()
 
-
+low_wc=NULL
 G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
 beta1       <- 1
-
+backfit=TRUE
+greedy =TRUE
 
 
 noisy.data  <- list()
@@ -106,7 +107,9 @@ if("univariate" %!in% type_mark$mark_type)
 Y_data   <- list(Y_u =Y_u,
                  Y_f =Y_f)
 
-
+X <- susiF.alpha:::colScale(X)
+# centering input
+Y_data <- multi_array_colScale(Y_data, scale=FALSE)
 test_that("Y_u and Y_f should be not NULL ",
           {
             expect_equal( !is.null(Y_data$Y_u),TRUE)
@@ -117,10 +120,11 @@ test_that("Y_u and Y_f should be not NULL ",
 
 
 
-G_prior <- init_prior_multfsusie(Y=Y_data ,
-                                 X,
-                                 v1,
-                                 list_indx_lst
+G_prior <- init_prior_multfsusie( Y=Y_data ,
+                                 X=X,
+                                 v1=v1,
+                                 list_indx_lst=list_indx_lst,
+                                 lowc_wc= low_wc
 )
 
 test_that("G_prior object should have the following classes ",
@@ -133,10 +137,12 @@ test_that("G_prior object should have the following classes ",
           }
 )
 L=3
-multfsusie.obj <- init_multfsusie_obj(L, G_prior, Y_data,X , type_mark)
+multfsusie.obj <- init_multfsusie_obj(L_max = 3, G_prior, Y_data,X , type_mark,
+                                      greedy = greedy, backfit=backfit)
 test_that("multfsusie internal prior to be equal to ",
           {
-            multfsusie.obj <- init_multfsusie_obj(L, G_prior, Y_data,X , type_mark)
+            multfsusie.obj <- init_multfsusie_obj(L_max = 3, G_prior, Y_data,X , type_mark,
+                                                  greedy = greedy, backfit=backfit)
 
             expect_equal(get_G_prior (multfsusie.obj ),  G_prior)
 

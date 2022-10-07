@@ -143,4 +143,16 @@ is.functional <- function(Y, min_levres =4){
 
 }
 
+multi_array_colScale <- function(Y, scale=FALSE){
+
+  if( !is.null(Y$Y_u))
+  {
+    Y$Y_u <- susiF.alpha:::colScale   (Y$Y_u,scale=FALSE)
+  }
+  if(!is.null(Y$Y_f)){
+    Y$Y_f <- lapply( 1:length(Y$Y_f), function(k)  susiF.alpha:::colScale(Y$Y_f[[k]],scale=FALSE) )
+  }
+
+ return( Y)
+}
 

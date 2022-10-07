@@ -1,14 +1,243 @@
 
+#' @rdname cal_partial_resid
+#'
+#' @method cal_partial_resid multfsusie
+#'
+#' @export cal_partial_resid.multfsusie
+#'
+#' @export
+#'
+
+
+cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,l = l, X = X,Y = Y,list_indx_lst  = list_indx_lst){
+
+  L <- multfsusie.obj$L
+
+  update_Y <- list(Y_u=NULL,
+                   Y_f=NULL)
+
+  if( !is.null(Y$Y_u)){
+    if(L>1){
+      id_L <- (1:L)[ - ( (l%%L)+1) ]#Computing residuals R_{l+1} by removing all the effect except effect l+1
+      update_Y$Y_u   <- Y$Y_u - Reduce("+", lapply(id_L, function(k)
+        pred_partial_u(multfsusie.obj,k,X)
+      )
+      )
+
+    }else{
+      id_L <- 1
+      update_Y$Y_u   <- Y$Y_u - pred_partial_u(multfsusie.obj,1,X)
+    }
+  }
+  if(!is.null(Y$Y_f)){
+    update_Y$Y_f   <-   lapply(1:length(Y$Y_f),function(k)   cal_partial_resid_sub(multfsusie.obj,
+                                                                                   l=l,
+                                                                                   X=X,
+                                                                                   D= Y$Y_f[[k]][,-list_indx_lst[[k]][[length(list_indx_lst[[k]])]]],
+                                                                                   C= Y$Y_f[[k]][,list_indx_lst[[k]][[length(list_indx_lst[[k]])]]],
+                                                                                   indx_lst = list_indx_lst[[k]],
+                                                                                   cord=k
+    )
+    )
+
+  }
+
+
+  return(update_Y)
+
+}
+
+
+cal_partial_resid_sub <- function( multfsusie.obj, l, X, D, C, indx_lst,cord){
+  L <- multfsusie.obj$L
+  if(L>1){
+    id_L <- (1:L)[ - ( (l%%L)+1) ]#Computing residuals R_{l+1} by removing all the effect except effect l+1
+
+
+    update_D  <-  D - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% (multfsusie.obj$fitted_wc[[l]][[cord]][,-indx_lst[[length(indx_lst)]]])   ) )
+    update_C  <-  C - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% multfsusie.obj$fitted_wc[[l]][[cord]][,indx_lst[[length(indx_lst)]]] ) )
+    update_Y  <- cbind(  update_D, update_C)
+  }else{
+    id_L <- 1
+
+
+    update_D  <-  D - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% (multfsusie.obj$fitted_wc[[l]][[cord]][,-indx_lst[[length(indx_lst)]]])   ) )
+    update_C  <-  C - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% multfsusie.obj$fitted_wc[[l]][[cord]][,indx_lst[[length(indx_lst)]]] ) )
+    update_Y  <- cbind(  update_D, update_C)
+  }
+  return(update_Y)
+
+}
+
+
+
+#'
+#' @title Check purity credible sets
+#'
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param min.purity minimal purity within a CS
+#' @param X matrix of covariate
+#' @return a multfsusie.obj without "dummy" credible s
+#'
+#' @export
+#'
+#'
+check_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
+  UseMethod("check_cs")
+
+
+
+#' @rdname check_cs
+#'
+#' @method check_cs multfsusie
+#'
+#' @export check_cs.multfsusie
+#'
+#' @export
+#'
+
+check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X )
+{
+
+
+  dummy.cs <- which_dummy_cs(multfsusie.obj, min.purity=min.purity,X)
+
+
+  if( length(dummy.cs)==0)
+  {
+    return(multfsusie.obj)
+  }else{
+    if(length(dummy.cs)==multfsusie.obj$L) #avoid returning empty results
+    {
+      dummy.cs <- dummy.cs[-length(dummy.cs)]
+    }
+    multfsusie.obj <- discard_cs( multfsusie.obj,cs=dummy.cs, out_prep= TRUE)
+    return(multfsusie.obj)
+  }
+
+
+}
+
+
+
+
+
+
+#' @title Discard credible sets
+#'
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#'
+#' @param cs vector of integer containing the credible sets to discard
+#'
+#' @return a multfsusie.obj without "dummy" credible sets
+#'
+#' @export
+
+
+
+discard_cs <- function(multfsusie.obj, cs,...)
+  UseMethod("discard_cs")
+
+
+
+#' @rdname discard_cs
+#'
+#' @method discard_cs multfsusie
+#'
+#' @export discard_cs.multfsusie
+#'
+#' @export
+#'
+
+discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE)
+{
+
+  multfsusie.obj$alpha       <-  multfsusie.obj$alpha[ -cs]
+  multfsusie.obj$lBF         <-  multfsusie.obj$lBF[ -cs]
+  if(!is.null(multfsusie.obj$G_prior$G_prior_f)){
+    multfsusie.obj$fitted_wc   <-  multfsusie.obj$fitted_wc[ -cs]
+    multfsusie.obj$fitted_wc2  <-  multfsusie.obj$fitted_wc2[ -cs]
+  }
+  if(!is.null(multfsusie.obj$G_prior$G_prior_u)){
+    multfsusie.obj$fitted_uni  <-  multfsusie.obj$fitted_uni[-cs]
+    multfsusie.obj$fitted_uni2 <-  multfsusie.obj$fitted_uni2[-cs]
+  }
+
+
+  if(out_prep){
+    #multfsusie.obj$fitted_func <-  multfsusie.obj$fitted_func[ -cs]
+  }else{
+    multfsusie.obj$greedy_backfit_update <- TRUE
+    multfsusie.obj$KL                    <- multfsusie.obj$KL[ -cs]
+    multfsusie.obj$ELBO                  <- c()
+  }
+
+  multfsusie.obj$cs          <-  multfsusie.obj$cs[ -cs]
+  multfsusie.obj$est_pi           <-  multfsusie.obj$est_pi[ -cs]
+  multfsusie.obj$L                <-  multfsusie.obj$L -length(cs)
+  multfsusie.obj$est_pi      <- multfsusie.obj$est_pi[ -cs]
+  return(multfsusie.obj)
+}
+
+
+
+
+#' @title Expand multfsusie.obj by adding L_extra effect
+#'
+#' @param multfsusie.obj a multfsusie.obj
+#'
+#' @param L_extra numeric a number of effect to add
+#'
+#' @return a multfsusie.obj a L_extra effect. Note the the number of effect of the multfsusie.obj cannot exceed the number the user upper bound
+expand_multfsusie_obj <- function(multfsusie.obj,L_extra)
+{
+  L_extra <- ifelse ( max(multfsusie.obj$L_max - (multfsusie.obj$L+L_extra),0 ) >0.1,#check if we are adding more effect that maximum specified by user
+                      L_extra,
+                      abs(multfsusie.obj$L_max -(multfsusie.obj$L+L_extra))
+  )
+  if( L_extra==0){
+    return(multfsusie.obj)
+  }else{
+    L_old <- multfsusie.obj$L
+    L_new <- multfsusie.obj$L+L_extra
+    multfsusie.obj$L <- ifelse(L_new<(multfsusie.obj$P+1),L_new,P)
+
+    for ( l in (L_old+1):multfsusie.obj$L )
+    {
+      multfsusie.obj$fitted_wc[[l]]        <-  lapply(1:length(multfsusie.obj$fitted_wc[[1]]),
+                                                      function (k) 0*multfsusie.obj$fitted_wc[[1]][k])
+      multfsusie.obj$fitted_wc2[[l]]       <-   lapply(1:length(multfsusie.obj$fitted_wc[[1]]),
+                                                       function (k) (0*multfsusie.obj$fitted_wc2[[1]][k] +1))
+      multfsusie.obj$alpha [[l]]           <-  rep(0, length(multfsusie.obj$alpha [[1]]))
+      multfsusie.obj$cs[[l]]               <-  list()
+      multfsusie.obj$est_pi [[l]]          <-  multfsusie.obj$est_pi[[1]]
+      #multfsusie.obj$est_sd [[l]]          <-  multfsusie.obj$est_sd[[1]]
+      multfsusie.obj$lBF[[l]]              <-  rep(NA, length( multfsusie.obj$lBF[[1]]))
+      multfsusie.obj$KL                    <- rep(NA,multfsusie.obj$L)
+      multfsusie.obj$ELBO                  <- c()
+    }
+    multfsusie.obj$n_expand <- multfsusie.obj$n_expand+1
+    multfsusie.obj$greedy_backfit_update <- TRUE
+    return(multfsusie.obj)
+  }
+
+}
+
+
+
 #' @title Initialize a multsusie object
 #'
-#' @param L number of non zero coefficients An L-vector containing the indices of the
+#' @param L_max upper bound on the number of non zero coefficients An L-vector containing the indices of the
 #'   nonzero coefficients.
+#'
 #'
 #' @param G_prior prior object defined by init_prior_multsusie function
 #'
 #' @param Y list of matrices of outcomes
 #'
 #' @param X Matrix of covariates
+#'
+#' @param L_start number of effect to start with
 #' @pama type_mark an object generated by \code{\link{is.functional}} function
 #'
 #' @return A list with the following elements
@@ -27,7 +256,7 @@
 #' \item{ELBO}{ The evidence lower bound}
 #' \item{lfsr_wc}{Local fasle sign rate of the fitted wavelet coefficients}
 #' @export
-init_multfsusie_obj <- function(L, G_prior, Y,X , type_mark)
+init_multfsusie_obj <- function(L_max, G_prior, Y,X, type_mark,L_start,greedy,backfit )
 {
   sigma2          <-  list()
   if(!is.null(Y$Y_f)){
@@ -57,15 +286,21 @@ init_multfsusie_obj <- function(L, G_prior, Y,X , type_mark)
   pip             <-  rep(0, dim(X)[2])
   est_pi          <-  list()
   est_sd          <-  list()
-  L               <-  L
+  L_max           <-  L_max
+  L               <-  min(3,L_max)
   G_prior         <-  G_prior
   N               <-  nrow(X)[1]
   n_cond          <-  type_mark$ncond
-  P               <-  ncol(X)[2]
+  P               <-  ncol(X)
   lBF             <-  list()
   KL              <-  rep(NA,L)
   ELBO            <-  c()
-
+  mean_X          <- attr(X, "scaled:center")
+  csd_X           <- attr(X, "scaled:scale")
+  n_expand        <- 0 #number of greedy expansion
+  greedy          <- greedy
+  backfit         <- backfit
+  greedy_backfit_update <- FALSE
   for ( l in 1:L )
   {
 
@@ -109,11 +344,20 @@ init_multfsusie_obj <- function(L, G_prior, Y,X , type_mark)
                pip             = pip,
                est_pi          = est_pi,
                est_sd          = est_sd,
-               L               = L)
+               L               = L,
+               L_max           = L_max,
+               greedy          = greedy,
+               backfit         = backfit,
+               greedy_backfit_update=greedy_backfit_update)
 
   class(obj) <- "multfsusie"
   return(obj)
 }
+
+
+
+
+
 
 
 get_pi <- function(multfsusie.obj,l, ...)
@@ -145,94 +389,6 @@ get_pi.multfsusie <- function(multfsusie.obj, l, ...)
 }
 
 
-
-
-
-#'@title Update  multfsusie object using the output of EM_pi
-#'
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj }} function
-#'
-#' @param l integer larger or equal to 1. Corresponds to the effect to be accessed
-#'
-#' @param EM_pi an object of the class "EM_pi" generated by the function \code\link{EM_pi_multfsusie}}
-#' @param effect_estimate a list of marginal association generated by \code{cal_Bhat_Shat_multsusie}
-#' @param list_indx_lst list of list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution
-#'
-#' @return multfsusie object
-#'
-#' @export
-
-update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_indx_lst,  ...)
-{
-
-  if( l > length(multfsusie.obj$est_pi))
-  {
-    stop("Error trying to access mixture proportion")
-  }
-  if( l < 1)
-  {
-    stop("Error l should be larger ")
-  }
-  if(  "EM_pi_multfsusie"  %!in%  class(EM_pi)  )
-  {
-    stop("Error EM_pi should be of the class EM_pi_multfsusie")
-  }
-  multfsusie.obj         <-   update_pi( multfsusie.obj =  multfsusie.obj ,
-                                       l             =  l ,
-                                       tpi           =  EM_pi$tpi_k)
-
-  multfsusie.obj$G_prior <-   update_prior(get_G_prior(multfsusie.obj) , EM_pi$tpi_k  )
-  post_effect <- get_post_effect_multfsusie (G_prior=multfsusie.obj$G_prior ,
-                                  effect_estimate,
-                                  list_indx_lst )
-
-  if(!is.null(post_effect$res_uni)){
-    multfsusie.obj$ fitted_uni[[l]]        <-   post_effect$res_u$Bhat
-    multfsusie.obj$ fitted_uni2[[l]]       <-   post_effect$res_u$Shat
-  }
-
-  if(!is.null(post_effect$res_f)){
-       multfsusie.obj$fitted_wc[[l]]   <-  lapply(1: length( post_effect$res_f) ,
-                                             function(k) post_effect$res_f[[k]]$Bhat)
-
-       multfsusie.obj$fitted_wc2[[l]]  <- lapply(1: length( post_effect$res_f) ,
-                                            function(k) (post_effect$res_f[[k]]$Shat^2))
-
-      }
-
-  new_alpha      <- cal_zeta (  EM_pi$lBF)
-  multfsusie.obj <- update_alpha(multfsusie.obj, l, new_alpha)
-  multfsusie.obj <- update_lBF(multfsusie.obj, l, EM_pi$lBF)
-
-  return(multfsusie.obj)
-}
-
-
-#' @rdname update_pi
-#'
-#' @method update_pi multfsusie
-#'
-#' @export update_pi.multfsusie
-#'
-#' @export
-#'
-update_pi.multfsusie <- function( multfsusie.obj, l, tpi, ...)
-{
-
-  if( l > length(multfsusie.obj$est_pi))
-  {
-    stop("Error trying to access mixture proportion")
-  }
-  if( l < 1)
-  {
-    stop("Error l should be larger ")
-  }
-
-  multfsusie.obj$est_pi[[l]] <- tpi
-  out <- multfsusie.obj
-  class(out) <- "multfsusie"
-  return(out)
-}
 
 
 #' @rdname get_G_prior
@@ -271,11 +427,12 @@ get_lBF.multfsusie <- function(multfsusie.obj,l){
 #'
 #' @param effect_estimate an object generated by \link{\code{cal_Bhat_Shat_multfsusie }}
 #' @param list_indx_lst list of list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution
+#' @param lowc_wc
 #'
 #'
 #'
 #' @return  an object of the same form as effect_estimate, which corresponds to the posterior mean.
-get_post_effect_multfsusie <- function(G_prior, effect_estimate, list_indx_lst=NULL){
+get_post_effect_multfsusie <- function(G_prior, effect_estimate, list_indx_lst=NULL, lowc_wc = NULL){
 
   out <- list( res_uni = NULL,
                res_f  = NULL)
@@ -297,7 +454,8 @@ get_post_effect_multfsusie <- function(G_prior, effect_estimate, list_indx_lst=N
    out$res_f <- lapply( 1:length(G_prior$G_prior_f), function(k)list_post_mean_sd(G_prior$G_prior_f[[k]],
                                                                effect_estimate$res_f[[k]]$Bhat,
                                                                effect_estimate$res_f[[k]]$Shat,
-                                                               list_indx_lst[[k]])
+                                                               list_indx_lst[[k]],
+                                                               lowc_wc= lowc_wc)
                         )
   }
   return( out)
@@ -305,144 +463,6 @@ get_post_effect_multfsusie <- function(G_prior, effect_estimate, list_indx_lst=N
 
 
 
-#' @title formatting function for output of posterior quantities
-#' @description formatting function for output of posterior quantities
-#' @param G_prior a mixutre_per_scale prior
-#' @param  Bhat matrix of estimated mean
-#' @param Shat matrix of estimated sd
-#'
-
-list_post_mean_sd <- function(G_prior, Bhat,Shat,  indx_lst)
-{
-  out <- list (Bhat= post_mat_mean( G_prior ,
-                                    Bhat,
-                                    Shat,
-                                    indx_lst ),
-               Shat= post_mat_sd(   G_prior ,
-                                    Bhat,
-                                    Shat,
-                                    indx_lst )
-               )
-  return(out)
-
-}
-
-
-
-
-
-#' @rdname update_alpha
-#'
-#' @method update_alpha multfsusie
-#'
-#' @export update_alpha.multfsusie
-#'
-#' @export
-#'
-update_alpha.multfsusie <-  function(multfsusie.obj, l, alpha, ... )
-{
-  multfsusie.obj$alpha[[l]] <- alpha
-  multfsusie.obj$alpha_hist[[ (length(multfsusie.obj$alpha_hist)+1)  ]] <- alpha
-  return( multfsusie.obj)
-}
-
-#' @rdname update_lBF
-#'
-#' @method update_lBF multfsusie
-#'
-#' @export update_lBF.multfsusie
-#'
-#' @export
-#'
-
-update_lBF.multfsusie <- function    (multfsusie.obj,l, lBF, ...)
-{
-  if(l> multfsusie.obj$L)
-  {
-    stop("Error: trying to update more effects than the number of specified effect")
-  }
-
-  multfsusie.obj$lBF[[l]] <- lBF
-  return(multfsusie.obj)
-}
-
-
-#' @rdname cal_partial_resid
-#'
-#' @method cal_partial_resid multfsusie
-#'
-#' @export cal_partial_resid.multfsusie
-#'
-#' @export
-#'
-
-
-cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,l = l, X = X,Y = Y,list_indx_lst  = list_indx_lst){
-
-  L <- multfsusie.obj$L
-
-  update_Y <- list(Y_u=NULL,
-                  Y_f=NULL)
-
-  if( !is.null(Y$Y_u)){
-    if(L>1){
-      id_L <- (1:L)[ - ( (l%%L)+1) ]#Computing residuals R_{l+1} by removing all the effect except effect l+1
-      update_Y$Y_u   <- Y$Y_u - Reduce("+", lapply(id_L, function(k)
-                                                  pred_partial_u(multfsusie.obj,k,X)
-                                                  )
-                                       )
-
-    }else{
-      id_L <- 1
-      update_Y$Y_u   <- Y$Y_u - pred_partial_u(multfsusie.obj,1,X)
-    }
-  }
-  if(!is.null(Y$Y_f)){
-         update_Y$Y_f   <-   lapply(1:length(Y$Y_f),function(k)   cal_partial_resid_sub(multfsusie.obj,
-                                                         l=l,
-                                                         X=X,
-                                                         D= Y$Y_f[[k]][,-list_indx_lst[[k]][[length(list_indx_lst[[k]])]]],
-                                                         C= Y$Y_f[[k]][,list_indx_lst[[k]][[length(list_indx_lst[[k]])]]],
-                                                         indx_lst = list_indx_lst[[k]],
-                                                         cord=k
-                                                        )
-                                        )
-
-              }
-
-
- return(update_Y)
-
-}
-
-
-cal_partial_resid_sub <- function( multfsusie.obj, l, X, D, C, indx_lst,cord){
-  L <- multfsusie.obj$L
-  if(L>1){
-    id_L <- (1:L)[ - ( (l%%L)+1) ]#Computing residuals R_{l+1} by removing all the effect except effect l+1
-
-
-      update_D  <-  D - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% (multfsusie.obj$fitted_wc[[l]][[cord]][,-indx_lst[[length(indx_lst)]]])   ) )
-      update_C  <-  C - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% multfsusie.obj$fitted_wc[[l]][[cord]][,indx_lst[[length(indx_lst)]]] ) )
-      update_Y  <- cbind(  update_D, update_C)
-  }else{
-    id_L <- 1
-
-
-      update_D  <-  D - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% (multfsusie.obj$fitted_wc[[l]][[cord]][,-indx_lst[[length(indx_lst)]]])   ) )
-      update_C  <-  C - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% multfsusie.obj$fitted_wc[[l]][[cord]][,indx_lst[[length(indx_lst)]]] ) )
-      update_Y  <- cbind(  update_D, update_C)
-  }
-  return(update_Y)
-
-}
-
-pred_partial_u <- function( multfsusie.obj, l, X )
-{
-  tbeta <-multfsusie.obj$alpha[[l]] *multfsusie.obj$fitted_uni[[l]]
-  pred_l   <- X%*% ( tbeta)
-  return(pred_l)
-}
 
 
 get_post_F  <- function(multfsusie.obj,l, ...)
@@ -624,6 +644,252 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
 
 
 
+#' @title Update  multfsusie via greedy search or backfit
+#'
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#'
+#' @return multfsusie object
+#'
+#' @export
+#'
+#'
+greedy_backfit  <-  function(multfsusie.obj, verbose,cov_lev,X,min.purity, ...  )
+  UseMethod("greedy_backfit")
+
+#' @rdname greedy_backfit
+#'
+#' @method greedy_backfit multfsusie
+#'
+#' @export greedy_backfit.multfsusie
+#'
+#' @export
+#'
+
+greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.purity, ...  )
+{
+
+
+  multfsusie.obj <- update_alpha_hist(multfsusie.obj)
+  if(!(multfsusie.obj$greedy)&!(multfsusie.obj$backfit))
+  {
+    return(multfsusie.obj)
+  }
+  multfsusie.obj <- update_cal_cs(multfsusie.obj,
+                                  cov_lev=cov_lev)
+
+  dummy.cs <-  which_dummy_cs(multfsusie.obj,
+                              min.purity = min.purity,
+                              X=X)
+
+  ##Conditions for stopping greedy search
+  if( (length(dummy.cs)>0)  |(multfsusie.obj$L>multfsusie.obj$L_max))
+  {
+
+    multfsusie.obj$greedy <- FALSE
+    multfsusie.obj <- discard_cs(multfsusie.obj,
+                                 cs= (multfsusie.obj$L_max+1):multfsusie.obj$L,
+                                 out_prep= FALSE
+    )
+  }
+
+  if( length(dummy.cs)==0& !( multfsusie.obj$greedy))
+  {
+    multfsusie.obj$backfit <- FALSE
+  }
+
+  if(!(multfsusie.obj$greedy )&!(multfsusie.obj$backfit ) ){
+    if(verbose){
+      print( "Greedy search and backfitting done")
+    }
+    multfsusie.obj$greedy_backfit_update <- FALSE
+
+    return(multfsusie.obj)
+  }
+  if(multfsusie.obj$greedy & (length(dummy.cs)==0)){
+    print( paste( "Adding ", 7, " extra effects"))
+    multfsusie.obj <- expand_multfsusie_obj(multfsusie.obj,L_extra = 7)
+    return(multfsusie.obj)
+  }
+  if(multfsusie.obj$backfit & (length(dummy.cs)>0)){
+    print( paste( "Discarding ", length(dummy.cs), " effects"))
+    multfsusie.obj <- discard_cs(multfsusie.obj,
+                                 cs= dummy.cs,
+                                 out_prep= FALSE
+    )
+
+    return(multfsusie.obj)
+  }
+}
+
+
+
+#' @title formatting function for output of posterior quantities
+#' @description formatting function for output of posterior quantities
+#' @param G_prior a mixutre_per_scale prior
+#' @param  Bhat matrix of estimated mean
+#' @param Shat matrix of estimated sd
+#'
+
+list_post_mean_sd <- function(G_prior, Bhat,Shat,  indx_lst, lowc_wc=NULL)
+{
+  out <- list (Bhat= post_mat_mean( G_prior ,
+                                    Bhat,
+                                    Shat,
+                                    indx_lst,
+                                    lowc_wc=NULL),
+               Shat= post_mat_sd(   G_prior ,
+                                    Bhat,
+                                    Shat,
+                                    indx_lst,
+                                    lowc_wc=NULL)
+  )
+  return(out)
+
+}
+
+
+
+
+out_prep.multfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
+{
+  multfsusie.obj <-  update_cal_pip(multfsusie.obj)
+  multfsusie.obj <-  update_cal_cs(multfsusie.obj)
+
+  if(filter.cs)
+  {
+    multfsusie.obj <- check_cs(multfsusie.obj,min.purity=0.5,X=X)
+  }
+  return( multfsusie.obj)
+}
+
+
+
+pred_partial_u <- function( multfsusie.obj, l, X )
+{
+  tbeta <-multfsusie.obj$alpha[[l]] *multfsusie.obj$fitted_uni[[l]]
+  pred_l   <- X%*% ( tbeta)
+  return(pred_l)
+}
+
+
+
+
+#' @title Update alpha_hist   multfsusie object
+#'
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#'
+#' @return multfsusie object
+#'
+#' @export
+#'
+
+update_alpha_hist  <-  function(multfsusie.obj, ... )
+  UseMethod("update_alpha_hist")
+
+
+#' @rdname update_alpha
+#'
+#' @method update_alpha_hist multfsusie
+#'
+#' @export update_alpha_hist.multfsusie
+#'
+#' @export
+#'
+update_alpha_hist.multfsusie <-  function(multfsusie.obj , ... )
+{
+
+  multfsusie.obj$alpha_hist[[ (length(multfsusie.obj$alpha_hist)+1)  ]] <- multfsusie.obj$alpha
+  return( multfsusie.obj)
+}
+
+
+#'@title Update  multfsusie object using the output of EM_pi
+#'
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj }} function
+#'
+#' @param l integer larger or equal to 1. Corresponds to the effect to be accessed
+#'
+#' @param EM_pi an object of the class "EM_pi" generated by the function \code\link{EM_pi_multfsusie}}
+#' @param effect_estimate a list of marginal association generated by \code{cal_Bhat_Shat_multsusie}
+#' @param list_indx_lst list of list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution
+#'
+#' @return multfsusie object
+#'
+#' @export
+
+update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_indx_lst,  ...)
+{
+
+  if( l > length(multfsusie.obj$est_pi))
+  {
+    stop("Error trying to access mixture proportion")
+  }
+  if( l < 1)
+  {
+    stop("Error l should be larger ")
+  }
+  if(  "EM_pi_multfsusie"  %!in%  class(EM_pi)  )
+  {
+    stop("Error EM_pi should be of the class EM_pi_multfsusie")
+  }
+  multfsusie.obj         <-   update_pi( multfsusie.obj =  multfsusie.obj ,
+                                         l             =  l ,
+                                         tpi           =  EM_pi$tpi_k)
+
+  multfsusie.obj$G_prior <-   update_prior(get_G_prior(multfsusie.obj) , EM_pi$tpi_k  )
+  post_effect <- get_post_effect_multfsusie (G_prior         = multfsusie.obj$G_prior ,
+                                             effect_estimate = effect_estimate,
+                                             list_indx_lst   = list_indx_lst,
+                                             lowc_wc         = lowc_wc)
+
+  if(!is.null(post_effect$res_uni)){
+    multfsusie.obj$ fitted_uni[[l]]        <-   post_effect$res_u$Bhat
+    multfsusie.obj$ fitted_uni2[[l]]       <-   post_effect$res_u$Shat
+  }
+
+  if(!is.null(post_effect$res_f)){
+    multfsusie.obj$fitted_wc[[l]]   <-  lapply(1: length( post_effect$res_f) ,
+                                               function(k) post_effect$res_f[[k]]$Bhat)
+
+    multfsusie.obj$fitted_wc2[[l]]  <- lapply(1: length( post_effect$res_f) ,
+                                              function(k) (post_effect$res_f[[k]]$Shat^2))
+
+  }
+
+  new_alpha      <- susiF.alpha::cal_zeta (  EM_pi$lBF)
+  multfsusie.obj <- update_alpha(multfsusie.obj, l, new_alpha)
+  multfsusie.obj <- update_lBF(multfsusie.obj, l, EM_pi$lBF)
+
+  return(multfsusie.obj)
+}
+
+
+#' @rdname update_pi
+#'
+#' @method update_pi multfsusie
+#'
+#' @export update_pi.multfsusie
+#'
+#' @export
+#'
+update_pi.multfsusie <- function( multfsusie.obj, l, tpi, ...)
+{
+
+  if( l > length(multfsusie.obj$est_pi))
+  {
+    stop("Error trying to access mixture proportion")
+  }
+  if( l < 1)
+  {
+    stop("Error l should be larger ")
+  }
+
+  multfsusie.obj$est_pi[[l]] <- tpi
+  out <- multfsusie.obj
+  class(out) <- "multfsusie"
+  return(out)
+}
+
 
 
 
@@ -799,46 +1065,64 @@ out_prep <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs, ...)
 
 
 
-out_prep.multfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
-{
-  multfsusie.obj <-  update_cal_pip(multfsusie.obj)
-  multfsusie.obj <-  update_cal_cs(multfsusie.obj)
 
-  if(filter.cs)
-  {
-    multfsusie.obj <- check_cs(multfsusie.obj,min.purity=0.5,X=X)
-  }
+
+
+#' @rdname update_alpha
+#'
+#' @method update_alpha multfsusie
+#'
+#' @export update_alpha.multfsusie
+#'
+#' @export
+#'
+update_alpha.multfsusie <-  function(multfsusie.obj, l, alpha, ... )
+{
+  multfsusie.obj$alpha[[l]] <- alpha
+  multfsusie.obj$alpha_hist[[ (length(multfsusie.obj$alpha_hist)+1)  ]] <- alpha
   return( multfsusie.obj)
 }
 
+#' @rdname update_lBF
+#'
+#' @method update_lBF multfsusie
+#'
+#' @export update_lBF.multfsusie
+#'
+#' @export
+#'
+
+update_lBF.multfsusie <- function    (multfsusie.obj,l, lBF, ...)
+{
+  if(l> multfsusie.obj$L)
+  {
+    stop("Error: trying to update more effects than the number of specified effect")
+  }
+
+  multfsusie.obj$lBF[[l]] <- lBF
+  return(multfsusie.obj)
+}
+
+
+
+
 
 #'
-#' @title Check purity credible sets
+#' @title Return which credible sets are  dummy
 #'
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a susif object defined by \code{\link{init_susiF_obj}} function
 #' @param min.purity minimal purity within a CS
 #' @param X matrix of covariate
-#' @return a multfsusie.obj without "dummy" credible s
+#'
+#' @return a list of index corresponding the the dummy effect
 #'
 #' @export
 #'
 #'
-check_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
-  UseMethod("check_cs")
+which_dummy_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
+  UseMethod("which_dummy_cs")
 
-
-
-#' @rdname check_cs
-#'
-#' @method check_cs multfsusie
-#'
-#' @export check_cs.multfsusie
-#'
-#' @export
-#'
-
-check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X )
-{
+which_dummy_cs.multfsusie  <- function(multfsusie.obj, min.purity =0.5, X){
   dummy.cs<- c()
 
   if(is.null(multfsusie.obj$G_prior$G_prior_u)){
@@ -890,10 +1174,10 @@ check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X )
       {
 
         if(  mean( sapply(
-                    sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
-                    ,"[[",1)
-                    )==1
-                  ){# check if the estimated prior is exactly 0
+          sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
+          ,"[[",1)
+        )==1
+        ){# check if the estimated prior is exactly 0
 
           dummy.cs<-  c( dummy.cs,l)
         }
@@ -906,9 +1190,9 @@ check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X )
 
         }else{
           if( mean( sapply(
-                            sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
-                          ,"[[",1)
-                   )==1){
+            sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
+            ,"[[",1)
+          )==1){
             dummy.cs<-  c( dummy.cs,l)
           }
 
@@ -920,13 +1204,34 @@ check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X )
   }
 
 
-    if ((!is.null(multfsusie.obj$G_prior$G_prior_f))& (!is.null(multfsusie.obj$G_prior$G_prior_u))){
-      for (l in 1:multfsusie.obj$L )
+  if ((!is.null(multfsusie.obj$G_prior$G_prior_f))& (!is.null(multfsusie.obj$G_prior$G_prior_u))){
+    for (l in 1:multfsusie.obj$L )
+    {
+
+      if (length(multfsusie.obj$cs[[l]])==1)
       {
 
-        if (length(multfsusie.obj$cs[[l]])==1)
-        {
+        m_u <-mean( sapply(
+          sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
+          ,"[[",1)
+        )
+        m_f <- mean( sapply(
+          sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
+          ,"[[",1)
+        )
 
+        if( mean(c(m_u,m_f))==1){# check if the estimated prior is exactly 0
+
+          dummy.cs<-  c( dummy.cs,l)
+        }
+
+      }else{
+
+        if( min(cor( X[,multfsusie.obj$cs[[l]]])) <  min.purity){#check if the purity of cs l is lower that min.purity
+
+          dummy.cs<-  c( dummy.cs,l)
+
+        }else{
           m_u <-mean( sapply(
             sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
             ,"[[",1)
@@ -936,100 +1241,26 @@ check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X )
             ,"[[",1)
           )
 
-          if( mean(c(m_u,m_f))==1){# check if the estimated prior is exactly 0
-
+          if( mean(c(m_u,m_f))==1){
             dummy.cs<-  c( dummy.cs,l)
           }
 
-        }else{
-
-          if( min(cor( X[,multfsusie.obj$cs[[l]]])) <  min.purity){#check if the purity of cs l is lower that min.purity
-
-            dummy.cs<-  c( dummy.cs,l)
-
-          }else{
-            m_u <-mean( sapply(
-              sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
-              ,"[[",1)
-            )
-            m_f <- mean( sapply(
-              sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
-              ,"[[",1)
-            )
-
-            if( mean(c(m_u,m_f))==1){
-              dummy.cs<-  c( dummy.cs,l)
-            }
-
-          }
         }
-
-    }
-
-  }
-    if( length(dummy.cs)==0)
-    {
-      return(multfsusie.obj)
-    }else{
-      if(length(dummy.cs)==multfsusie.obj$L) #avoid returning empty results
-      {
-        dummy.cs <- dummy.cs[-length(dummy.cs)]
       }
-      multfsusie.obj <- discard_cs( multfsusie.obj,cs=dummy.cs)
-      return(multfsusie.obj)
+
     }
 
-}
-
-
-
-
-
-
-#' @title Discard credible sets
-#'
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
-#'
-#' @param cs vector of integer containing the credible sets to discard
-#'
-#' @return a multfsusie.obj without "dummy" credible sets
-#'
-#' @export
-
-
-
-discard_cs <- function(multfsusie.obj, cs,...)
-  UseMethod("discard_cs")
-
-
-
-#' @rdname discard_cs
-#'
-#' @method discard_cs multfsusie
-#'
-#' @export discard_cs.multfsusie
-#'
-#' @export
-#'
-
-discard_cs.multfsusie <- function(multfsusie.obj, cs)
-{
-
-  multfsusie.obj$alpha       <-  multfsusie.obj$alpha[ -cs]
-  multfsusie.obj$lBF         <-  multfsusie.obj$lBF[ -cs]
-  if(!is.null(multfsusie.obj$G_prior$G_prior_f)){
-    multfsusie.obj$fitted_wc   <-  multfsusie.obj$fitted_wc[ -cs]
-    multfsusie.obj$fitted_wc2  <-  multfsusie.obj$fitted_wc2[ -cs]
   }
-  if(!is.null(multfsusie.obj$G_prior$G_prior_u)){
-    multfsusie.obj$fitted_uni  <-  multfsusie.obj$fitted_uni[-cs]
-    multfsusie.obj$fitted_uni2 <-  multfsusie.obj$fitted_uni2[-cs]
+  if( length(dummy.cs)==0)
+  {
+    return(dummy.cs)
+  }else{
+    if(length(dummy.cs)==multfsusie.obj$L) #avoid returning empty results
+    {
+      dummy.cs <- dummy.cs[-length(dummy.cs)]
+    }
+
+    return(dummy.cs)
   }
 
-  multfsusie.obj$cs          <-  multfsusie.obj$cs[ -cs]
-  multfsusie.obj$est_pi           <-  multfsusie.obj$est_pi[ -cs]
-  multfsusie.obj$L                <-  multfsusie.obj$L -length(cs)
-  multfsusie.obj$est_pi      <- multfsusie.obj$est_pi[ -cs]
-  return(multfsusie.obj)
 }
-

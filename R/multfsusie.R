@@ -53,6 +53,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                        all = FALSE,
                        filter.cs =TRUE,
                        init_pi0_w= 0.999,
+                       nullweight ,
                        control_mixsqp =  list(
                                               eps = 1e-6,
                                               numiter.em = 40,
@@ -69,6 +70,9 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   for ( k in 1:length(Y[[1]]))
   {
     list_dfs [[k]]     <- do.call(rbind, lapply(Y, `[[`, k))
+  }
+  if(missing(nullweight )){
+    nullweight <- 10/sqrt(nrow(X))
   }
 
   type_mark <-  is.functional(list_dfs)
@@ -118,26 +122,39 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                      Y_f =Y_f)
   }
 
+  lowc_wc=NULL
 
 
+  #### centering and scaling covariate ----
+  X <- susiF.alpha:::colScale(X)
+  # centering input
+  Y_data <- multi_array_colScale(Y_data, scale=FALSE)
 
   v1 <- rep( 1, nrow(X))
-  G_prior <- init_prior_multfsusie(Y=Y_data ,
+  temp  <- init_prior_multfsusie(Y=Y_data ,
                                    X,
                                    v1,
-                                   list_indx_lst
-  )
-  multfsusie.obj <- init_multfsusie_obj(L, G_prior, Y_data,X , type_mark)
+                                   list_indx_lst,
+                                   lowc_wc=lowc_wc
+                                  )
+  G_prior <- temp$G_prior
+  effect_estimate  <- temp$res
+  init        <- TRUE
+  multfsusie.obj <- init_multfsusie_obj( L_max=L,
+                                         G_prior=G_prior,
+                                         Y=Y_data,
+                                         X=X,
+                                         type_mark=type_mark,
+                                         L_start=L_start,
+                                         greedy=greedy,
+                                         backfit=backfit)
 
 
   # numerical value to check breaking condition of while
   check <- 1
-  h     <- 0
+
   update_Y    <-  Y_data
 
-  # numerical value to check breaking condition of while
-  check <- 1
-  h     <- 0
 
   if( L==1)
   {
@@ -146,11 +163,12 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     tpi               <- get_pi(multfsusie.obj,1)
     G_prior <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
 
-    EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
-                               effect_estimate= effect_estimate,
-                               list_indx_lst =  list_indx_lst,
-                               init_pi0_w= init_pi0_w,
-                               control_mixsqp =  control_mixsqp
+    EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
+                               effect_estimate = effect_estimate,
+                               list_indx_lst   =  list_indx_lst,
+                               init_pi0_w      = init_pi0_w,
+                               control_mixsqp  =  control_mixsqp,
+                               nullweight      = nullweight
                               )
 
     multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
@@ -174,27 +192,40 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   }else{
     while(check >tol & (h/L) <maxit)
     {
-      for( l in 1:L)
+      for( l in 1:multfsusie.obj$L)
       {
 
-        h <- h+1
-        effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
-        tpi               <- get_pi(multfsusie.obj,l)
-        G_prior <- update_prior(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
+        if(init){#recycle operation used to fit the prior
 
-        EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
-                                   effect_estimate = effect_estimate,
-                                   list_indx_lst   = list_indx_lst,
-                                   init_pi0_w= init_pi0_w,
-                                   control_mixsqp  = control_mixsqp
-                                  )
+          EM_out <- susiF.alpha:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
+                                             lBF  = log_BF(G_prior,
+                                                           effect_estimate,
+                                                           list_indx_lst,
+                                                           lowc_wc = lowc_wc)
+                                       )
+          class(EM_out) <- c("EM_pi_multfsusie","list")
+          init <- FALSE
+        }else{
+         effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
+                                                       lowc_wc = lowc_wc)
+         tpi               <- get_pi(multfsusie.obj,l)
+         G_prior <- update_prior(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
 
+         EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
+                                    effect_estimate = effect_estimate,
+                                    list_indx_lst   = list_indx_lst,
+                                    init_pi0_w      = init_pi0_w,
+                                    control_mixsqp  = control_mixsqp,
+                                    nullweight      = nullweight
+                                   )
+        }
 
         multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
                                             l               = l,
                                             EM_pi           = EM_out,
                                             effect_estimate = effect_estimate,
-                                            list_indx_lst   = list_indx_lst)
+                                            list_indx_lst   = list_indx_lst,
+                                            lowc_wc         =  lowc_wc)
 
 
         update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
@@ -207,29 +238,27 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
 
       }#end for l in 1:L
+      multfsusie.obj <- greedy_backfit (multfsusie.obj,
+                                   verbose = verbose,
+                                   cov_lev = cov_lev,
+                                   X       = X,
+                                   min.purity= min.purity
+      )
+      multfsusie.obj <- test_stop_cond(multfsusie.obj = multfsusie.obj,
+                                  check    = check,
+                                  cal_obj   = cal_obj,
+                                  Y         = Y_f,
+                                  X         = X,
+                                  D         = W$D,
+                                  C         = W$C,
+                                  indx_lst  = indx_lst)
+      check <- multfsusie.obj$check
+
+      sigma2         <- estimate_residual_variance.multfsusie(multfsusie.obj,Y=Y_data,X)
+      multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
 
 
-       sigma2         <- estimate_residual_variance.multfsusie(multfsusie.obj,Y=Y_data,X)
-       multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
 
-
-       multfsusie.obj <- update_KL(multfsusie.obj, Y_data, X, list_indx_lst)
-
-       if(h>3){
-         multfsusie.obj <- update_ELBO(multfsusie.obj,
-                                       get_objective( multfsusie.obj = multfsusie.obj,
-                                                      Y              = Y_data ,
-                                                      X              = X,
-                                                      list_indx_lst   = list_indx_lst
-                                       )
-         )
-
-         if(length(multfsusie.obj$ELBO)>1 )#update parameter convergence,
-         {
-           check <- abs(diff(multfsusie.obj$ELBO)[(length( multfsusie.obj$ELBO )-1)])
-
-         }
-       }
 
     }#end while
   }

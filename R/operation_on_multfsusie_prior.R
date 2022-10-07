@@ -14,7 +14,7 @@
 #' @importFrom ashr ash
 #'
 #' @export
-init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL )
+init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,lowc_wc=NULL )
 {
 
   if(is.null(Y$Y_u)){
@@ -33,17 +33,25 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL )
   }
 
   if(is.null(Y$Y_f)){
-    G_prior_f <- NULL
+    G_prior_f < NULL
+    res_f <- NULL
   }else{
-    G_prior_f <-lapply(1:length(Y),  function(k) susiF.alpha::init_prior( Y        = Y$Y_f[[k]],
+    t_G_prior_f <-lapply(1:length(Y$Y_f),  function(k) susiF.alpha::init_prior( Y        = Y$Y_f[[k]],
                                                                           X        = X,
                                                                           v1       = v1,
                                                                           prior    = "mixture_normal_per_scale",
-                                                                          indx_lst = list_indx_lst[[k]]
-    )
-    )
+                                                                          indx_lst = list_indx_lst[[k]],
+                                                                          lowc_wc  = lowc_wc
+                                                                          #TODO make it different depending on marks
+                                                                          )
+                          )
+    G_prior_f <- lapply(1:length(Y$Y_f), function(k)  t_G_prior_f [[k]]$G_prior)
+    res_f <- lapply(1:length(Y$Y_f), function(k)  t_G_prior_f [[k]]$tt)
   }
 
+
+  res  <- list( res_uni = res_uni,
+                res_f   = res_f)
   G_prior <- list( G_prior_u = G_prior_u,
                      G_prior_f = G_prior_f)
 
@@ -51,7 +59,9 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL )
 
 
 
-  return(G_prior)
+  return(list(G_prior=G_prior,
+              res= res)
+  )
 
 }
 
