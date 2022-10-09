@@ -152,6 +152,12 @@ discard_cs <- function(multfsusie.obj, cs,...)
 discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE)
 {
 
+  if( length(cs)==multfsusie.obj$L){
+    cs <- cs[-1]
+    if(length(cs)==0){
+      return(multfsusie.obj)
+    }
+  }
   multfsusie.obj$alpha       <-  multfsusie.obj$alpha[ -cs]
   multfsusie.obj$lBF         <-  multfsusie.obj$lBF[ -cs]
   if(!is.null(multfsusie.obj$G_prior$G_prior_f)){
@@ -665,7 +671,7 @@ greedy_backfit  <-  function(multfsusie.obj, verbose,cov_lev,X,min.purity, ...  
 #' @export
 #'
 
-greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.purity, ...  )
+greedy_backfit.susiF <-  function(multfsusie.obj,verbose,cov_lev,X,min.purity, ...  )
 {
 
 
@@ -681,8 +687,30 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
                               min.purity = min.purity,
                               X=X)
 
-  ##Conditions for stopping greedy search
-  if( (length(dummy.cs)>0)  |(multfsusie.obj$L>multfsusie.obj$L_max))
+
+  if(multfsusie.obj$backfit & (length(dummy.cs)>0)){
+
+    multfsusie.obj$greedy <- FALSE
+    if(length(dummy.cs)== multfsusie.obj$L){
+      dummy.cs <- dummy.cs[-1]
+      multfsusie.obj$backfit <- FALSE
+    }
+    if( length(dummy.cs)==0  )
+    {
+      multfsusie.obj$backfit <- FALSE
+    }else{
+      print( paste( "Discarding ", length(dummy.cs), " effects"))
+
+      multfsusie.obj <- discard_cs(multfsusie.obj,
+                                   cs= dummy.cs,
+                                   out_prep= FALSE
+      )
+    }
+
+
+    return(multfsusie.obj)
+  }##Conditions for stopping greedy search
+  if(  (multfsusie.obj$L>multfsusie.obj$L_max))
   {
 
     multfsusie.obj$greedy <- FALSE
@@ -706,22 +734,30 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
     return(multfsusie.obj)
   }
   if(multfsusie.obj$greedy & (length(dummy.cs)==0)){
-    print( paste( "Adding ", 7, " extra effects"))
-    multfsusie.obj <- expand_multfsusie_obj(multfsusie.obj,L_extra = 7)
-    return(multfsusie.obj)
-  }
-  if(multfsusie.obj$backfit & (length(dummy.cs)>0)){
-    print( paste( "Discarding ", length(dummy.cs), " effects"))
-    multfsusie.obj <- discard_cs(multfsusie.obj,
-                                 cs= dummy.cs,
-                                 out_prep= FALSE
-    )
 
+    tt <- multfsusie.obj$L_max -multfsusie.obj$L
+    temp <- min( ifelse(tt>0,tt,0 ) , 7)
+
+    if(temp==0){
+      if(verbose){
+        print( "Greedy search and backfitting done")
+      }
+      multfsusie.obj$greedy_backfit_update <- FALSE
+      multfsusie.obj$backfit <- FALSE
+      multfsusie.obj$greedy <- FALSE
+      return(multfsusie.obj)
+    }
+
+
+    if(verbose){
+      print( paste( "Adding ", temp, " extra effects"))
+    }
+
+    multfsusie.obj <- expand_multfsusie_obj(multfsusie.obj,L_extra = temp)
     return(multfsusie.obj)
   }
+
 }
-
-
 
 #' @title formatting function for output of posterior quantities
 #' @description formatting function for output of posterior quantities
