@@ -10,8 +10,11 @@ library(mvf.susie.alpha)
 set.seed(13)
 L=3
 
+'%!in%' <- function(x,y)!('%in%'(x,y))
 min_levres <- 4
-
+control_mixsqp <- list(verbose=FALSE)
+greedy=TRUE
+backfit=TRUE
 #gene expression effect of SNP 1 and SNP2
 f01  <-  1
 f02  <- -0
@@ -36,7 +39,7 @@ f31  <-  c(1,-1)
 f32  <-  0*c(-1,1)
 
 
-
+nullweight=10
 
 
 indx_lst1 <- susiF.alpha::gen_wavelet_indx(lev_res = lev_res1)
@@ -114,11 +117,16 @@ Y   <- list(Y_u =Y_u,
 G_prior <- init_prior_multfsusie(Y,
                                  X,
                                  v1,
-                                 list_indx_lst
-                                 )
+                                 list_indx_lst,
+                                 control_mixsqp = control_mixsqp,
+                                 nullweight=nullweight
+                                 )$G_prior
 
 
-multfsusie.obj <- init_multfsusie_obj(L, G_prior, Y,X , type_mark)
+multfsusie.obj <- init_multfsusie_obj(L, G_prior, Y,X ,
+                                      type_mark,
+                                      greedy=greedy,
+                                      backfit=backfit)
 class(multfsusie.obj)
 update_Y    <-  Y
 
@@ -145,11 +153,14 @@ update_Y    <-  Y
   EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
                              effect_estimate= tt,
                              list_indx_lst =  list_indx_lst,
+                             init_pi0_w=1,
                              control_mixsqp =  list(
                                eps = 1e-3,
                                numiter.em = 40,
                                verbose = FALSE
-                             )
+                             ),
+
+                             nullweight=nullweight
   )
 
   EM_pi <-  EM_out
@@ -202,7 +213,9 @@ update_Y    <-  Y
                                eps = 1e-3,
                                numiter.em = 40,
                                verbose = FALSE
-                             )
+                             ),
+
+                             nullweight=nullweight
   )
 
   EM_pi <-  EM_out
@@ -256,7 +269,9 @@ update_Y    <-  Y
                                eps = 1e-3,
                                numiter.em = 40,
                                verbose = FALSE
-                             )
+                             ),
+
+                             nullweight=nullweight
   )
 
   EM_pi <-  EM_out
@@ -303,7 +318,7 @@ out <- multfsusie(Y=noisy.data,
                 L=10,maxit = 20,
                 init_pi0_w = 1)
 out$alpha
-
+out$cs
 
 
 plot( out$ELBO)

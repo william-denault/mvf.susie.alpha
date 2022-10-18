@@ -16,7 +16,7 @@ plot(f2$sim_func, type="l", ylab="y")
 N=500
 P=10
 
-nullweight=10
+nullweight= 0
 set.seed(23)
 G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
 beta0       <- 0
@@ -129,7 +129,7 @@ G_prior <- init_prior_multfsusie( Y=Y_data ,
                                  lowc_wc= low_wc,
                                  control_mixsqp=control_mixsqp,
                                  nullweight=  nullweight
-)
+)$G_prior
 
 test_that("G_prior object should have the following classes ",
           {
@@ -173,9 +173,9 @@ effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
 
 
 test_that("The estimated effect should be", {
-  expect_equal(effect_estimate$res_f[[1]]$Bhat[pos1,-128], f1$true_coef, tol= 2*(1/sqrt(N)))# removing C coefficient
-  expect_equal(effect_estimate$res_f[[2]]$Bhat[pos1,-64], f2$true_coef, tol= 2*(1/sqrt(N)))# removing C coefficient
-  expect_equal(effect_estimate$res_uni $Bhat[pos1, ], c(1,-1,1), tol= 2*(1/sqrt(N)))
+  expect_equal(effect_estimate$res_f[[1]]$Bhat[pos1,-128]/attr(X,"scaled:scale")[pos1], f1$true_coef, tol= 2*(1/sqrt(N)))# removing C coefficient
+  expect_equal(effect_estimate$res_f[[2]]$Bhat[pos1,-64]/attr(X,"scaled:scale")[pos1], f2$true_coef, tol= 2*(1/sqrt(N)))# removing C coefficient
+  expect_equal(effect_estimate$res_uni $Bhat[pos1, ]/attr(X,"scaled:scale")[pos1], c(1,-1,1), tol= 2*(1/sqrt(N)))
 
 })
 
@@ -202,7 +202,8 @@ EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
                            effect_estimate= effect_estimate,
                            list_indx_lst =  list_indx_lst,
                            init_pi0_w= init_pi0_w,
-                           control_mixsqp =  control_mixsqp
+                           control_mixsqp =  control_mixsqp,
+                           nullweight = nullweight
 )
 
 zeta <- cal_zeta(EM_out$lBF)
@@ -235,7 +236,8 @@ est_pi_f <- lapply(1:length(L_mat$L_mat_f) ,
                                       zeta,
                                       list_indx_lst[[k]],
                                       init_pi0_w= init_pi0_w,
-                                      control_mixsqp = control_mixsqp
+                                      control_mixsqp = control_mixsqp,
+                                      nullweight = nullweight
                    )
 )
 

@@ -650,11 +650,12 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
 
 
 
-#' @title Update  multfsusie via greedy search or backfit
+
+#' @title Update  susiF via greedy search or backfit
 #'
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a susiF object defined by \code{\link{init_susiF_obj}} function
 #'
-#' @return multfsusie object
+#' @return susiF object
 #'
 #' @export
 #'
@@ -671,7 +672,7 @@ greedy_backfit  <-  function(multfsusie.obj, verbose,cov_lev,X,min.purity, ...  
 #' @export
 #'
 
-greedy_backfit.susiF <-  function(multfsusie.obj,verbose,cov_lev,X,min.purity, ...  )
+greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.purity, ...  )
 {
 
 
@@ -699,25 +700,69 @@ greedy_backfit.susiF <-  function(multfsusie.obj,verbose,cov_lev,X,min.purity, .
     {
       multfsusie.obj$backfit <- FALSE
     }else{
-      print( paste( "Discarding ", length(dummy.cs), " effects"))
+      temp_L <- multfsusie.obj$L
+
 
       multfsusie.obj <- discard_cs(multfsusie.obj,
                                    cs= dummy.cs,
                                    out_prep= FALSE
       )
+
+      if( length(multfsusie.obj$cs)>1){
+        A <- susiF.alpha::cal_cor_cs(multfsusie.obj, X)$cs_cor
+        tl <- which(A>0.99, arr.ind = TRUE)
+        tl <-  tl[- which( tl[,1]==tl[,2]),]
+
+        if ( length(tl )==0){
+
+        }else{
+
+          tl <-  tl[which(tl[,1] < tl[,2]),]
+          multfsusie.obj <- merge_effect(multfsusie.obj, tl)
+
+        }
+      }
+      if(verbose){
+        print( paste( "Discarding ",(temp_L- multfsusie.obj$L), " effects"))
+      }
     }
-
-
     return(multfsusie.obj)
+
   }##Conditions for stopping greedy search
   if(  (multfsusie.obj$L>multfsusie.obj$L_max))
   {
 
     multfsusie.obj$greedy <- FALSE
+
+
+
     multfsusie.obj <- discard_cs(multfsusie.obj,
                                  cs= (multfsusie.obj$L_max+1):multfsusie.obj$L,
                                  out_prep= FALSE
     )
+
+
+
+
+    if( length(multfsusie.obj$cs)>1){
+      A <- susiF.alpha::cal_cor_cs(multfsusie.obj, X)$cs_cor
+      tl <- which(A>0.99, arr.ind = TRUE)
+      tl <-  tl[- which( tl[,1]==tl[,2]),]
+
+      if ( length(tl )==0){
+
+      }else{
+
+        tl <-  tl[which(tl[,1] < tl[,2]),]
+        multfsusie.obj <- merge_effect(multfsusie.obj, tl)
+
+      }
+    }
+    if(verbose){
+      print( paste( "Discarding ",(multfsusie.obj$L_max- multfsusie.obj$L), " effects"))
+      print( "Greedy search and backfitting done")
+    }
+
   }
 
   if( length(dummy.cs)==0& !( multfsusie.obj$greedy))
@@ -726,9 +771,27 @@ greedy_backfit.susiF <-  function(multfsusie.obj,verbose,cov_lev,X,min.purity, .
   }
 
   if(!(multfsusie.obj$greedy )&!(multfsusie.obj$backfit ) ){
+
+    if( length(multfsusie.obj$cs)>1){
+      A <- susiF.alpha::cal_cor_cs(multfsusie.obj, X)$cs_cor
+      tl <- which(A>0.99, arr.ind = TRUE)
+      tl <-  tl[- which( tl[,1]==tl[,2]),]
+
+      if ( length(tl )==0){
+
+      }else{
+
+        tl <-  tl[which(tl[,1] < tl[,2]),]
+        multfsusie.obj <- merge_effect(multfsusie.obj, tl)
+
+      }
+    }
+
     if(verbose){
+      print( paste( "Discarding ",(multfsusie.obj$L_max- multfsusie.obj$L), " effects"))
       print( "Greedy search and backfitting done")
     }
+    multfsusie.obj <- update_alpha_hist(multfsusie.obj,discard = TRUE)
     multfsusie.obj$greedy_backfit_update <- FALSE
 
     return(multfsusie.obj)
@@ -739,9 +802,26 @@ greedy_backfit.susiF <-  function(multfsusie.obj,verbose,cov_lev,X,min.purity, .
     temp <- min( ifelse(tt>0,tt,0 ) , 7)
 
     if(temp==0){
+      if( length(multfsusie.obj$cs)>1){
+        A <- susiF.alpha::cal_cor_cs(multfsusie.obj, X)$cs_cor
+        tl <- which(A>0.99, arr.ind = TRUE)
+        tl <-  tl[- which( tl[,1]==tl[,2]),]
+
+        if ( length(tl )==0){
+
+        }else{
+
+          tl <-  tl[which(tl[,1] < tl[,2]),]
+          multfsusie.obj <- merge_effect(multfsusie.obj, tl)
+
+        }
+      }
+
       if(verbose){
+        print( paste( "Discarding ",(multfsusie.obj$L_max- multfsusie.obj$L), " effects"))
         print( "Greedy search and backfitting done")
       }
+      multfsusie.obj <- update_alpha_hist(multfsusie.obj,discard = TRUE)
       multfsusie.obj$greedy_backfit_update <- FALSE
       multfsusie.obj$backfit <- FALSE
       multfsusie.obj$greedy <- FALSE
@@ -753,11 +833,32 @@ greedy_backfit.susiF <-  function(multfsusie.obj,verbose,cov_lev,X,min.purity, .
       print( paste( "Adding ", temp, " extra effects"))
     }
 
-    multfsusie.obj <- expand_multfsusie_obj(multfsusie.obj,L_extra = temp)
+
+
+    if( length(multfsusie.obj$cs)>1){
+      A <- susiF.alpha::cal_cor_cs(multfsusie.obj, X)$cs_cor
+      tl <- which(A>0.99, arr.ind = TRUE)
+      tl <-  tl[- which( tl[,1]==tl[,2]),]
+
+      if ( length(tl )==0){
+
+      }else{
+
+        tl <-  tl[which(tl[,1] < tl[,2]),]
+        multfsusie.obj <- merge_effect(multfsusie.obj, tl, discard=FALSE)
+
+      }
+    }
+
+
+
+
+    multfsusie.obj <- expand_susiF_obj(multfsusie.obj,L_extra = temp)
     return(multfsusie.obj)
   }
 
 }
+
 
 
 
@@ -881,7 +982,6 @@ list_post_mean_sd <- function(G_prior, Bhat,Shat,  indx_lst, lowc_wc=NULL)
 out_prep.multfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
-  multfsusie.obj <-  update_cal_cs(multfsusie.obj)
 
   if(filter.cs)
   {
@@ -924,7 +1024,7 @@ update_alpha_hist  <-  function(multfsusie.obj, discard, ... )
 #'
 #' @export
 #'
-update_alpha_hist.multfsusie <-  function(multfsusie.obj , ... )
+update_alpha_hist.multfsusie <-  function(multfsusie.obj , discard=FALSE,... )
 {
 
   if(!discard){
@@ -1241,6 +1341,100 @@ update_lBF.multfsusie <- function    (multfsusie.obj,l, lBF, ...)
   return(multfsusie.obj)
 }
 
+#'
+#' @title Check tolerance for stopping criterion
+#'
+#' @export
+#'
+#'
+test_stop_cond <- function(multfsusie.obj, check, cal_obj, Y_data, X, list_indx_lst  ,...)
+  UseMethod("test_stop_cond")
+
+
+
+#' @rdname test_stop_cond
+#'
+#' @method test_stop_cond multfsusie
+#'
+#' @export test_stop_cond.multfsusie
+#'
+#' @export
+#'
+
+
+test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y_data, X, list_indx_lst  ,...)
+{
+
+  if( multfsusie.obj$L==1)
+  {
+    multfsusie.obj$check <- 0
+    return(multfsusie.obj)
+  }
+
+  if(!(multfsusie.obj$greedy_backfit_update)) #if not just updated check for stopping while loop
+  {
+    if( cal_obj){
+      multfsusie.obj <- update_KL(multfsusie.obj,
+                                  Y=Y_data,
+                                  X=X,
+                                  list_indx_lst)
+
+      multfsusie.obj <- update_ELBO(multfsusie.obj,
+                                    get_objective( multfsusie.obj,
+                                                   Y= Y_data,
+                                                   X=X,
+                                                   list_indx_lst
+                                    )
+      )
+
+      if(length(multfsusie.obj$ELBO)>1    )#update parameter convergence,
+      {
+        check <- abs(diff(multfsusie.obj$ELBO)[(length( multfsusie.obj$ELBO )-1)])
+        multfsusie.obj$check <- check
+        return(multfsusie.obj)
+      }else{
+        multfsusie.obj$check <- check
+        return(multfsusie.obj)
+      }
+    }
+    else{
+      len <- length( multfsusie.obj$alpha_hist)
+      if( len>1)#update parameter convergence, no ELBO for the moment
+      {
+        check <-0
+
+        T1 <- do.call( rbind, multfsusie.obj$alpha_hist[[len ]])
+        T1 <- T1[1:multfsusie.obj$L,] #might be longer than L because alpha computed before discarding effect
+        T2 <- do.call( rbind, multfsusie.obj$alpha_hist[[(len-1) ]])
+        T2 <- T2[1:multfsusie.obj$L,]
+        if(multfsusie.obj$L==1){
+          T2 <- T2[1,]
+        }
+
+        if((nrow(T1)>nrow(T2))){
+          multfsusie.obj$check <- 1
+          return(multfsusie.obj)
+        }
+        if( (nrow(T2)>nrow(T1))){
+          T2 <- T2[1:multfsusie.obj$L,]
+        }
+
+
+        check <- sum(abs(T1-T2))/nrow(X)
+        multfsusie.obj$check <- check
+        return(multfsusie.obj)
+        #print(check)
+      }else{
+        multfsusie.obj$check <- check
+        return(multfsusie.obj)
+      }
+    }
+  }else{
+    multfsusie.obj$check <- check
+    return(multfsusie.obj)
+  }
+
+}
 
 
 

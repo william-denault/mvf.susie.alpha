@@ -362,7 +362,7 @@ mvfsusie_compute_null_loglik <- function(Bhat,Shat)
 #'
 #' @export
 #'
-EM_pi_mvfsusie <- function(G_prior,tens_marg, indx_lst,
+EM_pi_mvfsusie <- function(G_prior,tens_marg, list_indx_lst, init_pi0_w,  control_mixsqp,nullweight,
                             max_step = 100,
                             espsilon = 0.0001){
 
@@ -385,7 +385,12 @@ EM_pi_mvfsusie <- function(G_prior,tens_marg, indx_lst,
     #zeta      <- cal_zeta_mvfsusie(lBF)
 
     # M step ----
-    tpi_k   <- m_step_mvfsusie(Lmat,zeta,indx_lst)
+    tpi_k   <- m_step_mvfsusie(Lmat,
+                               zeta,
+                               list_indx_list= list_indx_lst,
+                               init_pi0_w=init_pi0_w,
+                               control_mixsqp=control_mixsqp,
+                               nullweight=nullweight)
     G_prior <- update_prior_weight_mvfsusie(G_prior,tpi_k)
 
     lBF <- log_BF_tens  ( G_prior, tens_marg, indx_lst)
@@ -1030,7 +1035,7 @@ m_step_multsusie <- function(L_mat, zeta, list_indx_lst, init_pi0_w,  control_mi
 #'
 #' @export
 
-m_step_u <- function  (L, zeta , init_pi0_w , control_mixsqp, ...)
+m_step_u <- function  (L, zeta , init_pi0_w , control_mixsqp,nullweight, ...)
 {
   w <-c(nullweight,zeta) # setting the weight to fit the weighted ash problem
   tlength <- ncol(L) - 1

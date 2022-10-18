@@ -52,7 +52,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                        verbose= FALSE,
                        all = FALSE,
                        filter.cs =TRUE,
-                       init_pi0_w= 0.999,
+                       init_pi0_w=1,
                        nullweight ,
                        control_mixsqp =  list(
                                               eps = 1e-6,
@@ -72,7 +72,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     list_dfs [[k]]     <- do.call(rbind, lapply(Y, `[[`, k))
   }
   if(missing(nullweight )){
-    nullweight <- 10/sqrt(nrow(X))
+    nullweight <- 10#/sqrt(nrow(X))
   }
 
   type_mark <-  is.functional(list_dfs)
@@ -135,7 +135,9 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                    X,
                                    v1,
                                    list_indx_lst,
-                                   lowc_wc=lowc_wc
+                                   lowc_wc=lowc_wc,
+                                   control_mixsqp=control_mixsqp,
+                                   nullweight=  nullweight
                                   )
   G_prior <- temp$G_prior
   effect_estimate  <- temp$res
