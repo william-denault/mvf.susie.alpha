@@ -15,6 +15,8 @@ f2 <- simu_IBSS_per_level(lev_res=6, alpha=0, prop_decay =1.5 )
 plot(f2$sim_func, type="l", ylab="y")
 N=500
 P=10
+
+nullweight=10
 set.seed(23)
 G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
 beta0       <- 0
@@ -27,7 +29,7 @@ G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
 beta1       <- 1
 backfit=TRUE
 greedy =TRUE
-
+control_mixsqp=list(verbose=FALSE)
 
 noisy.data  <- list()
  rsnr <- 6
@@ -124,7 +126,9 @@ G_prior <- init_prior_multfsusie( Y=Y_data ,
                                  X=X,
                                  v1=v1,
                                  list_indx_lst=list_indx_lst,
-                                 lowc_wc= low_wc
+                                 lowc_wc= low_wc,
+                                 control_mixsqp=control_mixsqp,
+                                 nullweight=  nullweight
 )
 
 test_that("G_prior object should have the following classes ",

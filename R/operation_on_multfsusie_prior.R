@@ -14,7 +14,7 @@
 #' @importFrom ashr ash
 #'
 #' @export
-init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,lowc_wc=NULL )
+init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,lowc_wc=NULL,control_mixsqp, nullweight )
 {
 
   if(is.null(Y$Y_u)){
@@ -26,6 +26,7 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,lowc_wc=NULL )
                                                        mixcompdist = "normal" ,
                                                        outputlevel=0)
     )
+    #### TODO add optimization step here to bypass for effect fitting
     for ( k in 1: length(G_prior_u)){
       attr(G_prior_u[[k]], "class")  <- "mixture_normal"
     }
@@ -41,7 +42,9 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,lowc_wc=NULL )
                                                                           v1       = v1,
                                                                           prior    = "mixture_normal_per_scale",
                                                                           indx_lst = list_indx_lst[[k]],
-                                                                          lowc_wc  = lowc_wc
+                                                                          lowc_wc  = lowc_wc,
+                                                                          control_mixsqp=control_mixsqp,
+                                                                          nullweight=  nullweight
                                                                           #TODO make it different depending on marks
                                                                           )
                           )

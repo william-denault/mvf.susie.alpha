@@ -23,6 +23,6 @@ Imports:
 License: GPL (>=3)
 LazyData: true
 LazyDataCompression: xz
-NeedsCompilation: no
+NeedsCompilation: yes
 RoxygenNote: 7.1.2
 ByteCompile: yes

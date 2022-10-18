@@ -759,6 +759,98 @@ greedy_backfit.susiF <-  function(multfsusie.obj,verbose,cov_lev,X,min.purity, .
 
 }
 
+
+
+
+#' @title Merging effect function
+#'
+#' @param multfsusie.obj a susiF object defined by \code{\link{init_susiF_obj}} function
+#'
+#' @param tl see  \code{\link{greedy_backfit}}
+#'
+#'
+#'
+#' @return  a susiF object
+#' @export
+merge_effect <- function( multfsusie.obj, tl, ...)
+  UseMethod("merge_effect")
+
+#' @rdname merge_effect
+#'
+#' @method merge_effect susiF
+#'
+#' @export merge_effect.susiF
+#'
+#' @export
+#'
+
+merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=TRUE){
+
+
+
+
+  if(is.vector( tl)){
+    #print( tl)
+    if( !is.null(multfsusie.obj$fitted_wc[[1]])){
+      for ( k in 1: length(multfsusie.obj$fitted_wc[[1]])){
+        multfsusie.obj$fitted_wc[[tl[  2]]][k] <- 0* multfsusie.obj$fitted_wc[[tl[ 2]]][k]
+        multfsusie.obj$fitted_wc[[tl[  1]]][k] <- multfsusie.obj$fitted_wc[[tl[  1]]][k] +   multfsusie.obj$fitted_wc[[tl[ 2]]][k]
+        multfsusie.obj$fitted_wc2[[tl[ 1]]][k] <- multfsusie.obj$fitted_wc2[[tl[  1]]][k] +   multfsusie.obj$fitted_wc2[[tl[  2]]][k]
+
+      }
+
+
+    }
+    if(!is.null(multfsusie.obj$fitted_uni[[1]])){
+
+        multfsusie.obj$fitted_uni[[tl[  2]]]  <- 0* multfsusie.obj$fitted_uni[[tl[ 2]]]
+        multfsusie.obj$fitted_uni[[tl[  1]]]  <- multfsusie.obj$fitted_uni[[tl[  1]]]  +   multfsusie.obj$fitted_uni[[tl[ 2]]]
+        multfsusie.obj$fitted_wc2[[tl[  1]]] <- multfsusie.obj$fitted_uni2[[tl[  1]]]  +   multfsusie.obj$fitted_uni2[[tl[  2]]]
+
+    }
+    tindx <-  tl[  2]
+  }else{
+    tl <- tl[order(tl[,1], tl[,2], decreasing = TRUE),]
+    #print( tl)
+    tindx <- c(0)
+    for ( o in 1:dim(tl)[1]){
+
+      if ( tl[o, 2]%!in%tindx){
+        if( !is.null(multfsusie.obj$fitted_wc[[1]])){
+          for ( k in 1: length(multfsusie.obj$fitted_wc[[1]])){
+            multfsusie.obj$fitted_wc[[tl[  2]]][k] <- 0* multfsusie.obj$fitted_wc[[tl[ 2]]][k]
+            multfsusie.obj$fitted_wc[[tl[  1]]][k] <- multfsusie.obj$fitted_wc[[tl[  1]]][k] +   multfsusie.obj$fitted_wc[[tl[ 2]]][k]
+            multfsusie.obj$fitted_wc2[[tl[ 1]]][k] <- multfsusie.obj$fitted_wc2[[tl[  1]]][k] +   multfsusie.obj$fitted_wc2[[tl[  2]]][k]
+
+          }
+
+
+        }
+        if(!is.null(multfsusie.obj$fitted_uni[[1]])){
+
+          multfsusie.obj$fitted_uni[[tl[  2]]]  <- 0* multfsusie.obj$fitted_uni[[tl[ 2]]]
+          multfsusie.obj$fitted_uni[[tl[  1]]]  <- multfsusie.obj$fitted_uni[[tl[  1]]]  +   multfsusie.obj$fitted_uni[[tl[ 2]]]
+          multfsusie.obj$fitted_wc2[[tl[  1]]] <- multfsusie.obj$fitted_uni2[[tl[  1]]]  +   multfsusie.obj$fitted_uni2[[tl[  2]]]
+
+        }
+        tindx <- c(tindx, tl[o, 2])
+      }
+
+    }
+
+    tindx <- tindx[-1]
+
+  }
+  if(discard){
+    multfsusie.obj<-  discard_cs(multfsusie.obj,cs=tindx, out_prep=FALSE)
+  }
+
+  return( multfsusie.obj)
+}
+
+
+
+
 #' @title formatting function for output of posterior quantities
 #' @description formatting function for output of posterior quantities
 #' @param G_prior a mixutre_per_scale prior
@@ -813,13 +905,14 @@ pred_partial_u <- function( multfsusie.obj, l, X )
 #' @title Update alpha_hist   multfsusie object
 #'
 #' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param  discard logical set to FALSE by default, if true remove element of history longer than L
 #'
 #' @return multfsusie object
 #'
 #' @export
 #'
 
-update_alpha_hist  <-  function(multfsusie.obj, ... )
+update_alpha_hist  <-  function(multfsusie.obj, discard, ... )
   UseMethod("update_alpha_hist")
 
 
@@ -834,7 +927,16 @@ update_alpha_hist  <-  function(multfsusie.obj, ... )
 update_alpha_hist.multfsusie <-  function(multfsusie.obj , ... )
 {
 
-  multfsusie.obj$alpha_hist[[ (length(multfsusie.obj$alpha_hist)+1)  ]] <- multfsusie.obj$alpha
+  if(!discard){
+    multfsusie.obj$alpha_hist[[ (length(multfsusie.obj$alpha_hist)+1)  ]] <- multfsusie.obj$alpha
+  }
+  if(discard){
+    if((length(multfsusie.obj$alpha_hist[[length(multfsusie.obj$alpha_hist)]]) >multfsusie.obj$L)){
+
+      tt <- multfsusie.obj$alpha_hist[[ (length(multfsusie.obj$alpha_hist) ) ]][1:multfsusie.obj$L]
+      multfsusie.obj$alpha_hist[[ (length(multfsusie.obj$alpha_hist))  ]] <- tt
+    }
+  }
   return( multfsusie.obj)
 }
 
