@@ -129,14 +129,38 @@ cbind_3Darray <- function(array)
 #' @param Y list of matrices
 #' @param min_levres corresponds to the minimum amount of column for a trait to be considered as "functional"
 #' @details return of vector indicating what kind of matrices are stored in the different component of Y. USeful for multfSuSiE
-is.functional <- function(Y, min_levres =4){
-  tt <- unlist((lapply(lapply(Y,dim) ,`[[`, 2)))
-  tt2 <- ifelse( tt < 2^min_levres, "univariate", "functional")
-  ncond <- sum( ifelse( tt < 2^min_levres, tt, 1))
+is.functional <- function(Y, min_levres =4, data.format="ind_mark"){
+  if( data.format=="ind_mark"){
+    tt <- unlist((lapply(lapply(Y,dim) ,`[[`, 2)))
+    tt2 <- ifelse( tt < 2^min_levres, "univariate", "functional")
+    ncond <- sum( ifelse( tt < 2^min_levres, tt, 1))
 
-  out <- list( mark_type = tt2,
-               dim_mark  =  tt,
-               ncond = ncond)
+    out <- list( mark_type = tt2,
+                 dim_mark  =  tt,
+                 ncond = ncond)
+  }
+  if(data.format=="list_df"){
+    tt2      <- c()
+    dim_mark <- c()
+    if( !is.null(Y$Y_f)){
+      tt2 <- c(tt2,rep( 'functional', length(Y$Y_f)))
+      dim_mark <- c(dim_mark, do.call( c,
+                                  lapply( 1:length(Y$Y_f),
+                                          function(k)
+                                            ncol(Y$Y_f[[k]]))
+                                  )
+                    )
+    }
+    if( !is.null(Y$Y_u)){
+      tt2 <- c(tt2, "univariate")
+      dim_mark <- c(dim_mark, ncol(Y$Y_u))
+    }
+    ncond <- sum( ifelse( dim_mark < 2^min_levres, tt, 1))
+    out <- list( mark_type = tt2,
+                 dim_mark  =  dim_mark,
+                 ncond = ncond)
+  }
+
 
   attr(out, "class") <- 'multfsusie_data_type'
   return( out)

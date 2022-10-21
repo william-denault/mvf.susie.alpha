@@ -11,11 +11,11 @@
 #'
 #'@param data.format character specify hw the input data is organised,
 #' "ind_mark" the input is a list in which each element is a list of individual mark measurment.
-#'  "list_df", corresponds to the case where the input is a list of  a series of dataframes
-#'   in which element from univariate trait are stored in Y$Y_u one colum corresponds to a univariate trait
-#'    (can be set to NULL if no univariate trait considered) and functional trait are stored in the list Y$Y_f
-#'    where each element of Y$^Y_f is a n by T dataframe
-#'    (can be NULLif no functional trait considered)
+#'  "list_df", corresponds to the case where the input is a list of  of data frames
+#'   in which element from univariate trait are stored in Y$Y_u, one column corresponds to a univariate trait
+#'    (can be set to NULL if no univariate trait considered) and functional trait are stored in the sub list Y$Y_f
+#'    where each element of the sub list  Y$Y_f is a n by T data frame (T being the number of observation points)
+#'    (can be NULL if no functional trait considered)
 #'
 #' @param prior specify the prior used in susif. Three choice are
 #' available "normal", "mixture_normal", "mixture_normal_per_scale"
@@ -44,12 +44,13 @@
 
 multfsusie <- function(Y ,X,L=2, pos = NULL,
                        data.format = "ind_mark",
+                       verbose=TRUE,
                        maxit = 100,
                        tol = 1e-3,
                        cov_lev = 0.95,
                        min.purity=0.5,
-                       data.driven=FALSE, #Still some problem with data.driven =TRUE
-                       verbose= FALSE,
+                       L_start=3,
+                       #data.driven=FALSE, #Still some problem with data.driven =TRUE
                        all = FALSE,
                        filter.cs =TRUE,
                        init_pi0_w=1,
@@ -58,11 +59,22 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                               eps = 1e-6,
                                               numiter.em = 40,
                                               verbose = FALSE
-                                             )
+                                             ),
+                       cal_obj=FALSE,
+                       greedy=TRUE,
+                       backfit=TRUE
                       )
 
 
 {
+  if(missing(nullweight )){
+    nullweight <- 10#/sqrt(nrow(X))
+  }
+
+  if(L_start >L)
+  {
+    L_start <- L
+  }
 #Formatting the data
 
   if(data.format=="ind_mark")  {
@@ -70,9 +82,6 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   for ( k in 1:length(Y[[1]]))
   {
     list_dfs [[k]]     <- do.call(rbind, lapply(Y, `[[`, k))
-  }
-  if(missing(nullweight )){
-    nullweight <- 10#/sqrt(nrow(X))
   }
 
   type_mark <-  is.functional(list_dfs)
@@ -120,6 +129,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     v1  <- nrow( Y_f [[1]])
     Y_data   <- list(Y_u =Y$Y_u,
                      Y_f =Y_f)
+    type_mark <- is.functional ( Y=Y_data,
+                                 data.format=data.format)
   }
 
   lowc_wc=NULL
@@ -131,14 +142,16 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   Y_data <- multi_array_colScale(Y_data, scale=FALSE)
 
   v1 <- rep( 1, nrow(X))
+
   temp  <- init_prior_multfsusie(Y=Y_data ,
-                                   X,
+                                 X=X,
                                    v1,
                                    list_indx_lst,
                                    lowc_wc=lowc_wc,
                                    control_mixsqp=control_mixsqp,
                                    nullweight=  nullweight
                                   )
+
   G_prior <- temp$G_prior
   effect_estimate  <- temp$res
   init        <- TRUE
@@ -192,11 +205,25 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
 
   }else{
+    ##### Start While -----
+    iter <- 1
     while(check >tol & (h/L) <maxit)
     {
       for( l in 1:multfsusie.obj$L)
       {
 
+        update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
+                                      l              = (l-1)  ,
+                                      X              = X,
+                                      Y              = Y_data,
+                                      list_indx_lst  = list_indx_lst
+        )
+
+
+
+        if(verbose){
+          print(paste("Fitting effect ", l,", iter" ,  iter ))
+        }
         if(init){#recycle operation used to fit the prior
 
           EM_out <- susiF.alpha:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
@@ -230,35 +257,25 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                             lowc_wc         =  lowc_wc)
 
 
-        update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
-                                      l              = l ,
-                                      X              = X,
-                                      Y              = Y_data,
-                                      list_indx_lst  = list_indx_lst
-        )
-
-
-
-      }#end for l in 1:L
+      }#end for l in 1:L  -----
       multfsusie.obj <- greedy_backfit (multfsusie.obj,
-                                   verbose = verbose,
-                                   cov_lev = cov_lev,
-                                   X       = X,
-                                   min.purity= min.purity
+                                        verbose        = verbose,
+                                        cov_lev        = cov_lev,
+                                        X              = X,
+                                        min.purity     = min.purity
       )
       multfsusie.obj <- test_stop_cond(multfsusie.obj = multfsusie.obj,
-                                  check    = check,
-                                  cal_obj   = cal_obj,
-                                  Y         = Y_f,
-                                  X         = X,
-                                  D         = W$D,
-                                  C         = W$C,
-                                  indx_lst  = indx_lst)
+                                  check               = check,
+                                  cal_obj             = cal_obj,
+                                  Y                   = Y_data,
+                                  X                   = X,
+                                  list_indx_lst       = list_indx_lst)
       check <- multfsusie.obj$check
 
       sigma2         <- estimate_residual_variance.multfsusie(multfsusie.obj,Y=Y_data,X)
       multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
 
+      iter <- iter+1
 
 
 

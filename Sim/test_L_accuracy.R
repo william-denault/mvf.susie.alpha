@@ -1,6 +1,7 @@
 library(susiF.alpha)
+library(mvf.susie.alpha)
 library(sim1000G)
-set.seed(1)
+
 examples_dir = system.file("examples", package = "sim1000G")
 vcf_file = file.path(examples_dir, "region.vcf.gz")
 
@@ -27,20 +28,26 @@ for(i in 1:100) id[i] = SIM$addUnrelatedIndividual()
 
 genotypes = SIM$gt1[1:100,] + SIM$gt2[1:100,]
 
-print(dim(genotypes))
+(dim(genotypes))
 
-str(genotypes)
-
-library(gplots)
 #res <- list()
 #load("check_L_accuracy.RData")
 for (o  in (length(res)+1):1000) {
   L <- sample(1:10, size=1)
   print(L)
-  lf <-  list()
+  list_lev_res <- list(5,6)
+  n_univ <- 3
+  eff <-  list()
   for(l in 1:L){
-    lf[[l]] <- simu_IBSS_per_level(lev_res=5)$sim_func
+    eff[[l]] <-   simu_effect_multfsusie (list_lev_res=list_lev_res,
+                                          n_univ=n_univ, output_level = 2)
   }
+
+
+Y_f1 <-  matrix(rnorm((2^list_lev_res[[1]])*100 ,sd=1), nrow = 100)
+Y_f2 <-  matrix(rnorm((2^list_lev_res[[2]])*100 ,sd=1), nrow = 100)
+
+Y_u <- matrix(rnorm((n_univ)*100 ,sd=1), nrow = 100)
 
 
   tt <- sample(1:7,1)
@@ -52,31 +59,38 @@ for (o  in (length(res)+1):1000) {
   # G <- matrix( rnorm(100*300), nrow = 100)
   true_pos <- sample( 1:ncol(G), L)
 
-  Y <- matrix(rnorm((2^5)*100 ,sd=1), nrow = 100)
   for ( i in 1:100){
     for ( l in 1:L){
-      Y[i,] <- Y[i,]+ lf[[l]]*G[i,true_pos[[l]]]
+
+      Y_f1[i,]<- Y_f1[i,]+eff[[l]]$func_effect[[1]]$sim_func*G[i,true_pos[[l]]]
+      Y_f2[i,]<- Y_f2[i,]+eff[[l]]$func_effect[[2]]$sim_func*G[i,true_pos[[l]]]
+      Y_u[i,]<- Y_u[i,]+ eff[[l]]$univ_effect*G[i,true_pos[[l]]]
     }
   }
 
-  m1 <- susiF(Y=Y, X=G,L=10 ,L_start=11 ,nullweight=10,  prior="mixture_normal", cal_obj =FALSE,  maxit=10)
+  Y_f <- list()
+  Y_f[[1]] <- Y_f1
+  Y_f[[2]] <- Y_f1
+  Y <- list( Y_f = Y_f, Y_u=Y_u)
+
+  m1 <- multfsusie(Y=Y,
+                   X=G,
+                   L=11 ,
+                   data.format="list_df",
+                   L_start=11 ,
+                   nullweight=10,
+                   cal_obj =FALSE,
+                   maxit=10)
   m1$cs
-  m1$est_pi
+
   true_pos[order(true_pos)]
-  m2 <- susiF(Y=Y, X=G,L=10,L_start=11 ,nullweight=10 , maxit=10)
-  m2$cs
+
   out <- c( length(m1$cs), #number of CS
             length(which(true_pos%in% do.call(c, m1$cs))), #number of effect found
             Reduce("+",sapply(1:length(m1$cs), function(k)
               ifelse( length(which(true_pos%in%m1$cs[[k]] ))==0, 1,0)
-            )
-            ),#number of CS without any effect
-            length(m2$cs),
-            length(which(true_pos%in% do.call(c, m2$cs))),
-            Reduce("+",sapply(1:length(m2$cs), function(k)
-              ifelse( length(which(true_pos%in%m2$cs[[k]] ))==0, 1,0)
-            )
-            ),#number of CS without any effect
+                          )
+                   ), #number of CS without any effect
             L)
   res[[o]] <- out
   print(res)

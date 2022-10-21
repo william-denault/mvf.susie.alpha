@@ -1,5 +1,3 @@
-
-#### test with univariate and continuous data
 library(testthat)
 library(ashr)
 library(wavethresh)
@@ -142,10 +140,12 @@ test_that("G_prior object should have the following classes ",
 )
 L=3
 multfsusie.obj <- init_multfsusie_obj(L_max = 3, G_prior, Y_data,X , type_mark,
+                                      L_start =   3,
                                       greedy = greedy, backfit=backfit)
 test_that("multfsusie internal prior to be equal to ",
           {
             multfsusie.obj <- init_multfsusie_obj(L_max = 3, G_prior, Y_data,X , type_mark,
+                                                  L_start =   3,
                                                   greedy = greedy, backfit=backfit)
 
             expect_equal(get_G_prior (multfsusie.obj ),  G_prior)

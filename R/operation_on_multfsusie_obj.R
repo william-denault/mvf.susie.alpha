@@ -210,15 +210,14 @@ expand_multfsusie_obj <- function(multfsusie.obj,L_extra)
 
     for ( l in (L_old+1):multfsusie.obj$L )
     {
-      multfsusie.obj$fitted_wc[[l]]        <-  lapply(1:length(multfsusie.obj$fitted_wc[[1]]),
+      multfsusie.obj$fitted_wc[[l]]        <- lapply(1:length(multfsusie.obj$fitted_wc[[1]]),
                                                       function (k) 0*multfsusie.obj$fitted_wc[[1]][k])
-      multfsusie.obj$fitted_wc2[[l]]       <-   lapply(1:length(multfsusie.obj$fitted_wc[[1]]),
+      multfsusie.obj$fitted_wc2[[l]]       <- lapply(1:length(multfsusie.obj$fitted_wc[[1]]),
                                                        function (k) (0*multfsusie.obj$fitted_wc2[[1]][k] +1))
-      multfsusie.obj$alpha [[l]]           <-  rep(0, length(multfsusie.obj$alpha [[1]]))
-      multfsusie.obj$cs[[l]]               <-  list()
-      multfsusie.obj$est_pi [[l]]          <-  multfsusie.obj$est_pi[[1]]
-      #multfsusie.obj$est_sd [[l]]          <-  multfsusie.obj$est_sd[[1]]
-      multfsusie.obj$lBF[[l]]              <-  rep(NA, length( multfsusie.obj$lBF[[1]]))
+      multfsusie.obj$alpha [[l]]           <- rep(0, length(multfsusie.obj$alpha [[1]]))
+      multfsusie.obj$cs[[l]]               <- list()
+      multfsusie.obj$est_pi [[l]]          <- multfsusie.obj$est_pi[[1]]
+      multfsusie.obj$lBF[[l]]              <- rep(NA, length( multfsusie.obj$lBF[[1]]))
       multfsusie.obj$KL                    <- rep(NA,multfsusie.obj$L)
       multfsusie.obj$ELBO                  <- c()
     }
@@ -262,45 +261,45 @@ expand_multfsusie_obj <- function(multfsusie.obj,L_extra)
 #' \item{ELBO}{ The evidence lower bound}
 #' \item{lfsr_wc}{Local fasle sign rate of the fitted wavelet coefficients}
 #' @export
-init_multfsusie_obj <- function(L_max, G_prior, Y,X, type_mark,L_start,greedy,backfit )
+init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,backfit )
 {
-  sigma2          <-  list()
+  sigma2          <- list()
   if(!is.null(Y$Y_f)){
-  fitted_wc       <-  list()
-  fitted_wc2      <-  list()
-  n_wac           <-  lapply(lapply(Y$Y_f,dim) ,`[[`, 2)
-  sigma2$sd_f     <-  rep( 1, length(n_wac ))
+  fitted_wc       <- list()
+  fitted_wc2      <- list()
+  n_wac           <- lapply(lapply(Y$Y_f,dim) ,`[[`, 2)
+  sigma2$sd_f     <- rep( 1, length(n_wac ))
   }else {
-    fitted_wc       <-  NULL
-    fitted_wc2      <-  NULL
-    n_wac           <-  NULL
-    sigma2$sd_f     <-  NULL
+    fitted_wc     <- NULL
+    fitted_wc2    <- NULL
+    n_wac         <- NULL
+    sigma2$sd_f   <- NULL
   }
   if(!is.null(Y$Y_u)){
-    fitted_uni        <-   list()
-    fitted_uni2       <-   list()
+    fitted_uni    <- list()
+    fitted_uni2   <- list()
 
   }else{
-    fitted_uni        <-   NULL
-    fitted_uni2       <-   NULL
-    sigma2$sd_u       <-   NULL
+    fitted_uni    <- NULL
+    fitted_uni2   <- NULL
+    sigma2$sd_u   <- NULL
   }
-  alpha           <-  list()
-  alpha_hist      <-  list()
-  ind_fitted_val  <-  list()
-  cs              <-  list()
-  pip             <-  rep(0, dim(X)[2])
-  est_pi          <-  list()
-  est_sd          <-  list()
-  L_max           <-  L_max
-  L               <-  min(3,L_max)
-  G_prior         <-  G_prior
-  N               <-  nrow(X)[1]
-  n_cond          <-  type_mark$ncond
-  P               <-  ncol(X)
-  lBF             <-  list()
-  KL              <-  rep(NA,L)
-  ELBO            <-  c()
+  alpha           <- list()
+  alpha_hist      <- list()
+  ind_fitted_val  <- list()
+  cs              <- list()
+  pip             <- rep(0, dim(X)[2])
+  est_pi          <- list()
+  est_sd          <- list()
+  L_max           <- L_max
+  L               <- L_start
+  G_prior         <- G_prior
+  N               <- nrow(X)[1]
+  n_cond          <- type_mark$ncond
+  P               <- ncol(X)
+  lBF             <- list()
+  KL              <- rep(NA,L)
+  ELBO            <- c()
   mean_X          <- attr(X, "scaled:center")
   csd_X           <- attr(X, "scaled:scale")
   n_expand        <- 0 #number of greedy expansion
@@ -352,6 +351,7 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X, type_mark,L_start,greedy,ba
                est_sd          = est_sd,
                L               = L,
                L_max           = L_max,
+               n_expand        = n_expand,
                greedy          = greedy,
                backfit         = backfit,
                greedy_backfit_update=greedy_backfit_update)
@@ -749,7 +749,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
       tl <- which(A>0.99, arr.ind = TRUE)
       tl <-  tl[- which( tl[,1]==tl[,2]),]
 
-      if ( length(tl )==0){
+      if ( dim(tl)[1]==0){
 
       }else{
 
@@ -777,7 +777,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
       tl <- which(A>0.99, arr.ind = TRUE)
       tl <-  tl[- which( tl[,1]==tl[,2]),]
 
-      if ( length(tl )==0){
+      if ( dim(tl)[1]==0){
 
       }else{
 
@@ -807,7 +807,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
         tl <- which(A>0.99, arr.ind = TRUE)
         tl <-  tl[- which( tl[,1]==tl[,2]),]
 
-        if ( length(tl )==0){
+        if ( dim(tl)[1]==0){
 
         }else{
 
@@ -840,7 +840,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
       tl <- which(A>0.99, arr.ind = TRUE)
       tl <-  tl[- which( tl[,1]==tl[,2]),]
 
-      if ( length(tl )==0){
+      if ( dim(tl)[1]==0){
 
       }else{
 
@@ -1001,10 +1001,27 @@ pred_partial_u <- function( multfsusie.obj, l, X )
 
 
 
+#' @rdname update_alpha
+#'
+#' @method update_alpha multfsusie
+#'
+#' @export update_alpha.multfsusie
+#'
+#' @export
+#'
+update_alpha.multfsusie <-  function(multfsusie.obj, l, alpha, ... )
+{
+  multfsusie.obj$alpha[[l]] <- alpha
+
+  return( multfsusie.obj)
+}
+
+
 
 #' @title Update alpha_hist   multfsusie object
 #'
 #' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#'
 #' @param  discard logical set to FALSE by default, if true remove element of history longer than L
 #'
 #' @return multfsusie object
@@ -1024,9 +1041,8 @@ update_alpha_hist  <-  function(multfsusie.obj, discard, ... )
 #'
 #' @export
 #'
-update_alpha_hist.multfsusie <-  function(multfsusie.obj , discard=FALSE,... )
+update_alpha_hist.susiF <-  function(multfsusie.obj , discard=FALSE, ... )
 {
-
   if(!discard){
     multfsusie.obj$alpha_hist[[ (length(multfsusie.obj$alpha_hist)+1)  ]] <- multfsusie.obj$alpha
   }
@@ -1037,8 +1053,10 @@ update_alpha_hist.multfsusie <-  function(multfsusie.obj , discard=FALSE,... )
       multfsusie.obj$alpha_hist[[ (length(multfsusie.obj$alpha_hist))  ]] <- tt
     }
   }
+
   return( multfsusie.obj)
 }
+
 
 
 #'@title Update  multfsusie object using the output of EM_pi
@@ -1305,22 +1323,6 @@ out_prep <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs, ...)
 
 
 
-
-#' @rdname update_alpha
-#'
-#' @method update_alpha multfsusie
-#'
-#' @export update_alpha.multfsusie
-#'
-#' @export
-#'
-update_alpha.multfsusie <-  function(multfsusie.obj, l, alpha, ... )
-{
-  multfsusie.obj$alpha[[l]] <- alpha
-  multfsusie.obj$alpha_hist[[ (length(multfsusie.obj$alpha_hist)+1)  ]] <- alpha
-  return( multfsusie.obj)
-}
-
 #' @rdname update_lBF
 #'
 #' @method update_lBF multfsusie
@@ -1329,6 +1331,7 @@ update_alpha.multfsusie <-  function(multfsusie.obj, l, alpha, ... )
 #'
 #' @export
 #'
+
 
 update_lBF.multfsusie <- function    (multfsusie.obj,l, lBF, ...)
 {
@@ -1362,7 +1365,7 @@ test_stop_cond <- function(multfsusie.obj, check, cal_obj, Y_data, X, list_indx_
 #'
 
 
-test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y_data, X, list_indx_lst  ,...)
+test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y, X, list_indx_lst  ,...)
 {
 
   if( multfsusie.obj$L==1)
@@ -1375,15 +1378,15 @@ test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y_data, X, 
   {
     if( cal_obj){
       multfsusie.obj <- update_KL(multfsusie.obj,
-                                  Y=Y_data,
-                                  X=X,
-                                  list_indx_lst)
+                                  Y              = Y,
+                                  X              = X,
+                                  list_indx_lst  = list_indx_lst)
 
       multfsusie.obj <- update_ELBO(multfsusie.obj,
                                     get_objective( multfsusie.obj,
-                                                   Y= Y_data,
-                                                   X=X,
-                                                   list_indx_lst
+                                                   Y              = Y,
+                                                   X              = X,
+                                                   list_indx_lst  = list_indx_lst
                                     )
       )
 
@@ -1456,6 +1459,9 @@ which_dummy_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
 
 which_dummy_cs.multfsusie  <- function(multfsusie.obj, min.purity =0.5, X){
   dummy.cs<- c()
+  if(  multfsusie.obj$L==1){
+    return(dummy.cs)
+  }
 
   if(is.null(multfsusie.obj$G_prior$G_prior_u)){
     for (l in 1:multfsusie.obj$L )
