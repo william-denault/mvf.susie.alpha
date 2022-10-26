@@ -1041,7 +1041,7 @@ update_alpha_hist  <-  function(multfsusie.obj, discard, ... )
 #'
 #' @export
 #'
-update_alpha_hist.susiF <-  function(multfsusie.obj , discard=FALSE, ... )
+update_alpha_hist.multfsusie <-  function(multfsusie.obj , discard=FALSE, ... )
 {
   if(!discard){
     multfsusie.obj$alpha_hist[[ (length(multfsusie.obj$alpha_hist)+1)  ]] <- multfsusie.obj$alpha
