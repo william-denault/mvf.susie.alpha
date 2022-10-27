@@ -179,9 +179,11 @@ discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE)
   }
 
   multfsusie.obj$cs          <-  multfsusie.obj$cs[ -cs]
+
   multfsusie.obj$est_pi           <-  multfsusie.obj$est_pi[ -cs]
   multfsusie.obj$L                <-  multfsusie.obj$L -length(cs)
-  multfsusie.obj$est_pi      <- multfsusie.obj$est_pi[ -cs]
+print( paste("length cs= ", length(cs)))
+
   return(multfsusie.obj)
 }
 
@@ -894,9 +896,9 @@ merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=TRUE){
     #print( tl)
     if( !is.null(multfsusie.obj$fitted_wc[[1]])){
       for ( k in 1: length(multfsusie.obj$fitted_wc[[1]])){
-        multfsusie.obj$fitted_wc[[tl[  2]]][k] <- 0* multfsusie.obj$fitted_wc[[tl[ 2]]][k]
-        multfsusie.obj$fitted_wc[[tl[  1]]][k] <- multfsusie.obj$fitted_wc[[tl[  1]]][k] +   multfsusie.obj$fitted_wc[[tl[ 2]]][k]
-        multfsusie.obj$fitted_wc2[[tl[ 1]]][k] <- multfsusie.obj$fitted_wc2[[tl[  1]]][k] +   multfsusie.obj$fitted_wc2[[tl[  2]]][k]
+        multfsusie.obj$fitted_wc[[tl[  2]]][[k]] <- 0* multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
+        multfsusie.obj$fitted_wc[[tl[  1]]][[k]] <- multfsusie.obj$fitted_wc[[tl[  1]]][[k]]+   multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
+        multfsusie.obj$fitted_wc2[[tl[ 1]]][[k]]<- multfsusie.obj$fitted_wc2[[tl[  1]]][[k]] +   multfsusie.obj$fitted_wc2[[tl[  2]]][[k]]
 
       }
 

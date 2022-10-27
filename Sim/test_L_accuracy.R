@@ -30,7 +30,7 @@ genotypes = SIM$gt1[1:100,] + SIM$gt2[1:100,]
 
 (dim(genotypes))
 
-#res <- list()
+ res <- list()
 #load("check_L_accuracy.RData")
 for (o  in (length(res)+1):1000) {
   L <- sample(1:10, size=1)
@@ -94,69 +94,7 @@ Y_u <- matrix(rnorm((n_univ)*100 ,sd=1), nrow = 100)
             L)
   res[[o]] <- out
   print(res)
-  save(res, file="check_L_accuracy.RData")
+  save(res, file="check_L_accuracy_sd1.RData")
 }
 
 
-
-library(susiF.alpha)
-library(ashr)
-
-tl <- list()
-for (k in  1:100)
-{
-  #Example using curves simulated under the Mixture normal per scale prior
-  rsnr <- 1 #expected root signal noise ratio
-  N <- 100    #Number of individuals
-  P <- 20     #Number of covariates
-  pos1 <- 1   #Position of the causal covariate for effect 1
-  pos2 <- 5   #Position of the causal covariate for effect 1
-  lev_res <- 4#length of the molecular phenotype (2^lev_res)
-  f1 <-  simu_IBSS_per_level(4 )$sim_func#first effect
-  f2 <- simu_IBSS_per_level(6 )$sim_func #second effect
-
-
-
-  G = matrix(sample(c(0, 1,2), size=N*P, replace=TRUE), nrow=N, ncol=P) #Genotype
-  beta0       <- 0
-  beta1       <- 1
-  beta2       <- 1
-  noisy.data  <- list()
-
-  for ( i in 1:N)
-  {
-    f1_obs <- f1
-    f2_obs <- f2
-    noise <- rnorm(length(f1), sd=  2)
-    noisy.data [[i]] <-   beta1*G[i,pos1]*f1_obs + beta2*G[i,pos2]*f2_obs + noise
-
-  }
-  noisy.data <- do.call(rbind, noisy.data)
-
-
-
-
-
-  Y <- noisy.data
-  X <- G
-  #Running fSuSiE
-
-  out <- susiF(Y,X,L=2 , prior = 'mixture_normal_per_scale',
-               init_pi0_w = 0.5,
-               control_mixsqp =  list(
-                 eps = 1e-3,
-                 numiter.em = 100,
-                 verbose = FALSE
-               )
-  )
-  tl[[k]]<-  out$ELBO
-  print(out$sigma2)
-}
-for( i in 1:length(tl))
-{
-  plot(tl[[i]][-1])
-  abline(a=max(tl[[i]]),b=0)
-
-}
-plot(out$ELBO)
-diff(out$ELBO)
