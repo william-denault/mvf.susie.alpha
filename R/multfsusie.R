@@ -40,7 +40,58 @@
 #'
 #' @param min.purity minimum purity for estimated credible sets
 #' @param filter.cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
-
+#' @examples
+#'
+#'set.seed(1)
+#'
+#'N <- 100 #Sample size
+#'P= 100 # number of SNP
+#'L <- sample(1:10, size=1) #Number of effect
+#'print(L)
+#'list_lev_res <- list(5,6) # two functional phenotype , one of length( 2^5, and 2^6)
+#'n_univ <- 3 #3 univariate phenotypes
+#'eff <-  list()
+#'for(l in 1:L){ #Simulate the mult-trait effect
+#'  eff[[l]] <-   simu_effect_multfsusie (list_lev_res=list_lev_res,
+#'                                        n_univ=n_univ, output_level = 2)
+#'}
+#'
+#'
+#'Y_f1 <-  matrix(rnorm((2^list_lev_res[[1]])*N ,sd=1), nrow = N)
+#'Y_f2 <-  matrix(rnorm((2^list_lev_res[[2]])*N ,sd=1), nrow = N)
+#'
+#'Y_u <- matrix(rnorm((n_univ)*N ,sd=1), nrow = N)
+#'
+#'
+#'G = matrix(sample(c(0, 1,2), size=N*P, replace=TRUE), nrow=N, ncol=P) #Genotype
+#'
+#'
+#'true_pos <- sample( 1:ncol(G), L)# actually causal column/SNP
+#'
+#'for ( i in 1:N){
+#'  for ( l in 1:L){
+#'
+#'    Y_f1[i,]<- Y_f1[i,]+eff[[l]]$func_effect[[1]]$sim_func*G[i,true_pos[[l]]]
+#'    Y_f2[i,]<- Y_f2[i,]+eff[[l]]$func_effect[[2]]$sim_func*G[i,true_pos[[l]]]
+#'    Y_u[i,]<- Y_u[i,]+ eff[[l]]$univ_effect*G[i,true_pos[[l]]]
+#'  }
+#'}
+#'
+#'Y_f <- list()
+#'Y_f[[1]] <- Y_f1
+#'Y_f[[2]] <- Y_f1
+#'Y <- list( Y_f = Y_f, Y_u=Y_u) # preparing data , current onput type expact list of two which element named Y_f for functional trait and Y_u for univariate trait
+#'
+#'m1 <- multfsusie(Y=Y,
+#'                 X=G,
+#'                 L=11 ,
+#'                 data.format="list_df",
+#'                 L_start=11 ,
+#'                 nullweight=10,
+#'                 cal_obj =FALSE,
+#'                 maxit=10)
+#'m1$cs# credible sets
+#'
 
 multfsusie <- function(Y ,X,L=2, pos = NULL,
                        data.format = "ind_mark",

@@ -29,9 +29,7 @@ N <- 30
 genotypes = SIM$gt1[1:N,] + SIM$gt2[1:N,]
 
 (dim(genotypes))
-
- res <- list()
-#load("check_L_accuracy.RData")
+load("D:/Document/Serieux/Travail/Package/mvf.susie.alpha/check_L_accuracy_sd1.RData")
 for (o  in (length(res)+1):1000) {
   L <- sample(1:10, size=1)
   print(L)
