@@ -155,7 +155,7 @@ is.functional <- function(Y, min_levres =4, data.format="ind_mark"){
       tt2 <- c(tt2, "univariate")
       dim_mark <- c(dim_mark, ncol(Y$Y_u))
     }
-    ncond <- sum( ifelse( dim_mark < 2^min_levres, tt, 1))
+    ncond <- sum( ifelse( dim_mark < 2^min_levres, dim_mark, 1))
     out <- list( mark_type = tt2,
                  dim_mark  =  dim_mark,
                  ncond = ncond)
