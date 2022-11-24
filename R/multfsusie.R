@@ -10,7 +10,7 @@
 #' are evenly spaced
 #'
 #'@param data.format character specify hw the input data is organised,
-#' "ind_mark" the input is a list in which each element is a list of individual mark measurment.
+#' "ind_mark" the input is a list in which each element is a list of individual mark measurement.
 #'  "list_df", corresponds to the case where the input is a list of  of data frames
 #'   in which element from univariate trait are stored in Y$Y_u, one column corresponds to a univariate trait
 #'    (can be set to NULL if no univariate trait considered) and functional trait are stored in the sub list Y$Y_f
@@ -94,7 +94,7 @@
 #'
 
 multfsusie <- function(Y ,X,L=2, pos = NULL,
-                       data.format = "ind_mark",
+                       data.format = "list_df",#"ind_mark",
                        verbose=TRUE,
                        maxit = 100,
                        tol = 1e-3,
@@ -193,17 +193,17 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   X <- susiF.alpha:::colScale(X)
   # centering input
   Y_data <- multi_array_colScale(Y_data, scale=FALSE)
-
+  #
   v1 <- rep( 1, nrow(X))
 
-  temp  <- init_prior_multfsusie(Y=Y_data ,
-                                 X=X,
-                                   v1,
-                                   list_indx_lst,
-                                   lowc_wc=lowc_wc,
-                                   control_mixsqp=control_mixsqp,
-                                   nullweight=  nullweight
-                                  )
+  temp  <- init_prior_multfsusie(Y              = Y_data ,
+                                 X              = X,
+                                 v1             = v1,
+                                 list_indx_lst  = list_indx_lst,
+                                 lowc_wc        = lowc_wc,
+                                 control_mixsqp = control_mixsqp,
+                                 nullweight     = nullweight
+                                 )
 
   G_prior <- temp$G_prior
   effect_estimate  <- temp$res

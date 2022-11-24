@@ -1,0 +1,151 @@
+---
+title: "Joint functional and univariate fine mapping with multfSuSiE"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{joint_functional_and_univariate_fine_mapping}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(mvf.susie.alpha)
+```
+
+
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 5,
+  fig.height = 3,
+  fig.align = "center",
+  fig.cap = "&nbsp;",
+  dpi = 120
+  )
+
+ 
+```
+
+# multfSuSiE
+ Here we showcase the implementation of the  a  Bayesian variable selection method called the "multi Functional and univariate Sum of Single Effects" ({\em multfSuSiE}) model that extends the {\em fSuSiE} and {\em SuSiE} model of Denault et al.^[this vignette is based on the original SuSiE vignette by [Gao Wang](https://stephenslab.github.io/susieR/articles/finemapping.html) ]  to jointly fine-map functional and univariate phenotypes. The methods implemented here are particularly well-suited to settings where some of the X variables are highly correlated, and the true effects are highly sparse (e.g. <20 non-zero effects in the vector b). One example of this is the joint genetic fine-mapping  molecular measurements from sequencing assays (ChIP-seq, ATAC-seq, which are functional phenotypes ) and gene expression (univariate). However, the methods should also be useful more generally (e.g. detecting change in time series).
+
+###Model Description 
+When analysing  a single functional phenotype with  a single univariate phenotype, multfSuSiE fits the following linear regressions  $ {Y_f} =  {XB_f} +  {E_f}$ and $ {Y_u} =  {XB_u} +  {E_u}$; where $ {Y_f}$ is a N x T matrix containing the observed curves, $Y_u$ is N vector containning the univaraite phenotype, $\ {X}$ is the N × p matrix of  single nucleotide polymorphisms (SNP) in the region to be fine-mapped. ${B_f}$ is a p × T matrix whose element $b_{jt}$ is the effect of SNP $j$ on the trait at location t, $B_u$ is a p vector whose element $b_{j}$ is the effect of SNP $j$ on the univariate trait, ${E_f}$ and $E_u$ are noise terms  considered to be normally-distributed with variance $\sigma_f^2$ and $\sigma_u^2$ respectively. Analogous to regular fine-mapping, the matrix ${B_f}$ and the vecotr $B_u$ are expected to be sparse, i.e., most rows/entries will be zero. Non-zero rows/entries correspond to SNPs that do affect the trait. The goal is to identify the non-zero rows/entries of  ${B_f}$ and $B_u$. We extended  {\em  fSuSiE} and {\em SuSiE} to functional traits by writing ${B_f}= \sum_l^L  {B_f}^{(l)}$ and ${B_u}= \sum_l^L  {B_u}^{(l)}$, where each "single-effect" doublet (matrix,vector) ${B_f}^{(l)},{B_u}^{(l)}$ has one   non-zero entry  ^[Say that entry k is non zero, thus, row k in ${B_f}^{(l)}$   is non-zero and entry k in $B_u^{(l)}$ is non-zero)], corresponding to a single causal SNP. We devised a fast variational inference procedure~\cite{blei_variational_2017} for fitting this model by first projecting the data in the wavelet space and then using an adaptation of the efficient iterative Bayesian stepwise selection (IBSS) approach proposed by Wang and colleagues .
+
+
+The output of the fitting procedure is a number of “Credible Sets” (CSs), which are each designed to have high probability to contain a variable with non-zero effect, while at the same time being as small as possible. You can think of the CSs as being a set of “highly correlated” variables that are each associated with the response: you can be confident that one of the variables has a non-zero coefficient, but they are too correlated to be sure which one.
+
+The package is developed by William R.P. Denault from the Stephens Lab at the University of Chicago.
+
+Please post issues to ask questions, get our support or provide us feedback; please send pull requests if you have helped fixing bugs or making improvements to the source code.
+
+
+### Using fSuSiE
+
+#### the data
+This vignette show how to use multfsusie in the context of genetic fine-mapping. We simulate 2 functional trait and 3 univariate trait using  N≈600 individuals. We want to identify which columns of  the genotype matrix X  (P=1000) cause changes in expression level.
+
+The simulated data set is simulated to have exactly 2 non-zero effects.
+
+Here we simulate the effect 
+```{r}
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+library(susiF.alpha)
+library(mvf.susie.alpha)
+library(ashr)
+library(susieR)
+set.seed(1)
+data(N3finemapping)
+attach(N3finemapping)
+
+rsnr <- 0.5 #expected root signal noise ratio
+
+pos1 <- 250   #Position of the causal covariate for effect 1
+pos2 <- 750   #Position of the causal covariate for effect 1
+lev_res1 <- 5#length of the functional phenotype 1 phenotype (2^lev_res)
+
+lev_res2 <- 6#length of the molecular phenotype (2^lev_res)
+
+L <-  2
+
+  list_lev_res <- list(lev_res1,lev_res2)
+  n_univ <- 3
+  eff <-  list()
+  for(l in 1:L){
+    eff[[l]] <-   simu_effect_multfsusie (list_lev_res=list_lev_res,
+                                          n_univ=n_univ, output_level = 2)
+  }
+
+par(mfrow=c(3,1))
+plot( eff[[1]]$func_effect[[1]]$sim_func, 
+      type ="l",
+      ylab="effect", 
+      col="blue",
+      main="effect in functional trait 1",
+      ylim = c(-10,10)
+      )
+abline(a=0,b=0)
+lines(eff[[2]]$func_effect[[1]]$sim_func, type="l", col="green")
+legend(x=2,
+       y=-3,
+       lty = rep(1,2),
+      legend= c("effect 1", "effect 2" ),
+       col=c("blue","green" ))
+plot( eff[[1]]$func_effect[[2]]$sim_func,
+      type ="l",
+      ylab="effect", 
+      col="blue",
+      main="effect in functional trait 2",
+      ylim = c(-10,10)
+      )
+abline(a=0,b=0)
+lines(eff[[2]]$func_effect[[2]]$sim_func, type="l", col="green")
+legend(x=100,
+       y=3,
+      lty = rep(1,2),
+      legend= c("effect 1", "effect 2" ),
+       col=c("blue","green" ))
+
+plot( (eff[[1]]$univ_effect+c(0,0,0.3)),#allow distinguishing the effect on the plot
+     
+      ylab="effect", 
+      col="blue",
+      main="effect on the differen univariate trait",
+      ylim = c(-10,10),
+      pch=19
+      )
+abline(a=0,b=0)
+points(eff[[2]]$univ_effect,pch=19 , col="green")
+legend(x=1 ,
+       y=-3,
+      pch = rep(19,2),
+      legend= c("effect 1", "effect 2" ),
+       col=c("blue","green" ))
+
+
+
+par(mfrow=c(1,1))
+
+```
+
+
+
+
+
+
+
+
+
