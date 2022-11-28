@@ -122,7 +122,6 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                        cov_lev = 0.95,
                        min.purity=0.5,
                        L_start=3,
-                       #data.driven=FALSE, #Still some problem with data.driven =TRUE
                        all = FALSE,
                        filter.cs =TRUE,
                        init_pi0_w=1,
@@ -374,12 +373,12 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
   #preparing output
    multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,
-                         Y          = Y_data,
-                         X          = X,
-                         list_indx_lst   = list_indx_lst,
-                         filter.cs  = filter.cs
+                                   Y          = Y_data,
+                                   X          = X,
+                              list_indx_lst   = list_indx_lst,
+                                   filter.cs  = filter.cs
     )
-   susiF.obj$runtime <- proc.time()-pt
+   multfsusie.obj$runtime <- proc.time()-pt
   return(multfsusie.obj)
 
 }
