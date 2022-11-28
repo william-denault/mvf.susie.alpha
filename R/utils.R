@@ -125,7 +125,7 @@ cbind_3Darray <- function(array)
 
 
 
-#' @Title Check mark type for multfsusie
+#' @title Check mark type for multfsusie
 #' @param Y list of matrices
 #' @param min_levres corresponds to the minimum amount of column for a trait to be considered as "functional"
 #' @details return of vector indicating what kind of matrices are stored in the different component of Y. USeful for multfSuSiE
@@ -180,3 +180,72 @@ multi_array_colScale <- function(Y, scale=FALSE){
  return( Y)
 }
 
+
+
+#' @title Check mark type for multfsusie
+#' @param thresh_u vector containing threshold for minimal variance for each univariate trait
+#' @param thresh_f vector containing threshold for minimal variance for each functional trait
+#' @export
+threshold_set_up <- function(thresh_u, thresh_f)
+{
+  out <- list(thresh_u = thresh_u,
+              thresh_f = thresh_f)
+
+  return(out)
+}
+
+create_null_thresh <- function(type_mark ){
+
+  if ( length(which(type_mark$mark_type=="univariate"))==0){#
+   thresh_u <- NULL
+  }else{
+   thresh_u <- rep( 0, sum(type_mark$dim_mark[which(type_mark$mark_type=="univariate")]))
+  }
+
+  if ( length(which(type_mark$mark_type=="functional"))==0){#
+    thresh_f <- NULL
+  }else{
+    thresh_f <- rep( 0, length(which(type_mark$mark_type=="functional")))
+  }
+ out <- threshold_set_up(thresh_u = thresh_u ,
+                         thresh_f = thresh_f)
+ return(out)
+}
+
+#'@title function checking which
+#'
+#'@param  Y data list with two entry Y_u and Y_f containning ther differnet phenotypes
+#'@param thresh_lowcount an object created by \link{\code{ threshold_set_up }}
+
+check_low_count <- function(Y, thresh_lowcount ){
+
+
+  if( !is.null(Y$Y_f)){
+   temp_f <-  lapply( 1:length(Y$Y_f), function(d)
+                                     susiF.alpha:::which_lowcount(Y_f=Y$Y_f[[d]],
+                                                           thresh_lowcount= thresh_lowcount$thresh_f[d]
+                                                           )
+                  )
+  }else{
+    temp_f <- NULL
+  }
+  if( !is.null(Y$Y_u)){
+    temp_u <-  do.call(c,
+                       lapply( 1:ncol(Y$Y_u), function(d)
+                                             (  median(abs(Y$Y_u[,d]))<= thresh_lowcount$thresh_u[d])
+
+                              )
+                      )
+    temp_u <- which(temp_u)
+    if(length(temp_u)==0){
+      temp_u <- NULL
+    }
+
+
+  }else{
+    temp_u <- NULL
+  }
+  out <- list( low_wc =temp_f,
+               low_u  =  temp_u)
+  return( out)
+}

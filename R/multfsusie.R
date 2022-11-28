@@ -40,6 +40,14 @@
 #'
 #' @param min.purity minimum purity for estimated credible sets
 #' @param filter.cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
+#'  @param thresh_lowcount list  of numeric (check example), use to check the
+#'   wavelet coefficients/univariate trait have with
+#'  problematic distribution (very low dispersion even after standardization).
+#'  Basically check if the median of the absolute value of the distribution of
+#'   a wavelet coefficient/univariate trait is below a given threshold, if yes the algorithm discard
+#'   this wavelet coefficient (setting its estimate effect to 0 and estimate sd to 1).
+#'   Set to 0 by default. Can be useful when analyzing sparse data from sequence
+#'    based assay or small samples.
 #' @examples
 #'
 #'set.seed(1)
@@ -88,10 +96,23 @@
 #'                 data.format="list_df",
 #'                 L_start=11 ,
 #'                 nullweight=10,
-#'                 cal_obj =FALSE,
 #'                 maxit=10)
 #'m1$cs# credible sets
 #'
+#'
+#'##thresholding some trait
+#'
+#'#create object for thresholding
+#'
+#'threshs <- threshold_set_up( thresh_u= rep(1e-3,3), thresh_f = c(1e-3, 1e-3))
+#'
+#'m1 <- multfsusie(Y=Y,
+#'                 X=G,
+#'                 L=11 ,
+#'                 data.format="list_df",
+#'                 L_start=11,
+#'                 thresh_lowcount=threshs,
+#'                 maxit=10)
 
 multfsusie <- function(Y ,X,L=2, pos = NULL,
                        data.format = "list_df",#"ind_mark",
@@ -111,6 +132,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                               numiter.em = 40,
                                               verbose = FALSE
                                              ),
+                       thresh_lowcount,
                        cal_obj=FALSE,
                        greedy=TRUE,
                        backfit=TRUE
@@ -118,6 +140,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
 
 {
+  pt <- proc.time()
   if(missing(nullweight )){
     nullweight <- 10#/sqrt(nrow(X))
   }
@@ -126,8 +149,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   {
     L_start <- L
   }
-#Formatting the data
-
+#Formatting the data ----
+####ind mark type ----
   if(data.format=="ind_mark")  {
   list_dfs  <- list()
   for ( k in 1:length(Y[[1]]))
@@ -163,7 +186,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   }
   Y_data   <- list(Y_u =Y_u,
                    Y_f =Y_f)
-}
+}####list_df ----
   if(data.format=="list_df"){
 
     h <- 1
@@ -186,28 +209,36 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
   }
 
-  lowc_wc=NULL
-
-
   #### centering and scaling covariate ----
   X <- susiF.alpha:::colScale(X)
   # centering input
   Y_data <- multi_array_colScale(Y_data, scale=FALSE)
   #
+
+
+  ##### continuer ici ----
+  ### Cleaning ------
+
+  #### discarding  null/low variance    ------
+  if( missing(thresh_lowcount)){
+    threshs <- create_null_thresh(type_mark = type_mark)
+  }
+  low_trait <- check_low_count  (Y_data, thresh_lowcount=threshs  )
+
   v1 <- rep( 1, nrow(X))
 
   temp  <- init_prior_multfsusie(Y              = Y_data ,
                                  X              = X,
                                  v1             = v1,
                                  list_indx_lst  = list_indx_lst,
-                                 lowc_wc        = lowc_wc,
+                                 low_trait      = low_trait,
                                  control_mixsqp = control_mixsqp,
                                  nullweight     = nullweight
                                  )
 
-  G_prior <- temp$G_prior
+  G_prior          <- temp$G_prior
   effect_estimate  <- temp$res
-  init        <- TRUE
+  init             <- TRUE
   multfsusie.obj <- init_multfsusie_obj( L_max=L,
                                          G_prior=G_prior,
                                          Y=Y_data,
@@ -227,17 +258,21 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   if( L==1)
   {
 
-    effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
+    effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,low_trait=low_trait)
     tpi               <- get_pi(multfsusie.obj,1)
-    G_prior <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
+    G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
+
 
     EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
                                effect_estimate = effect_estimate,
                                list_indx_lst   =  list_indx_lst,
                                init_pi0_w      = init_pi0_w,
                                control_mixsqp  =  control_mixsqp,
-                               nullweight      = nullweight
+                               nullweight      = nullweight,
+                               low_trait       = low_trait
                               )
+
+
 
     multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
                                         l               = 1,
@@ -280,16 +315,16 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
         if(init){#recycle operation used to fit the prior
 
           EM_out <- susiF.alpha:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
-                                             lBF  = log_BF(G_prior,
-                                                           effect_estimate,
-                                                           list_indx_lst,
-                                                           lowc_wc = lowc_wc)
+                                              lBF  = log_BF(G_prior,
+                                                            effect_estimate,
+                                                            list_indx_lst,
+                                                            low_trait = low_trait)
                                        )
           class(EM_out) <- c("EM_pi_multfsusie","list")
           init <- FALSE
         }else{
          effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
-                                                       lowc_wc = lowc_wc)
+                                                       low_trait = low_trait)
          tpi               <- get_pi(multfsusie.obj,l)
          G_prior <- update_prior(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
 
@@ -298,7 +333,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                     list_indx_lst   = list_indx_lst,
                                     init_pi0_w      = init_pi0_w,
                                     control_mixsqp  = control_mixsqp,
-                                    nullweight      = nullweight
+                                    nullweight      = nullweight,
+                                    low_trait       = low_trait
                                    )
         }
 
@@ -307,7 +343,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                             EM_pi           = EM_out,
                                             effect_estimate = effect_estimate,
                                             list_indx_lst   = list_indx_lst,
-                                            lowc_wc         =  lowc_wc)
+                                            low_trait       = low_trait)
 
 
       }#end for l in 1:L  -----
@@ -343,6 +379,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                          list_indx_lst   = list_indx_lst,
                          filter.cs  = filter.cs
     )
+   susiF.obj$runtime <- proc.time()-pt
   return(multfsusie.obj)
 
 }

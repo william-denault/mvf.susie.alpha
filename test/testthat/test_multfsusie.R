@@ -110,6 +110,12 @@ Y_data   <- list(Y_u =Y_u,
 X <- susiF.alpha:::colScale(X)
 # centering input
 Y_data <- multi_array_colScale(Y_data, scale=FALSE)
+
+
+threshs <- create_null_thresh(type_mark = type_mark)
+low_trait <- check_low_count  (Y_data, thresh_lowcount=threshs  )
+
+
 test_that("Y_u and Y_f should be not NULL ",
           {
             expect_equal( !is.null(Y_data$Y_u),TRUE)
@@ -118,13 +124,11 @@ test_that("Y_u and Y_f should be not NULL ",
 )
 
 
-
-
 G_prior <- init_prior_multfsusie( Y=Y_data ,
                                  X=X,
                                  v1=v1,
                                  list_indx_lst=list_indx_lst,
-                                 lowc_wc= low_wc,
+                                 low_trait= low_trait,
                                  control_mixsqp=control_mixsqp,
                                  nullweight=  nullweight
 )$G_prior
@@ -198,12 +202,13 @@ control_mixsqp =  list(
                         verbose = FALSE
                       )
 
-EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
-                           effect_estimate= effect_estimate,
-                           list_indx_lst =  list_indx_lst,
-                           init_pi0_w= init_pi0_w,
-                           control_mixsqp =  control_mixsqp,
-                           nullweight = nullweight
+EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
+                           effect_estimate = effect_estimate,
+                           list_indx_lst   =  list_indx_lst,
+                           init_pi0_w      = init_pi0_w,
+                           control_mixsqp  =  control_mixsqp,
+                           nullweight      = nullweight,
+                           low_trait       = low_trait
 )
 
 zeta <- cal_zeta(EM_out$lBF)
@@ -255,10 +260,13 @@ test_that("The highest assignation should be equal to", {
   expect_lt( get_pi0(tpi = tpi$est_pi_f[[2]])[2], c( 0.6 ) )
 })
 
-
+threshs <- create_null_thresh(type_mark = type_mark)
+low_trait <- check_low_count  (Y_data, thresh_lowcount=threshs  )
 
 multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
                                     l               = 1,
                                     EM_pi           = EM_out,
                                     effect_estimate = effect_estimate,
-                                    list_indx_lst   = list_indx_lst)
+                                    list_indx_lst   = list_indx_lst,
+                                    low_trait       = low_trait)
+

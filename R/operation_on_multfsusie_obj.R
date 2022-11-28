@@ -313,7 +313,7 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
 
     if(!is.null(Y$Y_f)){
       fitted_wc[[l]]        <-    lapply( 1:length(n_wac), function(j) matrix( 0,ncol= n_wac[[j]],  nrow = ncol(X)))
-      fitted_wc2[[l]]       <-    lapply( 1:length(n_wac), function(j) rep(  0,ncol= n_wac[[j]],  nrow = ncol(X)))
+      fitted_wc2[[l]]       <-    lapply( 1:length(n_wac), function(j) matrix(  1,ncol= n_wac[[j]],  nrow = ncol(X)))
       sigma2
     }
     if(!is.null(Y$Y_u)){
@@ -440,30 +440,42 @@ get_lBF.multfsusie <- function(multfsusie.obj,l){
 #'
 #'
 #' @return  an object of the same form as effect_estimate, which corresponds to the posterior mean.
-get_post_effect_multfsusie <- function(G_prior, effect_estimate, list_indx_lst=NULL, lowc_wc = NULL){
+get_post_effect_multfsusie <- function(G_prior, effect_estimate, list_indx_lst=NULL, low_trait = NULL){
 
   out <- list( res_uni = NULL,
                res_f  = NULL)
  if( !is.null(effect_estimate$res_uni)){
-   out$res_uni$Bhat  <- do.call( cbind, lapply( 1:length(G_prior$G_prior_u), function( k) get_post_mean_u(G_prior$G_prior_u[[k]],
-                                                                                effect_estimate$res_uni$Bhat[,k],
-                                                                                effect_estimate$res_uni$Shat[,k]
-                                                                                )
-                                             )
-   )
-   out$res_uni$Shat  <- do.call( cbind, lapply( 1:length(G_prior$G_prior_u), function( k) get_post_sd_u(G_prior$G_prior_u[[k]],
-                                                                                                          effect_estimate$res_uni$Bhat[,k],
-                                                                                                          effect_estimate$res_uni$Shat[,k]
-                                                                                                )
-                                                )
-                                    )
- }
+
+
+     out$res_uni$Bhat  <- do.call(
+                                  cbind,
+                                  lapply( 1:length(G_prior$G_prior_u),
+                                          function( k) get_post_mean_u(G_prior$G_prior_u[[k]],
+                                                                       effect_estimate$res_uni$Bhat[,k],
+                                                                       effect_estimate$res_uni$Shat[,k],
+                                                                       low_u = ifelse(k%in%low_trait$low_u, TRUE,FALSE)
+                                                                        )
+                                          )
+                                  )
+     out$res_uni$Shat  <- do.call(
+                                  cbind,
+                                  lapply( 1:length(G_prior$G_prior_u),
+                                          function( k) get_post_sd_u(G_prior$G_prior_u[[k]],
+                                                                     effect_estimate$res_uni$Bhat[,k],
+                                                                     effect_estimate$res_uni$Shat[,k],
+                                                                     low_u = ifelse(k%in%low_trait$low_u, TRUE,FALSE)
+                                                                        )
+                                         )
+                                  )
+
+   }
+
   if( !is.null(effect_estimate$res_f)){
    out$res_f <- lapply( 1:length(G_prior$G_prior_f), function(k)list_post_mean_sd(G_prior$G_prior_f[[k]],
                                                                effect_estimate$res_f[[k]]$Bhat,
                                                                effect_estimate$res_f[[k]]$Shat,
                                                                list_indx_lst[[k]],
-                                                               lowc_wc= lowc_wc)
+                                                               lowc_wc= low_trait$low_wc[[k]] )
                         )
   }
   return( out)
@@ -960,6 +972,8 @@ merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=TRUE){
 #' @param G_prior a mixutre_per_scale prior
 #' @param  Bhat matrix of estimated mean
 #' @param Shat matrix of estimated sd
+#' @importFrom susiF.alpha post_mat_mean
+#' @importFrom susiF.alpha post_mat_sd
 #'
 
 list_post_mean_sd <- function(G_prior, Bhat,Shat,  indx_lst, lowc_wc=NULL)
@@ -968,12 +982,12 @@ list_post_mean_sd <- function(G_prior, Bhat,Shat,  indx_lst, lowc_wc=NULL)
                                     Bhat,
                                     Shat,
                                     indx_lst,
-                                    lowc_wc=NULL),
+                                    lowc_wc=lowc_wc),
                Shat= post_mat_sd(   G_prior ,
                                     Bhat,
                                     Shat,
                                     indx_lst,
-                                    lowc_wc=NULL)
+                                    lowc_wc=lowc_wc)
   )
   return(out)
 
@@ -1071,12 +1085,13 @@ update_alpha_hist.multfsusie <-  function(multfsusie.obj , discard=FALSE, ... )
 #' @param EM_pi an object of the class "EM_pi" generated by the function \code\link{EM_pi_multfsusie}}
 #' @param effect_estimate a list of marginal association generated by \code{cal_Bhat_Shat_multsusie}
 #' @param list_indx_lst list of list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution
+#' @param low_trait object to check if data have critically low variance
 #'
 #' @return multfsusie object
 #'
 #' @export
 
-update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_indx_lst,  ...)
+update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_indx_lst, low_trait,  ...)
 {
 
   if( l > length(multfsusie.obj$est_pi))
@@ -1099,20 +1114,25 @@ update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
   post_effect <- get_post_effect_multfsusie (G_prior         = multfsusie.obj$G_prior ,
                                              effect_estimate = effect_estimate,
                                              list_indx_lst   = list_indx_lst,
-                                             lowc_wc         = lowc_wc)
+                                             low_trait       = low_trait)
 
   if(!is.null(post_effect$res_uni)){
     multfsusie.obj$ fitted_uni[[l]]        <-   post_effect$res_u$Bhat
     multfsusie.obj$ fitted_uni2[[l]]       <-   post_effect$res_u$Shat
   }
 
-  if(!is.null(post_effect$res_f)){
-    multfsusie.obj$fitted_wc[[l]]   <-  lapply(1: length( post_effect$res_f) ,
-                                               function(k) post_effect$res_f[[k]]$Bhat)
+  if(!is.null(post_effect$res_f)){ ### TODO: make it cleaner ------
 
-    multfsusie.obj$fitted_wc2[[l]]  <- lapply(1: length( post_effect$res_f) ,
-                                              function(k) (post_effect$res_f[[k]]$Shat^2))
+    for (k  in 1:length(post_effect$res_f)) {
 
+      if( is.null(low_trait$low_wc[[k]])){
+        multfsusie.obj$fitted_wc[[l]][[k]]  <- post_effect$res_f[[k]]$Bhat
+        multfsusie.obj$fitted_wc2[[l]][[k]] <- post_effect$res_f[[k]]$Shat^2
+      }else{
+        multfsusie.obj$fitted_wc[[l]][[k]][,-low_trait$low_wc[[k]]]    <-  post_effect$res_f[[k]]$Bhat
+        multfsusie.obj$fitted_wc2[[l]][[k]][,-low_trait$low_wc[[k]]]   <- post_effect$res_f[[k]]$Shat^2
+      }
+    }
   }
 
   new_alpha      <- susiF.alpha::cal_zeta (  EM_pi$lBF)

@@ -39,6 +39,8 @@ f31  <-  c(1,-1)
 f32  <-  0*c(-1,1)
 
 
+threshs <- threshold_set_up( thresh_u= rep(1e-3,3), thresh_f = c(1e-3, 1e-3))
+
 nullweight=10
 
 
@@ -84,6 +86,10 @@ for ( k in 1:length(noisy.data[[1]]))
 
 type_mark <-  is.functional(list_dfs)
 type_mark
+thresh_lowcount <- create_null_thresh(type_mark )
+thresh_lowcount
+
+
 
 list_wdfs <- list()
 list_indx_lst  <-  list()
@@ -114,9 +120,12 @@ X   <- G
 Y   <- list(Y_u =Y_u,
             Y_f =Y_f)
 
-G_prior <- init_prior_multfsusie(Y,
-                                 X,
-                                 v1,
+
+Y_data <- Y
+G_prior <- init_prior_multfsusie(Y=Y,
+                                 X=X,
+                                 v1=v1,
+                                # L_start=2,
                                  list_indx_lst,
                                  control_mixsqp = control_mixsqp,
                                  nullweight=nullweight
@@ -126,6 +135,7 @@ G_prior <- init_prior_multfsusie(Y,
 multfsusie.obj <- init_multfsusie_obj(L, G_prior, Y,X ,
                                       type_mark,
                                       greedy=greedy,
+                                      L_start=2,
                                       backfit=backfit)
 class(multfsusie.obj)
 update_Y    <-  Y
@@ -166,13 +176,14 @@ update_Y    <-  Y
   EM_pi <-  EM_out
   EM_pi$lBF
 
+  low_trait$low_u <- 1
 
-
-  multfsusie.obj <- update_multfsusie(multfsusie.obj   = multfsusie.obj ,
+  multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
                                       l               = l,
                                       EM_pi           = EM_out,
                                       effect_estimate = effect_estimate,
-                                      list_indx_lst   = list_indx_lst)
+                                      list_indx_lst   = list_indx_lst,
+                                      low_trait       = low_trait)
   multfsusie.obj$fitted_uni[[l]]
   multfsusie.obj$fitted_wc[[l]]
 

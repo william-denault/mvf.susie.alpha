@@ -14,18 +14,27 @@
 #' @importFrom ashr ash
 #'
 #' @export
-init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,lowc_wc=NULL,control_mixsqp, nullweight )
+init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,control_mixsqp, nullweight )
 {
 
   if(is.null(Y$Y_u)){
     G_prior_u <- NULL
   }else{
     res_uni   <- susiF.alpha::cal_Bhat_Shat(Y$Y_u,X,v1)
-    G_prior_u <- lapply(1:ncol(Y$Y_u), function(j) ash(res_uni$Bhat[,j],
-                                                       res_uni$Shat[,j],
-                                                       mixcompdist = "normal" ,
-                                                       outputlevel=0)
-    )
+    if (is.null(low_trait$low_u)){
+              G_prior_u <- lapply(1:ncol(Y$Y_u), function(j) ash(res_uni$Bhat[,j],
+                                                                  res_uni$Shat[,j],
+                                                                  mixcompdist = "normal" ,
+                                                                  outputlevel=0)
+                              )
+    }else{
+      G_prior_u <- lapply((1:ncol(Y$Y_u))[- low_trait$low_u], function(j) ash(res_uni$Bhat[,j],
+                                                                          res_uni$Shat[,j],
+                                                                          mixcompdist = "normal" ,
+                                                                          outputlevel=0)
+                              )
+      }
+
     #### TODO add optimization step here to bypass for effect fitting
     for ( k in 1: length(G_prior_u)){
       attr(G_prior_u[[k]], "class")  <- "mixture_normal"
@@ -37,26 +46,27 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,lowc_wc=NULL,cont
     G_prior_f < NULL
     res_f <- NULL
   }else{
-    t_G_prior_f <-lapply(1:length(Y$Y_f),  function(k) susiF.alpha::init_prior( Y        = Y$Y_f[[k]],
-                                                                          X        = X,
-                                                                          v1       = v1,
-                                                                          prior    = "mixture_normal_per_scale",
-                                                                          indx_lst = list_indx_lst[[k]],
-                                                                          lowc_wc  = lowc_wc,
-                                                                          control_mixsqp=control_mixsqp,
-                                                                          nullweight=  nullweight
-                                                                          #TODO make it different depending on marks
+    t_G_prior_f <-lapply(1:length(Y$Y_f),
+                         function(k) susiF.alpha::init_prior( Y        = Y$Y_f[[k]],
+                                                              X        = X,
+                                                              v1       = v1,
+                                                              prior    = "mixture_normal_per_scale",
+                                                              indx_lst = list_indx_lst[[k]],
+                                                              lowc_wc  = low_trait$low_wc[[k]],
+                                                              control_mixsqp=control_mixsqp,
+                                                              nullweight=  nullweight
+                                                                #TODO make it different depending on marks
                                                                           )
                           )
     G_prior_f <- lapply(1:length(Y$Y_f), function(k)  t_G_prior_f [[k]]$G_prior)
-    res_f <- lapply(1:length(Y$Y_f), function(k)  t_G_prior_f [[k]]$tt)
+    res_f     <- lapply(1:length(Y$Y_f), function(k)  t_G_prior_f [[k]]$tt)
   }
 
 
   res  <- list( res_uni = res_uni,
                 res_f   = res_f)
   G_prior <- list( G_prior_u = G_prior_u,
-                     G_prior_f = G_prior_f)
+                   G_prior_f = G_prior_f)
 
     attr(G_prior, "class") <- "multfsusie_prior"
 

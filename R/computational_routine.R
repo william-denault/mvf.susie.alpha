@@ -85,21 +85,25 @@ cal_Bhat_Shat_tensor  <- function(Y, X, v1)
 #' @export
 
 
-cal_Bhat_Shat_multfsusie <- function( Y,X,v1,list_indx_lst=NULL, lowc_wc=NULL)
+cal_Bhat_Shat_multfsusie <- function( Y,X,v1,list_indx_lst=NULL, low_trait=NULL)
 {
 
   if(is.null(Y$Y_u)){
     res_uni <- NULL
   }else{
     res_uni   <- susiF.alpha::cal_Bhat_Shat.default(Y=Y$Y_u,
-                                                   X=X,v1=v1,
-                                                  lowc_wc=lowc_wc)
+                                                    X=X,v1=v1,
+                                                    lowc_wc=low_trait$low_u)
   }
 
   if(is.null(Y$Y_f)){
     res_f <- NULL
   }else{
-    res_f <- lapply(1:length(Y$Y_f),  function(k)   susiF.alpha::cal_Bhat_Shat.default(Y$Y_f[[k]], X,v1,lowc_wc=lowc_wc)
+    res_f <- lapply(1:length(Y$Y_f),
+                    function(k)   susiF.alpha::cal_Bhat_Shat.default(Y$Y_f[[k]],
+                                                                     X       = X,
+                                                                     v1      = v1,
+                                                                     lowc_wc = low_trait$low_wc[[k]])
                       )
   }
 
@@ -769,7 +773,8 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
                            espsilon = 0.0001,
                            init_pi0_w= 0.9,
                            control_mixsqp ,
-                           nullweight )
+                           nullweight,
+                           low_trait)
 {
 
 
@@ -789,7 +794,10 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
    zeta <- rep(1/J,J) #assignation initial value
    k <- 1 #counting the number of iteration
 
-  lBF <- log_BF(G_prior,effect_estimate ,list_indx_lst)
+  lBF <- log_BF(G_prior,
+                effect_estimate = effect_estimate,
+                list_indx_lst   = list_indx_lst,
+                low_trait       = low_trait )
 
   while( k <max_step &  abs(newloglik-oldloglik)>=espsilon)
   {
@@ -806,7 +814,10 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
                                 nullweight     = nullweight)
     G_prior <- update_prior(G_prior,tpi_k)
 
-    lBF <- log_BF(G_prior,effect_estimate ,list_indx_lst)
+    lBF <- log_BF(G_prior,
+                  effect_estimate = effect_estimate,
+                  list_indx_lst   = list_indx_lst,
+                  low_trait       = low_trait )
     lBF <- ifelse(lBF==-Inf,0,lBF)
     newloglik <- susiF.alpha::cal_lik(lBF,zeta)
     k <- k+1
@@ -833,10 +844,11 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
 #'
 #' @export
 
-log_BFu <- function (G_prior, Bhat, Shat, ...) {
+log_BFu <- function (G_prior, Bhat, Shat,low_u=FALSE, ...) {
 
-
-
+  if( low_u){
+    out <- rep(0, length(Bhat))
+  }else{
     tt   <- rep(0,length(Shat))
     pi_k <- G_prior$fitted_g$pi
     sd_k <- G_prior$fitted_g$sd
@@ -846,6 +858,9 @@ log_BFu <- function (G_prior, Bhat, Shat, ...) {
     }
 
     out <-  (log(tt) - dnorm(Bhat ,sd = Shat ,log = TRUE))
+
+  }
+
 
   return(out)
 }
@@ -864,16 +879,17 @@ log_BFu <- function (G_prior, Bhat, Shat, ...) {
 #' @return  The log-Bayes factor for each covariate.
 #'
 #' @export
-log_BF.multfsusie_prior <- function( G_prior,effect_estimate ,list_indx_lst,lowc_wc = NULL)
+log_BF.multfsusie_prior <- function( G_prior,effect_estimate ,list_indx_lst,low_trait  )
 {
   if( is.null(G_prior$G_prior_u)){
     u_logBF <- rep(0,nrow(effect_estimate$res_f[[1]]$Bhat  ))
   }else{
     u_logBF <-  lapply(1:ncol(effect_estimate$res_uni$Bhat),
                        function(k)
-                         log_BFu(G_prior= G_prior$G_prior_u[[k]],
-                                 Bhat=  effect_estimate$res_uni$Bhat[,k] ,
-                                 Shat=  effect_estimate$res_uni$Shat[,k]
+                         log_BFu(G_prior = G_prior$G_prior_u[[k]],
+                                 Bhat    =  effect_estimate$res_uni$Bhat[,k] ,
+                                 Shat    =  effect_estimate$res_uni$Shat[,k],
+                                 low_u   =  ifelse(k%in%low_trait$low_u, TRUE,FALSE)
                          )
     )
     u_logBF <- apply(do.call(rbind, u_logBF),2,sum)
@@ -882,11 +898,11 @@ log_BF.multfsusie_prior <- function( G_prior,effect_estimate ,list_indx_lst,lowc
     f_logBF <- rep(0,nrow(effect_estimate$res_uni[[1]] ))
   }else{
     f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
-      susiF.alpha::log_BF(G_prior= G_prior$G_prior_f[[k]],
-                          Bhat = effect_estimate$res_f[[k]]$Bhat,
-                          Shat = effect_estimate$res_f[[k]]$Shat,
-                          indx_lst= list_indx_lst[[k]],
-                          lowc_wc = lowc_wc
+      susiF.alpha::log_BF(G_prior  = G_prior$G_prior_f[[k]],
+                          Bhat     = effect_estimate$res_f[[k]]$Bhat,
+                          Shat     = effect_estimate$res_f[[k]]$Shat,
+                          indx_lst = list_indx_lst[[k]],
+                          lowc_wc  = low_trait$lowc_wc[[k]]
       )
     )
     f_logBF <- apply(do.call(rbind, f_logBF),2,sum)
@@ -918,9 +934,9 @@ L_mixsq_multsusie <- function(G_prior, effect_estimate, list_indx_lst) {
   }else{
     L_mat_f <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
       susiF.alpha::L_mixsq(G_prior$G_prior_f[[k]],
-                           Bhat = effect_estimate$res_f[[k]]$Bhat,
-                           Shat = effect_estimate$res_f[[k]]$Shat,
-                           indx_lst= list_indx_lst[[k]]
+                           Bhat     = effect_estimate$res_f[[k]]$Bhat,
+                           Shat     = effect_estimate$res_f[[k]]$Shat,
+                           indx_lst = list_indx_lst[[k]]
       )
     )
 
@@ -948,13 +964,13 @@ L_mixsq_u <- function(G_prior, Bhat, Shat){
   sdmat <- sqrt(outer(c(Shat ^2), m$fitted_g$sd^2,"+"))
   L     <- (
     dnorm(
-      outer(
-        c(Bhat),
-        rep(0,length(m$fitted_g$sd)),
-        FUN="-"
-      )/sdmat,
-      log=TRUE
-    ) -log(sdmat )
+         outer(
+               c(Bhat),
+               rep(0,length(m$fitted_g$sd)),
+               FUN="-"
+              )/sdmat,
+         log=TRUE
+        ) -log(sdmat )
   )
   L <- rbind(c(0, rep( -100,(ncol(L)-1)  )),#adding penalty line
              L)
@@ -1054,10 +1070,16 @@ m_step_u <- function  (L, zeta , init_pi0_w , control_mixsqp,nullweight, ...)
 #' @description Compute posterior mean for univariate regression
 #' @param Bhat  a vector of mean estimate
 #' @param Bhat  a vector of sd estimate
-get_post_mean_u <- function(G_prior, Bhat, Shat)
+#' @param low_u logical indicate if the trait as critically low spread
+get_post_mean_u <- function(G_prior, Bhat, Shat, low_u=FALSE)
 {
-  data <-  set_data(Bhat  ,Shat  )
-  return(postmean(get_fitted_g(G_prior),data))
+  if(low_u){
+    return(rep( 0, length(Bhat)))
+  }else{
+    data <-  set_data(Bhat  ,Shat  )
+    return(postmean(get_fitted_g(G_prior),data))
+  }
+
 }
 
 
@@ -1065,10 +1087,15 @@ get_post_mean_u <- function(G_prior, Bhat, Shat)
 #' @description Compute posterior sd for univariate regression
 #' @param Bhat  a vector of mean estimate
 #' @param Bhat  a vector of sd estimate
-get_post_sd_u <- function(G_prior, Bhat, Shat)
+#' @param low_u logical indicate if the trait as critically low spread
+get_post_sd_u <- function(G_prior, Bhat, Shat, low_u=FALSE)
 {
+  if(low_u){
+    return(rep( 1, length(Bhat)))
+  }else{
   data <-  set_data(Bhat  ,Shat  )
   return(postsd(get_fitted_g(G_prior),data))
+  }
 }
 
 
