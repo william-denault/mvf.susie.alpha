@@ -19,6 +19,7 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,co
 
   if(is.null(Y$Y_u)){
     G_prior_u <- NULL
+    res_uni   <- NULL
   }else{
     res_uni   <- susiF.alpha::cal_Bhat_Shat(Y$Y_u,X,v1)
     if (is.null(low_trait$low_u)){
