@@ -87,7 +87,7 @@
 #'
 #'Y_f <- list()
 #'Y_f[[1]] <- Y_f1
-#'Y_f[[2]] <- Y_f1
+#'Y_f[[2]] <- Y_f2
 #'Y <- list( Y_f = Y_f, Y_u=Y_u) # preparing data , current onput type expact list of two which element named Y_f for functional trait and Y_u for univariate trait
 #'
 #'m1 <- multfsusie(Y=Y,
@@ -249,7 +249,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
 
   # numerical value to check breaking condition of while
-  check <- 1
+  check <- 3*tol
 
   update_Y    <-  Y_data
 
@@ -352,6 +352,10 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                         X              = X,
                                         min.purity     = min.purity
       )
+
+      sigma2         <- estimate_residual_variance.multfsusie(multfsusie.obj,Y=Y_data,X)
+      multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
+
       multfsusie.obj <- test_stop_cond(multfsusie.obj = multfsusie.obj,
                                   check               = check,
                                   cal_obj             = cal_obj,
@@ -360,8 +364,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                   list_indx_lst       = list_indx_lst)
       check <- multfsusie.obj$check
 
-      sigma2         <- estimate_residual_variance.multfsusie(multfsusie.obj,Y=Y_data,X)
-      multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
+
 
       iter <- iter+1
 

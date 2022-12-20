@@ -270,3 +270,12 @@ multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
                                     list_indx_lst   = list_indx_lst,
                                     low_trait       = low_trait)
 
+
+Y_data   <- list(Y_u =Y_u,
+                 Y_f =Y_f)
+
+res <- multfsusie(Y=Y_data,X=G, L=3)
+plot(res$fitted_func[[1]][[1]], type="l")
+lines(f1$sim_func, col="blue")
+plot(res$fitted_func[[1]][[2]], type="l")
+lines(f2$sim_func, col="blue")

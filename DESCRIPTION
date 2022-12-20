@@ -11,7 +11,8 @@ BugReports: https://github.com/stephenslab/mvf.susie.alpha
 Description: Implementation of the Multivariate Sum of Single Functions ("MVFSuSiE") method.
 Depends:
   R (>= 3.1.0),
-  wavethresh (>= 4.6.8)
+  wavethresh (>= 4.6.8),
+  susiF.alpha
 Imports:
   graphics,
   stats,
@@ -19,8 +20,7 @@ Imports:
   mixsqp (>= 0.3-43),
   mashr (>= 0.2.57),
   abind (>= 1.4-5),
-  matrixStats (>= 0.62.0),
-  susiF.alpha
+  matrixStats (>= 0.62.0) 
 License: GPL (>=3)
 LazyData: true
 LazyDataCompression: xz

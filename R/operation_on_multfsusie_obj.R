@@ -175,14 +175,14 @@ discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE)
   }else{
     multfsusie.obj$greedy_backfit_update <- TRUE
     multfsusie.obj$KL                    <- multfsusie.obj$KL[ -cs]
-    multfsusie.obj$ELBO                  <- c()
+    multfsusie.obj$ELBO                  <- -Inf
   }
 
   multfsusie.obj$cs          <-  multfsusie.obj$cs[ -cs]
 
   multfsusie.obj$est_pi           <-  multfsusie.obj$est_pi[ -cs]
   multfsusie.obj$L                <-  multfsusie.obj$L -length(cs)
-print( paste("length cs= ", length(cs)))
+
 
   return(multfsusie.obj)
 }
@@ -351,6 +351,8 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
                pip             = pip,
                est_pi          = est_pi,
                est_sd          = est_sd,
+               mean_X          = mean_X,
+               csd_X           = csd_X,
                L               = L,
                L_max           = L_max,
                n_expand        = n_expand,
@@ -587,7 +589,7 @@ get_post_F2.multfsusie <- function (multfsusie.obj,l){
       out_u <-  Reduce("+",
                        lapply(1:multfsusie.obj$L,
                               function(l)
-                                multfsusie.obj$alpha[[l]] * (multfsusie.obj$fitted_uni2[[l]]^2+multfsusie.obj$fitted_uni[[l]]^2    )
+                                multfsusie.obj$alpha[[l]] * (multfsusie.obj$fitted_uni2[[l]]+multfsusie.obj$fitted_uni[[l]]^2    )
                        )
       )
     }else{
@@ -606,7 +608,7 @@ get_post_F2.multfsusie <- function (multfsusie.obj,l){
       out_f <- NULL
     }
     if(!is.null(multfsusie.obj$fitted_uni)){
-      out_u <-   multfsusie.obj$alpha[[l]] * (multfsusie.obj$fitted_uni2[[l]]^2+multfsusie.obj$fitted_uni[[l]]^2    )
+      out_u <-   multfsusie.obj$alpha[[l]] * (multfsusie.obj$fitted_uni2[[l]]+multfsusie.obj$fitted_uni[[l]]^2    )
 
     }else{
       out_u <- NULL
@@ -705,7 +707,6 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 
   if(multfsusie.obj$backfit & (length(dummy.cs)>0)){
 
-    print( 1)
     multfsusie.obj$greedy <- FALSE
     if(length(dummy.cs)== multfsusie.obj$L){
       dummy.cs <- dummy.cs[-1]
@@ -748,7 +749,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
   {
 
     multfsusie.obj$greedy <- FALSE
-    print( 2)
+
 
 
     multfsusie.obj <- discard_cs(multfsusie.obj,
@@ -786,7 +787,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
   }
 
   if(!(multfsusie.obj$greedy )&!(multfsusie.obj$backfit ) ){
-    print( 3)
+
     if( length(multfsusie.obj$cs)>1){
       A <- susiF.alpha::cal_cor_cs(multfsusie.obj, X)$cs_cor
       tl <- which(A>0.99, arr.ind = TRUE)
@@ -812,7 +813,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
     return(multfsusie.obj)
   }
   if(multfsusie.obj$greedy & (length(dummy.cs)==0)){
-    print( 4)
+
     tt <- multfsusie.obj$L_max -multfsusie.obj$L
     temp <- min( ifelse(tt>0,tt,0 ) , 7)
 
@@ -875,6 +876,32 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 }
 
 
+
+#' @title formatting function for output of posterior quantities
+#' @description formatting function for output of posterior quantities
+#' @param G_prior a mixutre_per_scale prior
+#' @param  Bhat matrix of estimated mean
+#' @param Shat matrix of estimated sd
+#' @importFrom susiF.alpha post_mat_mean
+#' @importFrom susiF.alpha post_mat_sd
+#'
+
+list_post_mean_sd <- function(G_prior, Bhat,Shat,  indx_lst, lowc_wc=NULL)
+{
+  out <- list (Bhat= post_mat_mean( G_prior ,
+                                    Bhat,
+                                    Shat,
+                                    indx_lst,
+                                    lowc_wc=lowc_wc),
+               Shat= post_mat_sd(   G_prior ,
+                                    Bhat,
+                                    Shat,
+                                    indx_lst,
+                                    lowc_wc=lowc_wc)
+  )
+  return(out)
+
+}
 
 
 
@@ -966,46 +993,38 @@ merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=TRUE){
 
 
 
+#' @title Updates CS names for output
+#'
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#'
+#' @param X matrix of size N by p
 
-#' @title formatting function for output of posterior quantities
-#' @description formatting function for output of posterior quantities
-#' @param G_prior a mixutre_per_scale prior
-#' @param  Bhat matrix of estimated mean
-#' @param Shat matrix of estimated sd
-#' @importFrom susiF.alpha post_mat_mean
-#' @importFrom susiF.alpha post_mat_sd
+name_cs <- function(multfsusie.obj,X,...)
+  UseMethod("name_cs")
+
+#' @rdname name_cs
+#'
+#' @method name_cs multfsusie
+#'
+#' @export name_cs.multfsusie
+#'
+#' @export
 #'
 
-list_post_mean_sd <- function(G_prior, Bhat,Shat,  indx_lst, lowc_wc=NULL)
-{
-  out <- list (Bhat= post_mat_mean( G_prior ,
-                                    Bhat,
-                                    Shat,
-                                    indx_lst,
-                                    lowc_wc=lowc_wc),
-               Shat= post_mat_sd(   G_prior ,
-                                    Bhat,
-                                    Shat,
-                                    indx_lst,
-                                    lowc_wc=lowc_wc)
-  )
-  return(out)
+name_cs.multfsusie <- function(multfsusie.obj,X,...){
 
-}
+  if( length(colnames(X))==ncol(X)){
 
+    for (l in 1: length(multfsusie.obj$cs)){
+      names(multfsusie.obj$cs[[l]]) <- colnames(X)[multfsusie.obj$cs[[l]]]
+    }
 
-
-
-out_prep.multfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
-{
-  multfsusie.obj <-  update_cal_pip(multfsusie.obj)
-
-  if(filter.cs)
-  {
-    multfsusie.obj <- check_cs(multfsusie.obj,min.purity=0.5,X=X)
   }
-  return( multfsusie.obj)
+  return(multfsusie.obj)
 }
+
+
+
 
 
 
@@ -1118,7 +1137,7 @@ update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
 
   if(!is.null(post_effect$res_uni)){
     multfsusie.obj$ fitted_uni[[l]]        <-   post_effect$res_u$Bhat
-    multfsusie.obj$ fitted_uni2[[l]]       <-   post_effect$res_u$Shat
+    multfsusie.obj$ fitted_uni2[[l]]       <-   post_effect$res_u$Shat^2
   }
 
   if(!is.null(post_effect$res_f)){ ### TODO: make it cleaner ------
@@ -1344,6 +1363,58 @@ out_prep <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs, ...)
 
 
 
+out_prep.multfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
+{
+  multfsusie.obj <-  update_cal_pip(multfsusie.obj)
+  multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
+  multfsusie.obj <-  name_cs(multfsusie.obj,X)
+  if(filter.cs)
+  {
+    multfsusie.obj <- check_cs(multfsusie.obj,min.purity=0.5,X=X)
+  }
+  return( multfsusie.obj)
+}
+
+
+
+#' @rdname update_cal_fit_func
+#'
+#' @method update_cal_fit_func multfsusie
+#'
+#' @export update_cal_fit_func.multfsusie
+#'
+#' @export
+#'
+
+
+update_cal_fit_func.multfsusie <- function(multfsusie.obj,list_indx_lst,... ){
+
+  if(is.null(multfsusie.obj$fitted_wc)){
+    return(multfsusie.obj)
+  }
+
+  multfsusie.obj$fitted_func <- list()
+  for( l in 1: length(multfsusie.obj$cs)){
+
+    tl <- list()
+
+    for (k in 1: length(multfsusie.obj$n_wac))
+    {
+      temp <- wd(rep(0, multfsusie.obj$n_wac[[k]]))
+
+      temp$D                     <- (multfsusie.obj$alpha[[l]])%*%sweep( multfsusie.obj$fitted_wc[[l]][[k]][,-list_indx_lst[[k]][[length(list_indx_lst[[k]])]]],
+                                                                         1,
+                                                                         1/(multfsusie.obj$csd_X ), "*")
+      temp$C[length(temp$C)]     <- (multfsusie.obj$alpha[[l]])%*% (multfsusie.obj$fitted_wc[[l]][[k]][,list_indx_lst[[k]][[length(list_indx_lst[[k]])]]]*( 1/(multfsusie.obj$csd_X )))
+      tl[[k]]                    <- wr(temp)
+    }
+
+    multfsusie.obj$fitted_func[[l]] <- tl
+  }
+ return( multfsusie.obj)
+}
+
+
 
 
 #' @rdname update_lBF
@@ -1556,12 +1627,9 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj, min.purity =0.5, X){
           )==1){
             dummy.cs<-  c( dummy.cs,l)
           }
-
         }
       }
-
     }
-
   }
 
 
