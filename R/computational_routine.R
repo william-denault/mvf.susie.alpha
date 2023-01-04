@@ -716,6 +716,8 @@ get_post_tens <- function(G_prior, tens_marg, indx_lst, all =FALSE)
         lfdr_tens         <- array(NA,dim =dim(tens_marg$tens_Bhat))
         NegativeProb_tens <- array(NA,dim =dim(tens_marg$tens_Bhat))
         lfsr_tens         <- array(NA,dim =dim(tens_marg$tens_Bhat))
+
+
         for ( s in 1: 1: length(indx_lst)){
           post_mean_tens   [ ,indx_lst[[s]],] <- tt[[s]]$PosteriorMean_level
           post_sd_tens     [ ,indx_lst[[s]],] <- tt[[s]]$Posteriorsd_level

@@ -9,7 +9,11 @@
 #'
 
 
-cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,l = l, X = X,Y = Y,list_indx_lst  = list_indx_lst){
+cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,
+                                         l = l,
+                                         X = X,
+                                         Y = Y,
+                                         list_indx_lst  = list_indx_lst){
 
   L <- multfsusie.obj$L
 
@@ -20,9 +24,9 @@ cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,l = l, 
     if(L>1){
       id_L <- (1:L)[ - ( (l%%L)+1) ]#Computing residuals R_{l+1} by removing all the effect except effect l+1
       update_Y$Y_u   <- Y$Y_u - Reduce("+", lapply(id_L, function(k)
-        pred_partial_u(multfsusie.obj,k,X)
-      )
-      )
+                                                    pred_partial_u(multfsusie.obj,k,X)
+                                                    )
+                                        )
 
     }else{
       id_L <- 1
@@ -30,15 +34,17 @@ cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,l = l, 
     }
   }
   if(!is.null(Y$Y_f)){
-    update_Y$Y_f   <-   lapply(1:length(Y$Y_f),function(k)   cal_partial_resid_sub(multfsusie.obj,
-                                                                                   l=l,
-                                                                                   X=X,
-                                                                                   D= Y$Y_f[[k]][,-list_indx_lst[[k]][[length(list_indx_lst[[k]])]]],
-                                                                                   C= Y$Y_f[[k]][,list_indx_lst[[k]][[length(list_indx_lst[[k]])]]],
-                                                                                   indx_lst = list_indx_lst[[k]],
-                                                                                   cord=k
-    )
-    )
+    update_Y$Y_f   <-   lapply(1:length(Y$Y_f),
+                               function(k)
+                                 cal_partial_resid_sub(multfsusie.obj,
+                                                      l=l,
+                                                      X=X,
+                                                      D= Y$Y_f[[k]][,-list_indx_lst[[k]][[length(list_indx_lst[[k]])]]],
+                                                      C= Y$Y_f[[k]][,list_indx_lst[[k]][[length(list_indx_lst[[k]])]]],
+                                                      indx_lst = list_indx_lst[[k]],
+                                                      cord=k
+                                                      )
+                               )
 
   }
 
@@ -398,6 +404,61 @@ get_pi.multfsusie <- function(multfsusie.obj, l, ...)
   return(out)
 }
 
+get_pi0<- function(multfsusie.obj,l, ...)
+  UseMethod("get_pi0")
+
+
+
+#' @rdname get_pi0
+#'
+#' @method get_pi0 multfsusie
+#'
+#' @export get_pi0.multfsusie
+#'
+#' @export
+#'
+get_pi0.multfsusie <-function(multfsusie.obj, l, ... ){
+
+  if (missing( l)){
+
+
+    if( is.null(multfsusie.obj$G_prior$G_prior_u))
+    {
+      out <- list()
+      for ( l in 1:1:multfsusie.obj$L ){
+
+        pi0_f <-lapply( 1:length(multfsusie.obj$n_wac),
+                   function(k)
+                    sapply(multfsusie.obj$est_pi[[l]]$est_pi_f[[k]],"[[",1)
+          )
+
+        out[[l]]  <- list( pi0_u=pi0_u,
+                           pi0_f = pi0_f)
+    }
+
+
+
+    }
+  }else{
+
+    pi0_u <- lapply( 1:length(multfsusie.obj$n_wac),
+                     function(k)
+                       sapply(multfsusie.obj$est_pi[[l]]$est_pi_u[[k]],"[[",1)
+              )
+    pi0_f <- lapply( 1:length(multfsusie.obj$n_wac),
+                     function(k)
+                       sapply(multfsusie.obj$est_pi[[l]]$est_pi_f[[k]],"[[",1)
+             )
+
+
+      out   <- list( pi0_u=pi0_u,
+                         pi0_f = pi0_f)
+    }
+
+  return(out)
+}
+
+
 
 
 
@@ -673,6 +734,7 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
 #'
 #' @return susiF object
 #'
+#' @importFrom susiF.alpha cal_cor_cs
 #' @export
 #'
 #'
@@ -703,8 +765,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
   dummy.cs <-  which_dummy_cs(multfsusie.obj,
                               min.purity = min.purity,
                               X=X)
-
-
+  print( paste("dummy.cs",  dummy.cs))
   if(multfsusie.obj$backfit & (length(dummy.cs)>0)){
 
     multfsusie.obj$greedy <- FALSE
@@ -1557,129 +1618,36 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj, min.purity =0.5, X){
     return(dummy.cs)
   }
 
-  if(is.null(multfsusie.obj$G_prior$G_prior_u)){
-    for (l in 1:multfsusie.obj$L )
-    {
 
-      if (length(multfsusie.obj$cs[[l]])==1)
-      {
-
-        if(  mean( sapply(
-          sapply(multfsusie.obj$est_pi[[l]]$est_pi_f,"[[",1)
-          ,"[[",1)
-        )==1
-        ){# check if the estimated prior is exactly 0
-
-          dummy.cs<-  c( dummy.cs,l)
-        }
-
-      }else{
-
-        if( min(cor( X[,multfsusie.obj$cs[[l]]])) <  min.purity){#check if the purity of cs l is lower that min.purity
-
-          dummy.cs<-  c( dummy.cs,l)
-
-        }else{
-          if(  mean( sapply(
-            sapply(multfsusie.obj$est_pi[[l]]$est_pi_f,"[[",1)
-            ,"[[",1)
-          )==1
-          ){
-            dummy.cs<-  c( dummy.cs,l)
-          }
-
-        }
-      }
-
-    }
-  }
-
-
-
-
-  if(is.null(multfsusie.obj$G_prior$G_prior_f))
+  for (l in 1:multfsusie.obj$L )
   {
-    for (l in 1:multfsusie.obj$L )
+
+    if (length(multfsusie.obj$cs[[l]])==1)
     {
 
-      if (length(multfsusie.obj$cs[[l]])==1)
-      {
+      if(   mean(unlist(get_pi0(multfsusie.obj,l=l)))==1){# check if the estimated prior is exactly 0
 
-        if(  mean( sapply(
-          sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
-          ,"[[",1)
-        )==1
-        ){# check if the estimated prior is exactly 0
+        dummy.cs<-  c( dummy.cs,l)
+      }
 
-          dummy.cs<-  c( dummy.cs,l)
-        }
+    }else{
+
+      if( min(cor( X[,multfsusie.obj$cs[[l]]])) <  min.purity){#check if the purity of cs l is lower that min.purity
+
+        dummy.cs<-  c( dummy.cs,l)
 
       }else{
-
-        if( min(cor( X[,multfsusie.obj$cs[[l]]])) <  min.purity){#check if the purity of cs l is lower that min.purity
+        if(  mean(unlist(get_pi0(multfsusie.obj,l=l)))==1){
 
           dummy.cs<-  c( dummy.cs,l)
-
-        }else{
-          if( mean( sapply(
-            sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
-            ,"[[",1)
-          )==1){
-            dummy.cs<-  c( dummy.cs,l)
-          }
         }
+
       }
     }
+
   }
 
 
-  if ((!is.null(multfsusie.obj$G_prior$G_prior_f))& (!is.null(multfsusie.obj$G_prior$G_prior_u))){
-    for (l in 1:multfsusie.obj$L )
-    {
-
-      if (length(multfsusie.obj$cs[[l]])==1)
-      {
-
-        m_u <-mean( sapply(
-          sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
-          ,"[[",1)
-        )
-        m_f <- mean( sapply(
-          sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
-          ,"[[",1)
-        )
-
-        if( mean(c(m_u,m_f))==1){# check if the estimated prior is exactly 0
-
-          dummy.cs<-  c( dummy.cs,l)
-        }
-
-      }else{
-
-        if( min(cor( X[,multfsusie.obj$cs[[l]]])) <  min.purity){#check if the purity of cs l is lower that min.purity
-
-          dummy.cs<-  c( dummy.cs,l)
-
-        }else{
-          m_u <-mean( sapply(
-            sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
-            ,"[[",1)
-          )
-          m_f <- mean( sapply(
-            sapply(multfsusie.obj$est_pi[[l]]$est_pi_u,"[[",1)
-            ,"[[",1)
-          )
-
-          if( mean(c(m_u,m_f))==1){
-            dummy.cs<-  c( dummy.cs,l)
-          }
-
-        }
-      }
-
-    }
-
-  }
   if( length(dummy.cs)==0)
   {
     return(dummy.cs)
