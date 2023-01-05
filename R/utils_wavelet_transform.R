@@ -1,25 +1,25 @@
 
 
-#' @title  wavelet transform on a matrix of functions
-#'
-#' @description function adapted from grove R package from Ma and Soriano. Perform wavelet transform of each row of a matrix
-#'
-#' @param data matrix of size NxJ where J is a power of two
-#'
-#' @param filter.number This selects the smoothness of the wavelet that you want to use in the decomposition. By default, this is 10, the Daubechies least-asymmetric orthonormal compactly supported wavelet with 10 vanishing moments. Description from Guy Nason (wavethresh package)
-#'
-#' @param family specifies the family of wavelets that you want to use. Two popular options are "DaubExPhase" and "DaubLeAsymm" but see the help for filter.select for more possibilities.. Description from Guy Nason (wavethresh package)
-#'
-#' @return A list with the following components
-#'
-#'\item{C}{ vector length n containing the wavelet C coefficient}
-#'\item{D}{ matrix of size nx 2^(J -1) where each row contains the wavelet D coefficients, ordered in the same way as in the wavethresh package}
-#'\item{family}{ used for the wavelet transform}
-#'\item{filter.number}{ }
-#'
-#' @importFrom wavethresh accessC
-#' @importFrom wavethresh wd
-#' @export
+# @title  wavelet transform on a matrix of functions
+#
+# @description function adapted from grove R package from Ma and Soriano. Perform wavelet transform of each row of a matrix
+#
+# @param data matrix of size NxJ where J is a power of two
+#
+# @param filter.number This selects the smoothness of the wavelet that you want to use in the decomposition. By default, this is 10, the Daubechies least-asymmetric orthonormal compactly supported wavelet with 10 vanishing moments. Description from Guy Nason (wavethresh package)
+#
+# @param family specifies the family of wavelets that you want to use. Two popular options are "DaubExPhase" and "DaubLeAsymm" but see the help for filter.select for more possibilities.. Description from Guy Nason (wavethresh package)
+#
+# @return A list with the following components
+#
+#\item{C}{ vector length n containing the wavelet C coefficient}
+#\item{D}{ matrix of size nx 2^(J -1) where each row contains the wavelet D coefficients, ordered in the same way as in the wavethresh package}
+#\item{family}{ used for the wavelet transform}
+#\item{filter.number}{ }
+#
+# @importFrom wavethresh accessC
+# @importFrom wavethresh wd
+# @export
 DWT2 <- function (data, filter.number = 10, family = "DaubLeAsymm")
 {
 
@@ -41,14 +41,14 @@ DWT2 <- function (data, filter.number = 10, family = "DaubLeAsymm")
 
 
 
-#' @title Compact code for wavelet transform on a matrix of functions
-#'
-#' @description function adapted from grove R package from Ma and Soriano. Perform wavelet transform of each row of a matrix
-#'
-#' @param Y matrix of size NxJ where J is a power of two
-#'
-#' @return A Matrix in which the C compoent is stored in the last column
-#' @export
+# @title Compact code for wavelet transform on a matrix of functions
+#
+# @description function adapted from grove R package from Ma and Soriano. Perform wavelet transform of each row of a matrix
+#
+# @param Y matrix of size NxJ where J is a power of two
+#
+# @return A Matrix in which the C compoent is stored in the last column
+# @export
 
 pack_dwt <- function( Y)
 {
@@ -58,21 +58,21 @@ pack_dwt <- function( Y)
 
 
 
-#' @title  wavelet transform on a matrix of functions
-#'
-#' @description function adapted from grove R package from Ma and Soriano. Perform wavelet transform of each row of a matrix
-#'
-#' @param Y a 3-way tensor of dimension NxTx condition/omics
-#'
-#' @param filter.number This selects the smoothness of the wavelet that you want to use in the decomposition. By default, this is 10, the Daubechies least-asymmetric orthonormal compactly supported wavelet with 10 vanishing moments. Description from Guy Nason (wavethresh package)
-#'
-#' @param family specifies the family of wavelets that you want to use. Two popular options are "DaubExPhase" and "DaubLeAsymm" but see the help for filter.select for more possibilities.. Description from Guy Nason (wavethresh package)
-#'
-#' @return A 3-way tensor of dimension NxTx condition/omics containing the individual wavelet coefficients
-#'
-#' @importFrom wavethresh accessC
-#' @importFrom wavethresh wd
-#' @export
+# @title  wavelet transform on a matrix of functions
+#
+# @description function adapted from grove R package from Ma and Soriano. Perform wavelet transform of each row of a matrix
+#
+# @param Y a 3-way tensor of dimension NxTx condition/omics
+#
+# @param filter.number This selects the smoothness of the wavelet that you want to use in the decomposition. By default, this is 10, the Daubechies least-asymmetric orthonormal compactly supported wavelet with 10 vanishing moments. Description from Guy Nason (wavethresh package)
+#
+# @param family specifies the family of wavelets that you want to use. Two popular options are "DaubExPhase" and "DaubLeAsymm" but see the help for filter.select for more possibilities.. Description from Guy Nason (wavethresh package)
+#
+# @return A 3-way tensor of dimension NxTx condition/omics containing the individual wavelet coefficients
+#
+# @importFrom wavethresh accessC
+# @importFrom wavethresh wd
+# @export
 tensor_dwt <- function (Y )
 {
 
@@ -96,17 +96,17 @@ tensor_dwt <- function (Y )
 
 
 
-#'@title perform a wavelet reverse  transform  of a given slice  a 3 way tensor of wavelet coefficient
-#'
-#' @param xi  index of the slice to perform the wavelet transform
-#' @param tens a 3 way tensor containing wavelet coefficients
-#' @param temp_wd.obj an object generated from the \link{\code{wd}} function from the wavethresh package. Need to have the same number of wavelet coefficients as the tens object7
-#' @param indx_lst list generated by gen_wavelet_indx for the given level of resolution
-#'
-#'@return a function
-#'
-#'
-#' @export
+#@title perform a wavelet reverse  transform  of a given slice  a 3 way tensor of wavelet coefficient
+#
+# @param xi  index of the slice to perform the wavelet transform
+# @param tens a 3 way tensor containing wavelet coefficients
+# @param temp_wd.obj an object generated from the \link{\code{wd}} function from the wavethresh package. Need to have the same number of wavelet coefficients as the tens object7
+# @param indx_lst list generated by gen_wavelet_indx for the given level of resolution
+#
+#@return a function
+#
+#
+# @export
 
 get_mvf_wr <- function( xi,tens, temp_wd.obj,  indx_lst)
 {
@@ -136,17 +136,17 @@ get_mvf_wr <- function( xi,tens, temp_wd.obj,  indx_lst)
 }
 
 
-#'@title perform a wavelet reverse transform  on a 3 way tensor of wavelet coefficient
-#'
-#' @param tens a 3 way tensor containing wavelet coefficients
-#' @param temp_wd.obj an object generated from the \link{\code{wd}} function from the wavethresh package. Need to have the same number of wavelet coefficients as the tens object7
-#' @param indx_lst list generated by gen_wavelet_indx for the given level of resolution
-#' @param out_dim  a vecotr of length 3 in which each entry specifies the number of component on each slice
-#'
-#'@return a 3 way tensor function
-#'
-#'
-#' @export
+#@title perform a wavelet reverse transform  on a 3 way tensor of wavelet coefficient
+#
+# @param tens a 3 way tensor containing wavelet coefficients
+# @param temp_wd.obj an object generated from the \link{\code{wd}} function from the wavethresh package. Need to have the same number of wavelet coefficients as the tens object7
+# @param indx_lst list generated by gen_wavelet_indx for the given level of resolution
+# @param out_dim  a vecotr of length 3 in which each entry specifies the number of component on each slice
+#
+#@return a 3 way tensor function
+#
+#
+# @export
 
 wr_tens <- function(tens, temp_wd.obj, indx_lst, out_dim)
 {

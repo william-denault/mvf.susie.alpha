@@ -71,7 +71,7 @@ m2 <- multfsusie(Y=Y,
                  data.format="list_df",
                  L_start=6 ,
                  nullweight=1,
-                 cal_obj =FALSE,
+                 cal_obj =TRUE,
                  maxit=10)
 plot(m2$fitted_func[[1]][[1]], type="l", col="red")
 lines(lf[[2]])
