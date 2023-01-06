@@ -28,10 +28,10 @@ DWT2 <- function (data, filter.number = 10, family = "DaubLeAsymm")
   D <- matrix(NA, nrow = n, ncol = J - 1)
   C <- rep(NA, n)
   for (i in 1:n) { ## Speed Gain
-    temp <- wd(data[i, ], filter.number = filter.number,
+    temp <- wavethresh::wd(data[i, ], filter.number = filter.number,
                family = family)
     D[i, ] <- temp$D
-    C[i] <- accessC(temp, level = 0)
+    C[i] <- wavethresh::accessC(temp, level = 0)
   }
   output <- list(C = C, D = D, J = log2(J), filter.number = filter.number,
                  family = family)
@@ -113,7 +113,7 @@ get_mvf_wr <- function( xi,tens, temp_wd.obj,  indx_lst)
   if( dim(tens)[1]==1){
     temp_wd.obj$D                     <- tens[,-indx_lst[[length(indx_lst)]],xi]
     temp_wd.obj$C[length(temp_wd.obj$C)]     <- tens[, indx_lst[[length(indx_lst)]],xi]
-    out                               <-   wr(temp_wd.obj)
+    out                               <-   wavethresh::wr(temp_wd.obj)
   }else{
 
 

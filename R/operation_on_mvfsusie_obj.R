@@ -1037,7 +1037,7 @@ check_cs.mvfsusie <- function(mvfsusie.obj, min.purity=0.5)
   dummy.cs<- c()
 
 
-  if( class(mvfsusie.obj$G_prior)=="mixture_normal")
+  if( inherits(mvfsusie.obj$G_prior,"mixture_normal"))
   {
     for (l in 1:mvfsusie.obj$L )
     {
@@ -1079,7 +1079,7 @@ check_cs.mvfsusie <- function(mvfsusie.obj, min.purity=0.5)
   }
 
 
-  if(class(mvfsusie.obj$G_prior)=="mixture_normal_per_scale")
+  if(inherits(mvfsusie.obj$G_prior,"mixture_normal_per_scale"))
   {
     for (l in 1:mvfsusie.obj$L )
     {

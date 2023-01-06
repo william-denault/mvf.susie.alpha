@@ -21,15 +21,15 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,co
     G_prior_u <- NULL
     res_uni   <- NULL
   }else{
-    res_uni   <- susiF.alpha::cal_Bhat_Shat(Y$Y_u,X,v1)
+    res_uni   <- susiF.alpha:::cal_Bhat_Shat(Y$Y_u,X,v1)
     if (is.null(low_trait$low_u)){
-              G_prior_u <- lapply(1:ncol(Y$Y_u), function(j) ash(res_uni$Bhat[,j],
+              G_prior_u <- lapply(1:ncol(Y$Y_u), function(j) ashr::ash(res_uni$Bhat[,j],
                                                                   res_uni$Shat[,j],
                                                                   mixcompdist = "normal" ,
                                                                   outputlevel=0)
                               )
     }else{
-      G_prior_u <- lapply((1:ncol(Y$Y_u))[- low_trait$low_u], function(j) ash(res_uni$Bhat[,j],
+      G_prior_u <- lapply((1:ncol(Y$Y_u))[- low_trait$low_u], function(j) ashr::ash(res_uni$Bhat[,j],
                                                                           res_uni$Shat[,j],
                                                                           mixcompdist = "normal" ,
                                                                           outputlevel=0)
@@ -48,7 +48,7 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,co
     res_f <- NULL
   }else{
     t_G_prior_f <-lapply(1:length(Y$Y_f),
-                         function(k) susiF.alpha::init_prior( Y        = Y$Y_f[[k]],
+                         function(k) susiF.alpha:::init_prior.default( Y       = Y$Y_f[[k]],
                                                               X        = X,
                                                               v1       = v1,
                                                               prior    = "mixture_normal_per_scale",
@@ -108,7 +108,10 @@ get_pi_G_prior.multfsusie_prior <- function(G_prior)
   {
     est_pi_f <- NULL
   }else{
-    est_pi_f <- lapply(1:length(G_prior$G_prior_f), function(j) susiF.alpha::get_pi_G_prior(G_prior$G_prior_f[[j]]))
+    est_pi_f <- lapply(1:length(G_prior$G_prior_f),
+                       function(j)
+                         susiF.alpha::get_pi_G_prior(G_prior$G_prior_f[[j]])
+                       )
   }
 
   out <- list(est_pi_u= est_pi_u,
@@ -147,7 +150,7 @@ update_G_prior_univ_mult <- function(k,  tpi, G_prior)
 
 update_prior.multfsusie_prior <- function(G_prior, tpi, ... ){
 
-  if( !(class(tpi)=="pi_multfsusie"))
+  if( !(inherits(tpi,"pi_multfsusie")))
   {
     stop("tpi should be of class pi_multfsusie")
   }

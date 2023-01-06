@@ -8,10 +8,26 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
+## ---- include = FALSE---------------------------------------------------------
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+
+## ----setup--------------------------------------------------------------------
+library(mvf.susie.alpha)
+
+## ---- include = FALSE---------------------------------------------------------
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.align = "center",
+  fig.cap = "&nbsp;",
+  dpi = 120
+  )
+par(mar = c(1, 1, 1, 1))
+ 
+
 ```
 
 ```{r setup}
@@ -25,8 +41,6 @@ library(mvf.susie.alpha)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.width = 5,
-  fig.height = 3,
   fig.align = "center",
   fig.cap = "&nbsp;",
   dpi = 120
@@ -89,7 +103,7 @@ L <-  2
                                           n_univ=n_univ, output_level = 2)
   }
 
-par(mfrow=c(3,1))
+par(mfrow=c(3,1), mar=rep(1,4))
 plot( eff[[1]]$func_effect[[1]]$sim_func, 
       type ="l",
       ylab="effect", 

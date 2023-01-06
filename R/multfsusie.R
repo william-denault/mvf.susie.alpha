@@ -1,3 +1,9 @@
+#' @title Sum of multiple Single Functions
+#'
+#' @description Implementation of the multfSuSiE method
+#'
+#' @details Implementation of the multfSuSiE method
+#'
 #' @param Y list of observed time series. Length of N in which every element
 #' contains a xi (number of condition) by 2^S matrix. The matrix corresponds to the
 #' individuals multivariate time series
@@ -8,7 +14,7 @@
 #' @param pos vector of length J, corresponding to position/time pf
 #' the observed column in Y, if missing suppose that the observation
 #' are evenly spaced
-#'
+#' @param L_start number of effect initialized at the start of the algorithm
 #'@param data.format character specify hw the input data is organised,
 #' "ind_mark" the input is a list in which each element is a list of individual mark measurement.
 #'  "list_df", corresponds to the case where the input is a list of  of data frames
@@ -16,16 +22,23 @@
 #'    (can be set to NULL if no univariate trait considered) and functional trait are stored in the sub list Y$Y_f
 #'    where each element of the sub list  Y$Y_f is a n by T data frame (T being the number of observation points)
 #'    (can be NULL if no functional trait considered)
-#'
-#' @param prior specify the prior used in susif. Three choice are
-#' available "normal", "mixture_normal", "mixture_normal_per_scale"
+#' @param control_mixsqp list of parameter for mixsqp function see  mixsqp package
 #'
 #' @param verbose If \code{verbose = TRUE}, the algorithm's progress,
 #' and a summary of the optimization settings, are printed to the
 #' console.
 #'
-#' @param plot_out If \code{plot_out = TRUE}, the algorithm's progress,
-#' and a summary of the optimization settings, are ploted.
+#' @param thresh_lowcount numeric, use to check the wavelet coefficients have
+#'  problematic distribution (very low dispersion even after standardization).
+#'  Basically check if the median of the absolute value of the distribution of
+#'   a wavelet coefficient is below this threshold, if yes the algorithm discard
+#'   this wavelet coefficient (setting its estimate effect to 0 and estimate sd to 1).
+#'   Set to 0 by default. Can be useful when analyzing sparse data from sequence
+#'    based assay or small samples.
+#' @param greedy logical, if true allow greedy search for extra effect
+#'  (up to L specify by the user). Set as TRUE by default
+#' @param backfit logical, if true allow discarding effect via backfitting.
+#'  Set as true by default as TRUE. We advise to keep it as TRUE
 #'
 #' @param tol A small, non-negative number specifying the convergence
 #' tolerance for the IBSS fitting procedure. The fitting procedure
@@ -48,15 +61,23 @@
 #'   this wavelet coefficient (setting its estimate effect to 0 and estimate sd to 1).
 #'   Set to 0 by default. Can be useful when analyzing sparse data from sequence
 #'    based assay or small samples.
+#' @param nullweight numeric value for penalizing likelihood at point mass 0 (should be between 0 and 1)
+#' (usefull in small sample size)
+#' @param init_pi0_w starting value of weight on null compoenent in mixsqp
+#'  (between 0 and 1)
+#' @export
 #' @examples
 #'
+#'
+#'library(mvf.susie.alpha)
 #'set.seed(1)
 #'
 #'N <- 100 #Sample size
 #'P= 100 # number of SNP
 #'L <- sample(1:10, size=1) #Number of effect
 #'print(L)
-#'list_lev_res <- list(5,6) # two functional phenotype , one of length( 2^5, and 2^6)
+#'list_lev_res <- list(5,6) # two functional phenotypes ,
+#'#one of length 2^5, and one of length 2^6)
 #'n_univ <- 3 #3 univariate phenotypes
 #'eff <-  list()
 #'for(l in 1:L){ #Simulate the mult-trait effect
@@ -88,7 +109,9 @@
 #'Y_f <- list()
 #'Y_f[[1]] <- Y_f1
 #'Y_f[[2]] <- Y_f2
-#'Y <- list( Y_f = Y_f, Y_u=Y_u) # preparing data , current onput type expact list of two which element named Y_f for functional trait and Y_u for univariate trait
+#'Y <- list( Y_f = Y_f, Y_u=Y_u) # preparing data ,
+#'#current ouput type expect list of two which element named
+#'#Y_f for functional trait and Y_u for univariate trait
 #'
 #'m1 <- multfsusie(Y=Y,
 #'                 X=G,
@@ -102,7 +125,7 @@
 #'
 #'##thresholding some trait
 #'
-#'#create object for thresholding
+#'#create object for trhesholding some trait for a user specified value thresholding
 #'
 #'threshs <- threshold_set_up( thresh_u= rep(1e-3,3), thresh_f = c(1e-3, 1e-3))
 #'
@@ -122,7 +145,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                        cov_lev = 0.95,
                        min.purity=0.5,
                        L_start=3,
-                       all = FALSE,
+                       #all = FALSE,
                        filter.cs =TRUE,
                        init_pi0_w=1,
                        nullweight ,
@@ -195,7 +218,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     {
       temp               <- DWT2(Y$Y_f[[k]])
       list_wdfs[[h]]     <- cbind( temp$D,temp$C)
-      list_indx_lst[[h]] <- susiF.alpha::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
+      list_indx_lst[[h]] <- susiF.alpha:::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
       h <- h+1
     }
     Y_f <- list_wdfs

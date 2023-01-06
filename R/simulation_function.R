@@ -6,7 +6,8 @@
 #'@param effect_univ possible effect size of the SNP on the univariate phenotype (if missing the effect size are sample at random as -1 or 1)
 #'@param output_level if equal to 1 (default) provide simplified output for functionnal effect, setting it to 2 provide more detailled output see
 #'simu_IBSS_per_level in susiF.alpha for additional detail
-#'@example
+#'@export
+#'@examples
 #'
 #'
 #'list_lev_res <- list(5,7)
@@ -28,7 +29,7 @@ simu_effect_multfsusie <- function(list_lev_res=NULL, n_univ=NULL, effect_univ,
     if (!is.null(list_lev_res)){
       func_effect <- list()
       for ( k in 1:length(list_lev_res)){
-        func_effect[[k]] <- simu_IBSS_per_level  ( lev_res=list_lev_res[[k]])$sim_func
+        func_effect[[k]] <- susiF.alpha::simu_IBSS_per_level  ( lev_res=list_lev_res[[k]])$sim_func
       }
     }
   }
@@ -37,7 +38,7 @@ simu_effect_multfsusie <- function(list_lev_res=NULL, n_univ=NULL, effect_univ,
     if (!is.null(list_lev_res)){
       func_effect <- list()
       for ( k in 1:length(list_lev_res)){
-        func_effect[[k]] <- simu_IBSS_per_level  ( lev_res=list_lev_res[[k]])
+        func_effect[[k]] <- susiF.alpha::simu_IBSS_per_level  ( lev_res=list_lev_res[[k]])
       }
     }
   }
@@ -60,14 +61,12 @@ simu_effect_multfsusie <- function(list_lev_res=NULL, n_univ=NULL, effect_univ,
 #'@param lev_res numerical corresponds to the resolution of the simulated function (idealy between 3 and 10)
 #'@param n_curve  dimension of the multivaraite time serie to generate
 #'@param length_grid vector numerical corresponds to the length of the grid of sigma for mixture component(cf ash)
-#'@param piO vector numerical , contain a digit  between 0 and 1, which corresponds to the null proportion ( non assocatied wavelet coefficients)
+#'@param pi0 vector numerical , contain a digit  between 0 and 1, which corresponds to the null proportion ( non assocatied wavelet coefficients)
 #'@param alpha numeric >0, control smoothness of the curves, should be positive and up 4 in particular d_sl ~  pi_{0,sl}  delta_0 + sum_k  pi_k N(0, 2^{- alpha * s}   sigma_k^2)
 #'@param prop_decay numeric >0, control the proportion of non zero wavelet coefficient per scale, pi_{0,sl} = 1- exp(-prop_decay*s)
-#'
+#'@param is.plot logical, if true plot the simualted effect
 #' @export
-#' @examples
-#'tt <- mvf_susie_per_level()
-#'
+
 
 #to do : add decay per scale to get same level of smoothing
 

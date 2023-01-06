@@ -765,7 +765,6 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
   dummy.cs <-  which_dummy_cs(multfsusie.obj,
                               min.purity = min.purity,
                               X=X)
-  print( paste("dummy.cs",  dummy.cs))
   if(multfsusie.obj$backfit & (length(dummy.cs)>0)){
 
     multfsusie.obj$greedy <- FALSE
@@ -949,16 +948,16 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 
 list_post_mean_sd <- function(G_prior, Bhat,Shat,  indx_lst, lowc_wc=NULL)
 {
-  out <- list (Bhat= post_mat_mean( G_prior ,
-                                    Bhat,
-                                    Shat,
-                                    indx_lst,
-                                    lowc_wc=lowc_wc),
-               Shat= post_mat_sd(   G_prior ,
-                                    Bhat,
-                                    Shat,
-                                    indx_lst,
-                                    lowc_wc=lowc_wc)
+  out <- list (Bhat= susiF.alpha::post_mat_mean( G_prior ,
+                                                 Bhat,
+                                                 Shat,
+                                                 indx_lst,
+                                                 lowc_wc=lowc_wc),
+               Shat=susiF.alpha:: post_mat_sd(   G_prior ,
+                                                 Bhat,
+                                                 Shat,
+                                                 indx_lst,
+                                                 lowc_wc=lowc_wc)
   )
   return(out)
 
@@ -1461,13 +1460,13 @@ update_cal_fit_func.multfsusie <- function(multfsusie.obj,list_indx_lst,... ){
 
     for (k in 1: length(multfsusie.obj$n_wac))
     {
-      temp <- wd(rep(0, multfsusie.obj$n_wac[[k]]))
+      temp <- wavethresh::wd(rep(0, multfsusie.obj$n_wac[[k]]))
 
       temp$D                     <- (multfsusie.obj$alpha[[l]])%*%sweep( multfsusie.obj$fitted_wc[[l]][[k]][,-list_indx_lst[[k]][[length(list_indx_lst[[k]])]]],
                                                                          1,
                                                                          1/(multfsusie.obj$csd_X ), "*")
       temp$C[length(temp$C)]     <- (multfsusie.obj$alpha[[l]])%*% (multfsusie.obj$fitted_wc[[l]][[k]][,list_indx_lst[[k]][[length(list_indx_lst[[k]])]]]*( 1/(multfsusie.obj$csd_X )))
-      tl[[k]]                    <- wr(temp)
+      tl[[k]]                    <- wavethresh::wr(temp)
     }
 
     multfsusie.obj$fitted_func[[l]] <- tl

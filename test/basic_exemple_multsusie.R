@@ -44,8 +44,8 @@ threshs <- threshold_set_up( thresh_u= rep(1e-3,3), thresh_f = c(1e-3, 1e-3))
 nullweight=10
 
 
-indx_lst1 <- susiF.alpha::gen_wavelet_indx(lev_res = lev_res1)
-indx_lst2 <- susiF.alpha::gen_wavelet_indx(lev_res = lev_res2)
+indx_lst1 <- susiF.alpha:::gen_wavelet_indx(lev_res = lev_res1)
+indx_lst2 <- susiF.alpha:::gen_wavelet_indx(lev_res = lev_res2)
 
 N = 100
 
@@ -102,7 +102,7 @@ if( "functional" %!in% type_mark$mark_type)
   {
     temp               <- DWT2(list_dfs[[k]])
     list_wdfs[[h]]     <- cbind( temp$D,temp$C)
-    list_indx_lst[[h]] <- gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
+    list_indx_lst[[h]] <- susiF.alpha:::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
     h <- h+1
   }
   Y_f <- list_wdfs

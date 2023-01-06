@@ -1,11 +1,11 @@
-#'@title Function to fit entry-wise lm on tensor regression
-#'
-#'@param l  wavelet coefficient index
-#'@param j  covariate index
-#'@param xi condition index
-#'@param Y observed tensor
-#'@param X observed covariate
-#' @export
+#@title Function to fit entry-wise lm on tensor regression
+#
+#@param l  wavelet coefficient index
+#@param j  covariate index
+#@param xi condition index
+#@param Y observed tensor
+#@param X observed covariate
+# @export
 parse_lm_fit <- function(j,l,xi, v1,Y,X)
 {
 
@@ -21,22 +21,22 @@ parse_lm_fit <- function(j,l,xi, v1,Y,X)
 
 
 
-#' @title Regress column l and condition of Y on column j of X
-#'
-#' @description Add description here.
-#'
-#' @param Y  tensor phenotype, matrix of size N by size J by xi. The underlying algorithm uses wavelets that assume that J is of the form J^2. If J is not a power of 2, susiF internally remaps the data into a grid of length 2^J
-#'
-#' @param X matrix of size n by p in
-#'
-#' @param v1 vector of 1 of length n
-#'
-#' @return list of two tensor of size pxTx xi of 2 containing the regression coefficient and standard error
-#'
-#' @importFrom stats var
-#'
-#' @export
-#'
+# @title Regress column l and condition of Y on column j of X
+#
+# @description Add description here.
+#
+# @param Y  tensor phenotype, matrix of size N by size J by xi. The underlying algorithm uses wavelets that assume that J is of the form J^2. If J is not a power of 2, susiF internally remaps the data into a grid of length 2^J
+#
+# @param X matrix of size n by p in
+#
+# @param v1 vector of 1 of length n
+#
+# @return list of two tensor of size pxTx xi of 2 containing the regression coefficient and standard error
+#
+# @importFrom stats var
+#
+# @export
+#
 
 
 cal_Bhat_Shat_tensor  <- function(Y, X, v1)
@@ -67,22 +67,22 @@ cal_Bhat_Shat_tensor  <- function(Y, X, v1)
 
 
 
-#' @title Regress different marks of Y   on X nxp
-#'
-#' @description regression coefficients (and sd) of the column wise regression
-#'
-#' @param Y a list of two, Y_u containning a N by J data frame of univariate phneotype and Y_f a k list contains a list of functionnal phenoytpes
-#'
-#' @param X matrix of size N by P in
-#'
-#' @return a nested list list of two
-#'
-#' \item{res_uni}{ list of two Bhat: matrix pxJ regression coefficient, Bhat[j,t] corresponds to regression coefficient of the t univariate phneotype
-#'  on X[,j]; Shat is the matrix of the corresponding standard error }
-#'
-#' \item{res_f}{ a list of k in which each element contains Bhat and Shat matrix (see description in item res_uni}
-#'
-#' @export
+# @title Regress different marks of Y   on X nxp
+#
+# @description regression coefficients (and sd) of the column wise regression
+#
+# @param Y a list of two, Y_u containning a N by J data frame of univariate phneotype and Y_f a k list contains a list of functionnal phenoytpes
+#
+# @param X matrix of size N by P in
+#
+# @return a nested list list of two
+#
+# \item{res_uni}{ list of two Bhat: matrix pxJ regression coefficient, Bhat[j,t] corresponds to regression coefficient of the t univariate phneotype
+#  on X[,j]; Shat is the matrix of the corresponding standard error }
+#
+# \item{res_f}{ a list of k in which each element contains Bhat and Shat matrix (see description in item res_uni}
+#
+# @export
 
 
 cal_Bhat_Shat_multfsusie <- function( Y,X,v1,list_indx_lst=NULL, low_trait=NULL)
@@ -91,19 +91,20 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,list_indx_lst=NULL, low_trait=NULL)
   if(is.null(Y$Y_u)){
     res_uni <- NULL
   }else{
-    res_uni   <- susiF.alpha::cal_Bhat_Shat.default(Y=Y$Y_u,
-                                                    X=X,v1=v1,
-                                                    lowc_wc=low_trait$low_u)
+    res_uni   <- susiF.alpha:::cal_Bhat_Shat(Y=Y$Y_u,
+                                             X=X,
+                                             v1=v1,
+                                             lowc_wc=low_trait$low_u)
   }
 
   if(is.null(Y$Y_f)){
     res_f <- NULL
   }else{
     res_f <- lapply(1:length(Y$Y_f),
-                    function(k)   susiF.alpha::cal_Bhat_Shat.default(Y$Y_f[[k]],
-                                                                     X       = X,
-                                                                     v1      = v1,
-                                                                     lowc_wc = low_trait$low_wc[[k]])
+                    function(k) susiF.alpha:::cal_Bhat_Shat(Y$Y_f[[k]],
+                                                            X       = X,
+                                                            v1      = v1,
+                                                            lowc_wc = low_trait$low_wc[[k]])
                       )
   }
 
@@ -115,26 +116,26 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,list_indx_lst=NULL, low_trait=NULL)
 
 
 
-#' @title Method to fit mash
-#'
-#' @description Method to fit mash
-#'
-#' @param Bhat  matrix of the regression coefficient (MLE)
-#' @param Shat  matrix of standard error
-#' @param data.driven logical, if TRUE use data driven covariance matrix procedure for fitting mash otherwise uses  cov_canonical method mashr. Set as TRUE by default
-#'
-#' @return a mash object
-#'
-#' @importFrom mashr mash_set_data
-#' @importFrom mashr mash_1by1
-#' @importFrom mashr get_significant_results
-#' @importFrom mashr cov_pca
-#' @importFrom mashr cov_ed
-#' @importFrom mashr cov_canonical
-#' @importFrom mashr mash
-#'
-#' @export
-#'
+# @title Method to fit mash
+#
+# @description Method to fit mash
+#
+# @param Bhat  matrix of the regression coefficient (MLE)
+# @param Shat  matrix of standard error
+# @param data.driven logical, if TRUE use data driven covariance matrix procedure for fitting mash otherwise uses  cov_canonical method mashr. Set as TRUE by default
+#
+# @return a mash object
+#
+# @importFrom mashr mash_set_data
+# @importFrom mashr mash_1by1
+# @importFrom mashr get_significant_results
+# @importFrom mashr cov_pca
+# @importFrom mashr cov_ed
+# @importFrom mashr cov_canonical
+# @importFrom mashr mash
+#
+# @export
+#
 
 
 basic_mash_fit <- function (Bhat, Shat, data.driven=TRUE, verbose=FALSE)
@@ -172,22 +173,22 @@ basic_mash_fit <- function (Bhat, Shat, data.driven=TRUE, verbose=FALSE)
 
 
 
-#' @title Fit mash for a given set of wavelet coefficients
-#'
-#' @description Fit mash for a given set of wavelet coefficients
-#'
-#' @param tens_marg list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
-#'
-#' @param s scale of interest
-#'
-#' @param data.driven logical, if TRUE use data driven covariance matrix procedure for fitting mash otherwise uses  cov_canonical method mashr. Set as TRUE by default
-#'
-#' @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution
-#'
-#' @return a mash object
-#'
-#' @export
-#'
+# @title Fit mash for a given set of wavelet coefficients
+#
+# @description Fit mash for a given set of wavelet coefficients
+#
+# @param tens_marg list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
+#
+# @param s scale of interest
+#
+# @param data.driven logical, if TRUE use data driven covariance matrix procedure for fitting mash otherwise uses  cov_canonical method mashr. Set as TRUE by default
+#
+# @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution
+#
+# @return a mash object
+#
+# @export
+#
 
 
 fit_mash_level <- function(tens_marg, s, indx_lst, data.driven=TRUE,verbose=FALSE)
@@ -204,25 +205,25 @@ fit_mash_level <- function(tens_marg, s, indx_lst, data.driven=TRUE,verbose=FALS
 }
 
 
-#' @title Compute Log-Bayes Factor of given scale and covariate for multivariate wavelet regression
-#'
-#' @description   Compute Log-Bayes Factor of given scale and covariate for multivariate wavelet regression
-#'
-#' @param G_prior a scale specific mash prior
-#'
-#' @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
-#'
-#' @param s scale of interest
-#'
-#' @param j  covariate of interest
-#'
-#' @param indx_list List generated by \code{\link{gen_wavelet_indx}}
-#'   for the given level of resolution
-#'
-#' @return The log-Bayes factor of the given scale and covariate
-#'
-#' @export
-#'
+# @title Compute Log-Bayes Factor of given scale and covariate for multivariate wavelet regression
+#
+# @description   Compute Log-Bayes Factor of given scale and covariate for multivariate wavelet regression
+#
+# @param G_prior a scale specific mash prior
+#
+# @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
+#
+# @param s scale of interest
+#
+# @param j  covariate of interest
+#
+# @param indx_list List generated by \code{\link{gen_wavelet_indx}}
+#   for the given level of resolution
+#
+# @return The log-Bayes factor of the given scale and covariate
+#
+# @export
+#
 
 cal_lbf_mvfsusie_level <-  function(G_prior, tens_marg,s ,j , indx_lst)
 {
@@ -240,25 +241,25 @@ cal_lbf_mvfsusie_level <-  function(G_prior, tens_marg,s ,j , indx_lst)
   return(lbf)
 }
 
-#' @title Compute Log-Bayes Factor of a given   covariate for multivariate wavelet regression
-#'
-#' @description   Compute Log-Bayes Factor of a given   covariate for multivariate wavelet regression
-#'
-#' @param G_prior a scale specific mash prior
-#'
-#' @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
-#'
-#' @param s scale of interest
-#'
-#' @param j  covariate of interest
-#'
-#' @param indx_list List generated by \code{\link{gen_wavelet_indx}}
-#'   for the given level of resolution
-#'
-#' @return The log-Bayes factor for the considered covariate.
-#'
-#' @export
-#'
+# @title Compute Log-Bayes Factor of a given   covariate for multivariate wavelet regression
+#
+# @description   Compute Log-Bayes Factor of a given   covariate for multivariate wavelet regression
+#
+# @param G_prior a scale specific mash prior
+#
+# @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
+#
+# @param s scale of interest
+#
+# @param j  covariate of interest
+#
+# @param indx_list List generated by \code{\link{gen_wavelet_indx}}
+#   for the given level of resolution
+#
+# @return The log-Bayes factor for the considered covariate.
+#
+# @export
+#
 
 cal_lbf_cov_mvsusie <- function(G_prior,tens_marg,s,j,indx_lst)
 {
@@ -277,21 +278,21 @@ cal_lbf_cov_mvsusie <- function(G_prior,tens_marg,s,j,indx_lst)
 }
 
 
-#' @title Compute Log-Bayes Factor for multivariate wavelet regression
-#'
-#' @description  Compute Log-Bayes Factor for multivariate wavelet regression using a scale specific mash prior
-#'
-#' @param G_prior a scale specific mash prior
-#'
-#' @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
-#'
-#' @param indx_list List generated by \code{\link{gen_wavelet_indx}}
-#'   for the given level of resolution
-#'
-#' @return The log-Bayes factor for each covariate.
-#'
-#' @export
-#'
+# @title Compute Log-Bayes Factor for multivariate wavelet regression
+#
+# @description  Compute Log-Bayes Factor for multivariate wavelet regression using a scale specific mash prior
+#
+# @param G_prior a scale specific mash prior
+#
+# @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
+#
+# @param indx_list List generated by \code{\link{gen_wavelet_indx}}
+#   for the given level of resolution
+#
+# @return The log-Bayes factor for each covariate.
+#
+# @export
+#
 log_BF_tens <- function( G_prior, tens_marg, indx_lst){
 
 
@@ -310,18 +311,18 @@ log_BF_tens <- function( G_prior, tens_marg, indx_lst){
 }
 
 
-#' @title Compute log likelihood of multivariate gaussian model under the null
-#'
-#' @description  Compute log likelihood of multivariate gaussian model under the null
-#'
-#' @param Bhat a matrix (n_wavelet_coef x n_cond)  of MLE mean estimate
-#'
-#' @param Shat a matrix (n_wavelet_coef x n_cond)  of MLE sd estimate
-#'
-#' @return The log likelihood
-#'
-#' @export
-#'
+# @title Compute log likelihood of multivariate gaussian model under the null
+#
+# @description  Compute log likelihood of multivariate gaussian model under the null
+#
+# @param Bhat a matrix (n_wavelet_coef x n_cond)  of MLE mean estimate
+#
+# @param Shat a matrix (n_wavelet_coef x n_cond)  of MLE sd estimate
+#
+# @return The log likelihood
+#
+# @export
+#
 mvfsusie_compute_null_loglik <- function(Bhat,Shat)
 {
 
@@ -343,29 +344,29 @@ mvfsusie_compute_null_loglik <- function(Bhat,Shat)
 
 
 
-#' @title EM algorithm to select mixture weight in a  Empirical Bayes way for multivariate SuSiE
-#'
-#' @description Select the mixture weight by maximizing the marginal likelihood
-#'
-#'
-#' @param G_prior a scale specific mash prior
-#'
-#' @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
-#'
-#' @param indx_list List generated by \code{\link{gen_wavelet_indx}}
-#'   for the given level of resolution
-#'
-#' @param max_step numeric, maximum number of EM iteration
-#'
-#'
-#' @param espsilon numeric, tolerance EM algorithm
-#'
-#' @return
-#'\item{tpi_k}{ fitted mixture proportion}
-#'\item{lBF}{ log Bayes Factor}
-#'
-#' @export
-#'
+# @title EM algorithm to select mixture weight in a  Empirical Bayes way for multivariate SuSiE
+#
+# @description Select the mixture weight by maximizing the marginal likelihood
+#
+#
+# @param G_prior a scale specific mash prior
+#
+# @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
+#
+# @param indx_list List generated by \code{\link{gen_wavelet_indx}}
+#   for the given level of resolution
+#
+# @param max_step numeric, maximum number of EM iteration
+#
+#
+# @param espsilon numeric, tolerance EM algorithm
+#
+# @return
+#\item{tpi_k}{ fitted mixture proportion}
+#\item{lBF}{ log Bayes Factor}
+#
+# @export
+#
 EM_pi_mvfsusie <- function(G_prior,tens_marg, list_indx_lst, init_pi0_w,  control_mixsqp,nullweight,
                             max_step = 100,
                             espsilon = 0.0001){
@@ -410,20 +411,20 @@ EM_pi_mvfsusie <- function(G_prior,tens_marg, list_indx_lst, init_pi0_w,  contro
   return(out)
 }
 
-#'@title Compute likelihood matrix for mixsqp
-#'
-#' @description Compute likelihood matrix for mixsqp
-#'
-#' @param G_prior a scale specific mash prior
-#'
-#' @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
-#'
-#' @param indx_list List generated by \code{\link{gen_wavelet_indx}}
-#'   for the given level of resolution
-#'
-#' @return See L argument mixsqp package mixsqp function
-#'
-#' @export
+#@title Compute likelihood matrix for mixsqp
+#
+# @description Compute likelihood matrix for mixsqp
+#
+# @param G_prior a scale specific mash prior
+#
+# @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
+#
+# @param indx_list List generated by \code{\link{gen_wavelet_indx}}
+#   for the given level of resolution
+#
+# @return See L argument mixsqp package mixsqp function
+#
+# @export
 L_mixsq_mvfsusie <- function(G_prior, tens_marg, indx_lst)
 {
    L <- lapply( 1:length(indx_lst), function(s) L_mixsq_mvfsusie_scale(G_prior, tens_marg, indx_lst,s))
@@ -431,21 +432,21 @@ L_mixsq_mvfsusie <- function(G_prior, tens_marg, indx_lst)
 }
 
 
-#'@title Compute likelihood matrix for mixsqp
-#'
-#' @description Compute likelihood matrix for mixsqp
-#'
-#' @param G_prior a scale specific mash prior
-#'
-#' @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
-#'
-#' @param indx_list List generated by \code{\link{gen_wavelet_indx}}
-#'   for the given level of resolution
-#'
-#' @param s scale of interest
-#'
-#' @return a matrix of scale specific log likelihood value
-#' @export
+#@title Compute likelihood matrix for mixsqp
+#
+# @description Compute likelihood matrix for mixsqp
+#
+# @param G_prior a scale specific mash prior
+#
+# @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
+#
+# @param indx_list List generated by \code{\link{gen_wavelet_indx}}
+#   for the given level of resolution
+#
+# @param s scale of interest
+#
+# @return a matrix of scale specific log likelihood value
+# @export
 L_mixsq_mvfsusie_scale <- function(G_prior, tens_marg, indx_lst,s)
 {
   grid   <-  get_grid (G_prior , s)
@@ -466,19 +467,19 @@ L_mixsq_mvfsusie_scale <- function(G_prior, tens_marg, indx_lst,s)
 
 
 
-#' @title Compute M step in the weighted mashr problem
-#'
-#' @description Add description here.
-#'
-#' @param L output of  \code{\link{L_mixsq_mvfsusie}} function
-#'
-#' @param zeta assignment probabilities for each covariate
-#'
-#' @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
-#'
-#' @return a list of proportion (class pi_mixture_normal)
-#'
-#' @export
+# @title Compute M step in the weighted mashr problem
+#
+# @description Add description here.
+#
+# @param L output of  \code{\link{L_mixsq_mvfsusie}} function
+#
+# @param zeta assignment probabilities for each covariate
+#
+# @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
+#
+# @return a list of proportion (class pi_mixture_normal)
+#
+# @export
 
 m_step_mvfsusie <- function(L, zeta, indx_lst, ...)
 {
@@ -493,23 +494,23 @@ m_step_mvfsusie <- function(L, zeta, indx_lst, ...)
 
 }
 
-#'@title Subroutine to compute M step in the weighted mash problem for normal mixture prior per scale
-#'
-#' @description  Subroutine to compute M step in the weighted mash
-#'
-#' @param L output of the L_mixsqp.mixture_normal_per_scale function
-#'
-#' @param s scale
-#'
-#' @param zeta assignment probabilities for each covariate
-#'
-#' @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
-#'
-#' @return a vector of proportion for the scale s
-#'
-#' @importFrom mixsqp mixsqp
-#'
-#' @export
+#@title Subroutine to compute M step in the weighted mash problem for normal mixture prior per scale
+#
+# @description  Subroutine to compute M step in the weighted mash
+#
+# @param L output of the L_mixsqp.mixture_normal_per_scale function
+#
+# @param s scale
+#
+# @param zeta assignment probabilities for each covariate
+#
+# @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
+#
+# @return a vector of proportion for the scale s
+#
+# @importFrom mixsqp mixsqp
+#
+# @export
 scale_m_step_mvfsusie <- function(L,s,zeta, indx_lst)
 {
   w <- rep(zeta,length(indx_lst[[s]] ))
@@ -532,11 +533,11 @@ scale_m_step_mvfsusie <- function(L,s,zeta, indx_lst)
 
 
 
-#' @title Compute assignment probabilities from log Bayes factors
-#'
-#' @description  Compute assignment probabilities from log Bayes factors
-#'
-#' @param lBF vector of log Bayes factors
+# @title Compute assignment probabilities from log Bayes factors
+#
+# @description  Compute assignment probabilities from log Bayes factors
+#
+# @param lBF vector of log Bayes factors
 
 cal_zeta_mvfsusie <- function(lBF)
 {
@@ -545,18 +546,18 @@ cal_zeta_mvfsusie <- function(lBF)
 }
 
 
-#' @title Compute likelihood for the weighted mash problem
-#'
-#' @description Compute likelihood for the weighted mash problem
-#'
-#' @param lBF vector of log Bayes factors
-#'
-#' @param zeta assignment probabilities
-#'
-#' @return Likelihood value
-#'
-#' @export
-#'
+# @title Compute likelihood for the weighted mash problem
+#
+# @description Compute likelihood for the weighted mash problem
+#
+# @param lBF vector of log Bayes factors
+#
+# @param zeta assignment probabilities
+#
+# @return Likelihood value
+#
+# @export
+#
 cal_lik_mvfsusie <- function(lBF,zeta)
 {
   out <- sum( zeta*exp(lBF - max(lBF ) ))
@@ -564,17 +565,17 @@ cal_lik_mvfsusie <- function(lBF,zeta)
 }
 
 
-#' @title Compute posterior quantities of tensor regression for a given scale and a given covariate
-#'
-#' @description Compute posterior  quantities  of the tensor regression  using a scale specific mash prior
-#' @param G_prior a scale specific mash prior
-#'
-#' @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
-#' @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
-#' @param s the scale of interest
-#' @param j the covariate of interest
-#'
-#' @export
+# @title Compute posterior quantities of tensor regression for a given scale and a given covariate
+#
+# @description Compute posterior  quantities  of the tensor regression  using a scale specific mash prior
+# @param G_prior a scale specific mash prior
+#
+# @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
+# @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
+# @param s the scale of interest
+# @param j the covariate of interest
+#
+# @export
 
 get_post_effect <- function( G_prior, tens_marg, indx_lst, s,j) {
   Bhat   <-   matrix(tens_marg$tens_Bhat[j,indx_lst[[s]],],
@@ -596,16 +597,16 @@ get_post_effect <- function( G_prior, tens_marg, indx_lst, s,j) {
 
 
 
-#' @title Compute posterior quantities of tensor regression for a given scale
-#'
-#' @description Compute posterior  quantities  of the tensor regression  using a scale specific mash prior
-#' @param G_prior a scale specific mash prior
-#'
-#' @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
-#' @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
-#' @param s the scale of interest
-#'
-#' @export
+# @title Compute posterior quantities of tensor regression for a given scale
+#
+# @description Compute posterior  quantities  of the tensor regression  using a scale specific mash prior
+# @param G_prior a scale specific mash prior
+#
+# @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
+# @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
+# @param s the scale of interest
+#
+# @export
 get_post_level <- function( G_prior, tens_marg, indx_lst,s, all=FALSE)
 {
   res <-  lapply( 1:dim(tens_marg$tens_Bhat)[1],function(j) get_post_effect( G_prior, tens_marg, indx_lst, s,j) )
@@ -674,14 +675,14 @@ get_post_level <- function( G_prior, tens_marg, indx_lst,s, all=FALSE)
 
 
 
-#' @title Compute posterior quantities of tensor regression
-#'
-#' @description Compute posterior mean and sd of the tensor regression  using a scale specific mash prior
-#' @param G_prior a scale specific mash prior
-#'
-#' @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
-#' @param all logical, if set as FALSE the function a=only return posterior mean and SD. If set as true return  lfdr, NegativeProb and lfsr. Set to FALSE by default
-#' @export
+# @title Compute posterior quantities of tensor regression
+#
+# @description Compute posterior mean and sd of the tensor regression  using a scale specific mash prior
+# @param G_prior a scale specific mash prior
+#
+# @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
+# @param all logical, if set as FALSE the function a=only return posterior mean and SD. If set as true return  lfdr, NegativeProb and lfsr. Set to FALSE by default
+# @export
 get_post_tens <- function(G_prior, tens_marg, indx_lst, all =FALSE)
 {
 
@@ -747,29 +748,29 @@ get_post_tens <- function(G_prior, tens_marg, indx_lst, all =FALSE)
 
 
 
-#' @title EM algorithm to select mixture weight in a  Empirical Bayes way for multSuSiE
-#'
-#' @description Select the mixture weight by maximizing the marginal likelihood
-#'
-#'
-#' @param G_prior a multfsusie_prior
-#'
-#' @param effect_estimate a list of marginal association generated by \code{cal_Bhat_Shat_multsusie}
-#'
-#' @param  list_indx_lst List of lists generated by \code{\link{gen_wavelet_indx}}
-#'   for the given level of resolution
-#'
-#' @param max_step numeric, maximum number of EM iteration
-#'
-#'
-#' @param espsilon numeric, tolerance EM algorithm
-#'
-#' @return
-#'\item{tpi_k}{ fitted mixture proportion}
-#'\item{lBF}{ log Bayes Factor}
-#'
-#' @export
-#'
+# @title EM algorithm to select mixture weight in a  Empirical Bayes way for multSuSiE
+#
+# @description Select the mixture weight by maximizing the marginal likelihood
+#
+#
+# @param G_prior a multfsusie_prior
+#
+# @param effect_estimate a list of marginal association generated by \code{cal_Bhat_Shat_multsusie}
+#
+# @param  list_indx_lst List of lists generated by \code{\link{gen_wavelet_indx}}
+#   for the given level of resolution
+#
+# @param max_step numeric, maximum number of EM iteration
+#
+#
+# @param espsilon numeric, tolerance EM algorithm
+#
+# @return
+#\item{tpi_k}{ fitted mixture proportion}
+#\item{lBF}{ log Bayes Factor}
+#
+# @export
+#
 EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
                            max_step = 100,
                            espsilon = 0.0001,
@@ -805,7 +806,7 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
   {
     # E step----
     oldloglik <- susiF.alpha::cal_lik(lBF,zeta)
-    zeta      <- cal_zeta(lBF)
+    zeta      <- susiF.alpha::cal_zeta(lBF)
 
     # M step ----
     tpi_k   <- m_step_multsusie(L_mat          = L_mat,
@@ -833,18 +834,18 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
 
 
 
-#' @title Compute Log-Bayes Factor for univariate regression with ash prior
-#'
-#' @description Compute Log-Bayes Factor
-#'
-#' @param G_prior ash object
-#'
-#' @param Bhat p numerical vector of regression coefficients;
-#'
-#' @param Shat p numerical of standard errors;
-#' @return  The log-Bayes factor for each covariate.
-#'
-#' @export
+# @title Compute Log-Bayes Factor for univariate regression with ash prior
+#
+# @description Compute Log-Bayes Factor
+#
+# @param G_prior ash object
+#
+# @param Bhat p numerical vector of regression coefficients;
+#
+# @param Shat p numerical of standard errors;
+# @return  The log-Bayes factor for each covariate.
+#
+# @export
 
 log_BFu <- function (G_prior, Bhat, Shat,low_u=FALSE, ...) {
 
@@ -867,20 +868,21 @@ log_BFu <- function (G_prior, Bhat, Shat,low_u=FALSE, ...) {
   return(out)
 }
 
+log_BF <- function( G_prior,effect_estimate ,list_indx_lst,low_trait  )
+  UseMethod("log_BF")
 
-
-#' @title Compute Log-Bayes Factor for a multiple f susie regression model
-#' @description Compute Log-Bayes Factor
-#'
-#' @param G_prior a multfsusie_prior
-#'
-#' @param effect_estimate regression coefficients generated by \link{\code{cal_Bhat_Shat_multfsusie}}
-#'
-#' @param  list_indx_lst List of lists generated by \code{\link{gen_wavelet_indx}}
-#'   for the given level of resolution
-#' @return  The log-Bayes factor for each covariate.
-#'
-#' @export
+# @title Compute Log-Bayes Factor for a multiple f susie regression model
+# @description Compute Log-Bayes Factor
+#
+# @param G_prior a multfsusie_prior
+#
+# @param effect_estimate regression coefficients generated by \link{\code{cal_Bhat_Shat_multfsusie}}
+#
+# @param  list_indx_lst List of lists generated by \code{\link{gen_wavelet_indx}}
+#   for the given level of resolution
+# @return  The log-Bayes factor for each covariate.
+#
+# @export
 log_BF.multfsusie_prior <- function( G_prior,effect_estimate ,list_indx_lst,low_trait  )
 {
   if( is.null(G_prior$G_prior_u)){
@@ -949,18 +951,18 @@ L_mixsq_multsusie <- function(G_prior, effect_estimate, list_indx_lst) {
 return(L_mat)
 }
 
-#' @title Compute Log-Bayes Factor for univariate regression with ash prior
-#'
-#' @description Compute Log-Bayes Factor
-#'
-#' @param G_prior ash object
-#'
-#' @param Bhat p numerical vector of regression coefficients;
-#'
-#' @param Shat p numerical of standard errors;
-#' @return See L argument mixsqp package mixsqp function
-#'
-#' @export
+# @title Compute Log-Bayes Factor for univariate regression with ash prior
+#
+# @description Compute Log-Bayes Factor
+#
+# @param G_prior ash object
+#
+# @param Bhat p numerical vector of regression coefficients;
+#
+# @param Shat p numerical of standard errors;
+# @return See L argument mixsqp package mixsqp function
+#
+# @export
 L_mixsq_u <- function(G_prior, Bhat, Shat){
   m     <-  (G_prior )
   sdmat <- sqrt(outer(c(Shat ^2), m$fitted_g$sd^2,"+"))
@@ -983,20 +985,20 @@ L_mixsq_u <- function(G_prior, Bhat, Shat){
 
 
 
-#' @title Compute M step in the weighted ash  problem
-#'
-#' @description Add description here.
-#'
-#' @param L output of  \code{\link{L_mixsq_multsusie}} function
-#'
-#' @param zeta assignment probabilities for each covariate
-#'
-#' @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
-#' @param nullweight
-#'
-#' @return a list of proportion (class pi_mixture_normal)
-#'
-#' @export
+# @title Compute M step in the weighted ash  problem
+#
+# @description Add description here.
+#
+# @param L output of  \code{\link{L_mixsq_multsusie}} function
+#
+# @param zeta assignment probabilities for each covariate
+#
+# @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
+# @param nullweight
+#
+# @return a list of proportion (class pi_mixture_normal)
+#
+# @export
 
 m_step_multsusie <- function(L_mat, zeta, list_indx_lst, init_pi0_w,  control_mixsqp,nullweight,...)
 {
@@ -1039,64 +1041,64 @@ m_step_multsusie <- function(L_mat, zeta, list_indx_lst, init_pi0_w,  control_mi
 
 
 
-#' @title Compute M step in the weighted ash  problem for univariate regression
-#'
-#' @description Add description here.
-#'
-#' @param L output of  \code{\link{L_mixsq_multsusie}} function
-#'
-#' @param zeta assignment probabilities for each covariate
-#'
-#' @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
-#'
-#' @return a list of proportion (class pi_mixture_normal)
-#'
-#' @export
+# @title Compute M step in the weighted ash  problem for univariate regression
+#
+# @description Add description here.
+#
+# @param L output of  \code{\link{L_mixsq_multsusie}} function
+#
+# @param zeta assignment probabilities for each covariate
+#
+# @param indx_list list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution, used only with class  mixture_normal_per_scale
+#
+# @return a list of proportion (class pi_mixture_normal)
+#
+# @export
 
 m_step_u <- function  (L, zeta , init_pi0_w , control_mixsqp,nullweight, ...)
 {
   w <-c(nullweight,zeta) # setting the weight to fit the weighted ash problem
   tlength <- ncol(L) - 1
-  mixsqp_out <- mixsqp(L,
-                       w,
-                       log = TRUE,
-                       x0 = c(init_pi0_w ,rep(1e-12,tlength)), # put starting point close to sparse solution
-                       control = control_mixsqp
+  mixsqp_out <- mixsqp:: mixsqp(L,
+                                w,
+                                log = TRUE,
+                                x0 = c(init_pi0_w ,rep(1e-12,tlength)), # put starting point close to sparse solution
+                                control = control_mixsqp
   )
   out <- mixsqp_out$x
   class(out) <-  "pi_mixture_normal"
   return(out)
 }
 
-#' @title Compute posterior mean for univariate regression
-#' @description Compute posterior mean for univariate regression
-#' @param Bhat  a vector of mean estimate
-#' @param Bhat  a vector of sd estimate
-#' @param low_u logical indicate if the trait as critically low spread
+# @title Compute posterior mean for univariate regression
+# @description Compute posterior mean for univariate regression
+# @param Bhat  a vector of mean estimate
+# @param Bhat  a vector of sd estimate
+# @param low_u logical indicate if the trait as critically low spread
 get_post_mean_u <- function(G_prior, Bhat, Shat, low_u=FALSE)
 {
   if(low_u){
     return(rep( 0, length(Bhat)))
   }else{
-    data <-  set_data(Bhat  ,Shat  )
-    return(postmean(get_fitted_g(G_prior),data))
+    data <-  ashr::set_data(Bhat  ,Shat  )
+    return(ashr::postmean(ashr::get_fitted_g(G_prior),data))
   }
 
 }
 
 
-#' @title Compute posterior sd for univariate regression
-#' @description Compute posterior sd for univariate regression
-#' @param Bhat  a vector of mean estimate
-#' @param Bhat  a vector of sd estimate
-#' @param low_u logical indicate if the trait as critically low spread
+# @title Compute posterior sd for univariate regression
+# @description Compute posterior sd for univariate regression
+# @param Bhat  a vector of mean estimate
+# @param Bhat  a vector of sd estimate
+# @param low_u logical indicate if the trait as critically low spread
 get_post_sd_u <- function(G_prior, Bhat, Shat, low_u=FALSE)
 {
   if(low_u){
     return(rep( 1, length(Bhat)))
   }else{
-  data <-  set_data(Bhat  ,Shat  )
-  return(postsd(get_fitted_g(G_prior),data))
+  data <-  ashr::set_data(Bhat  ,Shat  )
+  return(ashr::postsd(ashr::get_fitted_g(G_prior),data))
   }
 }
 
@@ -1104,13 +1106,13 @@ get_post_sd_u <- function(G_prior, Bhat, Shat, low_u=FALSE)
 
 
 
-#' @rdname estimate_residual_variance
-#'
-#' @method estimate_residual_variance susiF
-#'
-#' @export estimate_residual_variance.susiF
-#'
-#' @export
+# @rdname estimate_residual_variance
+#
+# @method estimate_residual_variance susiF
+#
+# @export estimate_residual_variance.susiF
+#
+# @export
 estimate_residual_variance.multfsusie <- function(multfsusie.obj,Y,X, ... )
 {
 

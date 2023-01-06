@@ -1,14 +1,14 @@
 
 #testing if x is a wholenumber
-#'
-#'@export
+#
+#@export
 
 is.wholenumber <- function (x, tol = .Machine$double.eps^0.5)
   abs(x - round(x)) < tol
 
 #based on Rfast implementation
-#'
-#'@export
+#
+#@export
 
 fast_lm <- function(x,y)
 {
@@ -22,8 +22,8 @@ fast_lm <- function(x,y)
 
 #Circular permutation on vector
 # Code adapted from https://mzuer.github.io
-#'
-#'@export
+#
+#@export
 
 shifter <- function(x, n = 1) {
   # if (n == 0) x else c(tail(x, -n), head(x, n))
@@ -38,7 +38,7 @@ shifter <- function(x, n = 1) {
 # [1]  9 10  1  2  3  4  5  6  7  8
 
 
-#'@export
+#@export
 
 '%!in%' <- function(x,y)!('%in%'(x,y))
 
@@ -47,7 +47,7 @@ shifter <- function(x, n = 1) {
 #Product bewteen a NxJ matrix and a JxKxP tensor
 #returns a JxKxP tensor in which slice along dim 3 is the matrix product of the slice
 #and the matrix
-#'@export
+#@export
 
 '%x%' <- function(mat, tens)
 {
@@ -66,7 +66,7 @@ shifter <- function(x, n = 1) {
 #returns a 1xKxP tensor in which slice along dim 3 is the  product between  matrix product of the slice
 #and the vector
 
-#'@export
+#@export
 
 '%vxtens%' <- function(vec, tens)
 {
@@ -82,8 +82,8 @@ shifter <- function(x, n = 1) {
 
 
 
-#'@title
-#'@export
+#@title
+#@export
 
 fast_lm <- function(x,y)
 {
@@ -96,13 +96,13 @@ fast_lm <- function(x,y)
 
 
 
-#' @title transform 3d array into a matrix
-#'
-#' @description transform 3d array into a matrix where the number of column is equal to the length of the third dimension, code inspired from a comment of  Sven Hohenstein on stack overflow
-#'
-#' @param array  a 3 way tensor
-#' @return a matrix
-#'@export
+# @title transform 3d array into a matrix
+#
+# @description transform 3d array into a matrix where the number of column is equal to the length of the third dimension, code inspired from a comment of  Sven Hohenstein on stack overflow
+#
+# @param array  a 3 way tensor
+# @return a matrix
+#@export
 
 cbind_3Darray <- function(array)
 {
@@ -125,10 +125,10 @@ cbind_3Darray <- function(array)
 
 
 
-#' @title Check mark type for multfsusie
-#' @param Y list of matrices
-#' @param min_levres corresponds to the minimum amount of column for a trait to be considered as "functional"
-#' @details return of vector indicating what kind of matrices are stored in the different component of Y. USeful for multfSuSiE
+# @title Check mark type for multfsusie
+# @param Y list of matrices
+# @param min_levres corresponds to the minimum amount of column for a trait to be considered as "functional"
+# @details return of vector indicating what kind of matrices are stored in the different component of Y. USeful for multfSuSiE
 is.functional <- function(Y, min_levres =4, data.format="ind_mark"){
   if( data.format=="ind_mark"){
     tt <- unlist((lapply(lapply(Y,dim) ,`[[`, 2)))
@@ -183,6 +183,7 @@ multi_array_colScale <- function(Y, scale=FALSE){
 
 
 #' @title Check mark type for multfsusie
+#' @description  Allow user to define some threshold valuer for wavelet regression
 #' @param thresh_u vector containing threshold for minimal variance for each univariate trait
 #' @param thresh_f vector containing threshold for minimal variance for each functional trait
 #' @export
@@ -212,10 +213,10 @@ create_null_thresh <- function(type_mark ){
  return(out)
 }
 
-#'@title function checking which
-#'
-#'@param  Y data list with two entry Y_u and Y_f containning ther differnet phenotypes
-#'@param thresh_lowcount an object created by \link{\code{ threshold_set_up }}
+#@title function checking which
+#
+#@param  Y data list with two entry Y_u and Y_f containning ther differnet phenotypes
+#@param thresh_lowcount an object created by \link{\code{ threshold_set_up }}
 
 check_low_count <- function(Y, thresh_lowcount ){
 

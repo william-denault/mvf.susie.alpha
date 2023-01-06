@@ -1,8 +1,8 @@
-#'@title multivariate  regression
-#'@param Y a N by n_curve matrix
-#'@param x a matrix in which first column is a vector of 1 and the second n is the covariate of interest
-#'@param V covariance matrix of the noise, set as I if missing
-#'
+#@title multivariate  regression
+#@param Y a N by n_curve matrix
+#@param x a matrix in which first column is a vector of 1 and the second n is the covariate of interest
+#@param V covariance matrix of the noise, set as I if missing
+#
 mv_reg <- function(Y,x,V,v1)
 {
   if(missing(V))#TODO correct V without estimation
@@ -20,12 +20,12 @@ mv_reg <- function(Y,x,V,v1)
 }
 
 
-#'@title Bayesian multivariate  regression
-#'@param Y a N by n_curve matrix
-#'@param x a matrix in which first column is a vector of 1 and the second n is the covariate of interest
-#'@param V covariance matrix of the noise, set as I if missing
-#'@param U prior
-#'@importFrom mvtnorm dmvnorm
+#@title Bayesian multivariate  regression
+#@param Y a N by n_curve matrix
+#@param x a matrix in which first column is a vector of 1 and the second n is the covariate of interest
+#@param V covariance matrix of the noise, set as I if missing
+#@param U prior
+#@importFrom mvtnorm dmvnorm
 bmv_reg <- function(Y,x,V,U)
 {
   if(missing(V)) #TODO correct V without estimation
@@ -53,11 +53,11 @@ bmv_reg <- function(Y,x,V,U)
 }
 
 
-#'@title Bayes factor for Bayesian multivariate  regression
-#'@param Bhat a vector of estimated effect
-#'@param S covariance of the estimated effect
-#'@param U prior
-#'@importFrom mvtnorm dmvnorm
+#@title Bayes factor for Bayesian multivariate  regression
+#@param Bhat a vector of estimated effect
+#@param S covariance of the estimated effect
+#@param U prior
+#@importFrom mvtnorm dmvnorm
 multivariate_lbf = function (Bhat, S, U) {
   lbf = sapply(1:length(S),
                function(j) dmvnorm(x = Bhat[j,],sigma = S[[j]] + U,log = TRUE) -

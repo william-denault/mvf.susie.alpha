@@ -1,77 +1,81 @@
-#' @param Y list of observed time series. Length of N in which every element
-#' contains a xi (number of condition) by 2^S matrix. The matrix corresponds to the
-#' individuals multivariate time series
-#' @param X matrix of size n by p contains the covariates
-#'
-#' @param L the number of effect to fit (if not specified set to =2)
-#'
-#' @param pos vector of length J, corresponding to position/time pf
-#' the observed column in Y, if missing suppose that the observation
-#' are evenly spaced
-#'
-#' @param prior specify the prior used in susif. Three choice are
-#' available "normal", "mixture_normal", "mixture_normal_per_scale"
-#'
-#' @param verbose If \code{verbose = TRUE}, the algorithm's progress,
-#' and a summary of the optimization settings, are printed to the
-#' console.
-#'
-#' @param plot_out If \code{plot_out = TRUE}, the algorithm's progress,
-#' and a summary of the optimization settings, are ploted.
-#'
-#' @param tol A small, non-negative number specifying the convergence
-#' tolerance for the IBSS fitting procedure. The fitting procedure
-#' will halt when the difference in the variational lower bound, or
-#' \dQuote{ELBO} (the objective function to be maximized), is less
-#' than \code{tol}.
-#'
-#' @param maxit Maximum number of IBSS iterations to perform.
-#'
-#' @param cov_lev numeric between 0 and 1, corresponding to the
-#' expected level of coverage of the cs if not specified set to 0.95
-#'
-#' @param min.purity minimum purity for estimated credible sets
-#' @param filter.cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
-#' @param  all logical set to FALSE. If set to TRUE the output contains additional information such as
-#' lfdr lfsr
-#' @examples
-#'effect1 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
-#'effect2 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
-#'N = 100
-#'
-#'#Number of covariates
-#'
-#'P = 10
-#'
-#'#Choosing which variable will have an effect
-#'pos1 <- 1
-#'pos2 <- 2
-#'
-#'
-#'
-#'
-#'G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
-#'beta1       <- 1
-#'beta2       <- 1
-#'
-#'noisy.data  <- list()
-#'for ( i in 1:N)
-#'{
-#'
-#'  f1               <- effect1
-#'  f2               <- effect2
-#'  noisy.data [[i]] <-  t(beta1*G[i,pos1]*effect1 + beta2*G[i,pos2]*effect2 + matrix( rnorm(n= ((2^lev_res)*n_curve)), ncol=n_curve))
-#'
-#'}
-#'
-#'noisy.data[[1]]
-#'noisy.data[[2]]
-#'
-#'out <- mvfsusie(Y=noisy.data,
-#'                X=X,
-#'                L=2)
-#'out$alpha
-#'
+# @title Sum of multivariate Single Functions
+#
+# @description Implementation of the multivariate SuSiE method
+#
+# @details Implementation of the multfSuSiE method @param Y list of observed time series. Length of N in which every element
+# contains a xi (number of condition) by 2^S matrix. The matrix corresponds to the
+# individuals multivariate time series
+# @param X matrix of size n by p contains the covariates
+#
+# @param L the number of effect to fit (if not specified set to =2)
+#
+# @param pos vector of length J, corresponding to position/time pf
+# the observed column in Y, if missing suppose that the observation
+# are evenly spaced
+#
+# @param prior specify the prior used in susif. Three choice are
+# available "normal", "mixture_normal", "mixture_normal_per_scale"
+#
+# @param verbose If \code{verbose = TRUE}, the algorithm's progress,
+# and a summary of the optimization settings, are printed to the
+# console.
+#
+# @param plot_out If \code{plot_out = TRUE}, the algorithm's progress,
+# and a summary of the optimization settings, are ploted.
+#
+# @param tol A small, non-negative number specifying the convergence
+# tolerance for the IBSS fitting procedure. The fitting procedure
+# will halt when the difference in the variational lower bound, or
+# \dQuote{ELBO} (the objective function to be maximized), is less
+# than \code{tol}.
+#
+# @param maxit Maximum number of IBSS iterations to perform.
+#
+# @param cov_lev numeric between 0 and 1, corresponding to the
+# expected level of coverage of the cs if not specified set to 0.95
+#
+# @param min.purity minimum purity for estimated credible sets
+# @param filter.cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
+# @param  all logical set to FALSE. If set to TRUE the output contains additional information such as
+# lfdr lfsr
+#  @examples
+#effect1 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
+#effect2 <- mvf_susie_per_level(lev_res=lev_res,n_curve=3)$sim_func
+#N = 100
+#
+##Number of covariates
+#
+#P = 10
+#
+##Choosing which variable will have an effect
+#pos1 <- 1
+#pos2 <- 2
+#
+#
+#
+#
+#G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
+#beta1       <- 1
+#beta2       <- 1
+#
+#noisy.data  <- list()
+#for ( i in 1:N)
+#{
+#
+#  f1               <- effect1
+#  f2               <- effect2
+#  noisy.data [[i]] <-  t(beta1*G[i,pos1]*effect1 + beta2*G[i,pos2]*effect2 + matrix( rnorm(n= ((2^lev_res)*n_curve)), ncol=n_curve))
+#
+#}
+#
+#noisy.data[[1]]
+#noisy.data[[2]]
+#
+#out <- mvfsusie(Y=noisy.data,
+#                X=X,
+#                L=2)
+#out$alpha
+#
 mvfsusie <- function(Y, X, L = 2,
                   pos = NULL,
                   plot_out = TRUE,
