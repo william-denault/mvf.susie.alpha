@@ -51,7 +51,7 @@ shifter <- function(x, n = 1) {
 
 '%x%' <- function(mat, tens)
 {
- out <-   abind(
+ out <-   abind::abind(
                 lapply( 1:dim(tens)[3],
                         function(xi) mat%*% tens[,,xi]
                        ),
@@ -70,7 +70,7 @@ shifter <- function(x, n = 1) {
 
 '%vxtens%' <- function(vec, tens)
 {
-    out <-   abind(
+    out <-abind::abind(
                   lapply( 1:dim(tens)[3],
                           function(xi) vec%*% tens[,,xi]
                         ),

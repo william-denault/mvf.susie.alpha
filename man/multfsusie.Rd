@@ -92,6 +92,8 @@ Basically check if the median of the absolute value of the distribution of
  Set to 0 by default. Can be useful when analyzing sparse data from sequence
   based assay or small samples.}
 
+\item{cal_obj}{logical if set as true compute ELBO for convergence monitoring}
+
 \item{greedy}{logical, if true allow greedy search for extra effect
 (up to L specify by the user). Set as TRUE by default}
 

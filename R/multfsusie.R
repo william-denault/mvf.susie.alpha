@@ -50,7 +50,7 @@
 #'
 #' @param cov_lev numeric between 0 and 1, corresponding to the
 #' expected level of coverage of the cs if not specified set to 0.95
-#'
+#' @param  cal_obj logical if set as true compute ELBO for convergence monitoring
 #' @param min.purity minimum purity for estimated credible sets
 #' @param filter.cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
 #'  @param thresh_lowcount list  of numeric (check example), use to check the
