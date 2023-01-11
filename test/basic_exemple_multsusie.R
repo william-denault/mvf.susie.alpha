@@ -1,337 +1,66 @@
-#rm(list = ls())
-library(ashr)
-library(mashr)
-library(abind)
-library(wavethresh)
-library(mvtnorm)
-library(mixsqp)
+
 library(susiF.alpha)
 library(mvf.susie.alpha)
-set.seed(13)
-L=3
-
-'%!in%' <- function(x,y)!('%in%'(x,y))
-min_levres <- 4
-control_mixsqp <- list(verbose=FALSE)
-greedy=TRUE
-backfit=TRUE
-#gene expression effect of SNP 1 and SNP2
-f01  <-  1
-f02  <- -0
+library(sim1000G)
+set.seed(1)
+N <-100
+P <- 100
+genotypes  = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
+res <- list()
 
 
-#effect of SNP 1 and SNP2 on mark 1
-lev_res1 <- 5
-temp_func <-  simu_IBSS_per_level(lev_res1)
-f11 <-  temp_func$sim_func
-temp_func <-  simu_IBSS_per_level(lev_res1)
-f12 <-  0*temp_func$sim_func
-#effect of SNP 1 and SNP2 on mark 2
-lev_res2 <- 7
-temp_func <-  simu_IBSS_per_level(lev_res2)
-f21 <-  temp_func$sim_func
-temp_func <-  simu_IBSS_per_level(lev_res2)
-f22 <- 0* temp_func$sim_func
-
-#effect of SNP 1 and SNP2 on 2 CpGs
-
-f31  <-  c(1,-1)
-f32  <-  0*c(-1,1)
-
-
-threshs <- threshold_set_up( thresh_u= rep(1e-3,3), thresh_f = c(1e-3, 1e-3))
-
-nullweight=10
-
-
-indx_lst1 <- susiF.alpha:::gen_wavelet_indx(lev_res = lev_res1)
-indx_lst2 <- susiF.alpha:::gen_wavelet_indx(lev_res = lev_res2)
-
-N = 100
-
-#Number of covariates
-
-P = 10
-
-#Choosing which variable will have an effect
-pos1 <- 1
-pos2 <- 2
-
-
-
-G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
-beta1       <- 1
-
-
-
-noisy.data  <- list()
-for ( i in 1:N)
-{
-
-  Y0               <- f01*G[i,pos1]+f02*G[i,pos2] +rnorm(1,sd=0.08) #gene expression
-  Y1               <- t( beta1*G[i,pos1]*f11+ beta1*G[i,pos2]*f12+rnorm(2^lev_res1 ,sd=0.08))#mark 1
-  Y2               <- t( beta1*G[i,pos1]*f21+ beta1*G[i,pos2]*f22 +rnorm(2^lev_res2 ,sd=0.08))#mark 2
-  Y3               <-  f31*G[i, pos1]+f32*G[i, pos2] + c(rnorm(2,sd=0.08))
-  noisy.data [[i]] <-  list(Y0,Y1,Y2,Y3)
-
-}
-
-noisy.data[[1]]
-noisy.data[[2]]
-list_dfs  <- list()
-for ( k in 1:length(noisy.data[[1]]))
-{
-  list_dfs [[k]]     <- do.call(rbind, lapply(noisy.data, `[[`, k))
-}
-
-type_mark <-  is.functional(list_dfs)
-type_mark
-thresh_lowcount <- create_null_thresh(type_mark )
-thresh_lowcount
-
-
-
-list_wdfs <- list()
-list_indx_lst  <-  list()
-if( "functional" %!in% type_mark$mark_type)
-{
-  Y_f <- NULL
-}else{
-  h <- 1
-  for ( k in which(type_mark$mark_type=="functional"))
-  {
-    temp               <- DWT2(list_dfs[[k]])
-    list_wdfs[[h]]     <- cbind( temp$D,temp$C)
-    list_indx_lst[[h]] <- susiF.alpha:::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
-    h <- h+1
+  L <- 3
+  print(L)
+  list_lev_res <- list(5,6)
+  n_univ <- 3
+  eff <-  list()
+  for(l in 1:L){
+    eff[[l]] <-   simu_effect_multfsusie (list_lev_res=list_lev_res,
+                                          n_univ=n_univ, output_level = 2)
   }
-  Y_f <- list_wdfs
-  v1  <- nrow( Y_f [[1]])
-}
-if("univariate" %!in% type_mark$mark_type)
-{
-  Y_u <- NULL
-}else{
-  Y_u <- do.call( cbind, list_dfs [ which(type_mark$mark_type=="univariate") ])
-  v1  <- nrow(Y_u)
-}
-
-X   <- G
-Y   <- list(Y_u =Y_u,
-            Y_f =Y_f)
 
 
-Y_data <- Y
-G_prior <- init_prior_multfsusie(Y=Y,
-                                 X=X,
-                                 v1=v1,
-                                # L_start=2,
-                                 list_indx_lst,
-                                 control_mixsqp = control_mixsqp,
-                                 nullweight=nullweight
-                                 )$G_prior
+  Y_f1 <-  matrix(rnorm((2^list_lev_res[[1]])*N ,sd=4), nrow = N)
+  Y_f2 <-  matrix(rnorm((2^list_lev_res[[2]])*N ,sd=4), nrow = N)
+
+  Y_u <- matrix(rnorm((n_univ)*N ,sd=4), nrow = N)
 
 
-multfsusie.obj <- init_multfsusie_obj(L, G_prior, Y,X ,
-                                      type_mark,
-                                      greedy=greedy,
-                                      L_start=2,
-                                      backfit=backfit)
-class(multfsusie.obj)
-update_Y    <-  Y
+  tt <- sample(1:7,1)
+  G <- genotypes#(tt*101):((tt+3)*102)]
 
+  if( length(which(apply(G,2,var)==0))>0){
+    G <- G[,-which(apply(G,2,var)==0)]
+  }
+  # G <- matrix( rnorm(N*300), nrow = N)
+  true_pos <- sample( 1:ncol(G), L)
 
+  for ( i in 1:N){
+    for ( l in 1:L){
 
-  l=1
+      Y_f1[i,]<- Y_f1[i,]+eff[[l]]$func_effect[[1]]$sim_func*G[i,true_pos[[l]]]
+      Y_f2[i,]<- Y_f2[i,]+eff[[l]]$func_effect[[2]]$sim_func*G[i,true_pos[[l]]]
+      Y_u[i,]<- Y_u[i,]+ eff[[l]]$univ_effect*G[i,true_pos[[l]]]
+    }
+  }
 
-  # numerical value to check breaking condition of while
-  check <- 1
-  h     <- 0
+  Y_f <- list()
+  Y_f[[1]] <- Y_f1
+  Y_f[[2]] <- Y_f2
+  Y <- list( Y_f = Y_f, Y_u=Y_u)
 
-  tt   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
-  tpi  <- get_pi(multfsusie.obj ,1)
-  tpi$est_pi_u[[1]][1] <-16
-  G_prior <- update_prior(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
+  m1 <- multfsusie(Y=Y,
+                   X=G,
+                   L=11 ,
+                   data.format="list_df",
+                   L_start=11 ,
+                   nullweight=10,
+                   cal_obj =FALSE,
+                   maxit=10)
 
-  class(G_prior$G_prior_f[[1]])
-  class(G_prior$G_prior_u[[1]])
-  G_prior$G_prior_u[[1]]$fitted_g$pi[[1]]==16 #good lord it works
-
-  effect_estimate= tt
-
-
-  EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
-                             effect_estimate= tt,
-                             list_indx_lst =  list_indx_lst,
-                             init_pi0_w=1,
-                             control_mixsqp =  list(
-                               eps = 1e-3,
-                               numiter.em = 40,
-                               verbose = FALSE
-                             ),
-
-                             nullweight=nullweight
-  )
-
-  EM_pi <-  EM_out
-  EM_pi$lBF
-
-  low_trait$low_u <- 1
-
-  multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
-                                      l               = l,
-                                      EM_pi           = EM_out,
-                                      effect_estimate = effect_estimate,
-                                      list_indx_lst   = list_indx_lst,
-                                      low_trait       = low_trait)
-  multfsusie.obj$fitted_uni[[l]]
-  multfsusie.obj$fitted_wc[[l]]
-
-  update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
-                                l              = l ,
-                                X              = X,
-                                Y              = Y,
-                                list_indx_lst  = list_indx_lst
-  )
-  multfsusie.obj$lBF
-  multfsusie.obj$alpha
-
-  plot( update_Y$Y_u[,1], X[,1])
-  plot( Y$Y_u[,1], X[,1])
-
-  l=2
-
-  # numerical value to check breaking condition of while
-  check <- 1
-  h     <- 0
-
-  tt   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
-  tpi  <- get_pi(multfsusie.obj ,1)
-  tpi$est_pi_u[[1]][1] <-16
-  G_prior <- update_prior(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
-
-  class(G_prior$G_prior_f[[1]])
-  class(G_prior$G_prior_u[[1]])
-  G_prior$G_prior_u[[1]]$fitted_g$pi[[1]]==16 #good lord it works
-
-  effect_estimate= tt
-
-
-  EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
-                             effect_estimate= tt,
-                             list_indx_lst =  list_indx_lst,
-                             control_mixsqp =  list(
-                               eps = 1e-3,
-                               numiter.em = 40,
-                               verbose = FALSE
-                             ),
-
-                             nullweight=nullweight
-  )
-
-  EM_pi <-  EM_out
-  EM_pi$lBF
-
-
-
-  multfsusie.obj <- update_multfsusie(multfsusie.obj   = multfsusie.obj ,
-                                      l               = l,
-                                      EM_pi           = EM_out,
-                                      effect_estimate = effect_estimate,
-                                      list_indx_lst   = list_indx_lst)
-  multfsusie.obj$lBF
-  multfsusie.obj$alpha
-
-  multfsusie.obj$fitted_uni[[l]]
-  multfsusie.obj$fitted_wc[[l]]
-
-  update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
-                                l              = l ,
-                                X              = X,
-                                Y              = Y,
-                                list_indx_lst  = list_indx_lst
-  )
-
-
-
-
-  l=3
-
-  # numerical value to check breaking condition of while
-  check <- 1
-  h     <- 0
-
-  tt   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
-  tpi  <- get_pi(multfsusie.obj ,1)
-  tpi$est_pi_u[[1]][1] <-16
-  G_prior <- update_prior(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
-
-  class(G_prior$G_prior_f[[1]])
-  class(G_prior$G_prior_u[[1]])
-  G_prior$G_prior_u[[1]]$fitted_g$pi[[1]]==16 #good lord it works
-
-  effect_estimate= tt
-
-
-  EM_out  <- EM_pi_multsusie(G_prior  = G_prior,
-                             effect_estimate= tt,
-                             list_indx_lst =  list_indx_lst,
-                             control_mixsqp =  list(
-                               eps = 1e-3,
-                               numiter.em = 40,
-                               verbose = FALSE
-                             ),
-
-                             nullweight=nullweight
-  )
-
-  EM_pi <-  EM_out
-  EM_pi$lBF
-
-
-
-  multfsusie.obj <- update_multfsusie(multfsusie.obj   = multfsusie.obj ,
-                                      l               = l,
-                                      EM_pi           = EM_out,
-                                      effect_estimate = effect_estimate,
-                                      list_indx_lst   = list_indx_lst)
-  multfsusie.obj$lBF
-  multfsusie.obj$alpha
-
-  multfsusie.obj$fitted_uni[[l]]
-  multfsusie.obj$fitted_wc[[l]]
-
-  update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
-                                l              = l ,
-                                X              = X,
-                                Y              = Y,
-                                list_indx_lst  = list_indx_lst
-  )
-
-  multfsusie.obj$lBF
-  multfsusie.obj$alpha
-  plot(multfsusie.obj$alpha[[1]], col="red")
-  points(multfsusie.obj$alpha[[2]], col="blue")
-  points(multfsusie.obj$alpha[[3]], col="green")
-
-
-
-multfsusie.obj$est_pi[[1]]
-
-multfsusie.obj$est_pi[[2]]
-
-multfsusie.obj$est_pi[[3]]
-
-
-library(mvf.susie.alpha)
-out <- multfsusie(Y=noisy.data,
-                X=G,
-                L=10,maxit = 20,
-                init_pi0_w = 1)
-out$alpha
-out$cs
-
-
-plot( out$ELBO)
-diff(out$ELBO)
-plot( out$ELBO[-1])
+ t(m1$alpha[[1]])%*%m1$fitted_uni[[1]]
+ t(m1$alpha[[2]])%*%m1$fitted_uni[[2]]
+ t(m1$alpha[[3]])%*%m1$fitted_uni[[3]]
+ eff[[1]]$univ_effect
+ eff[[2]]$univ_effect
+ eff[[3]]$univ_effect

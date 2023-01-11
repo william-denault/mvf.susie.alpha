@@ -1,5 +1,6 @@
 library(susiF.alpha)
 library(mvf.susie.alpha)
+set.seed(1)
 N=100
 P=50
 
@@ -41,5 +42,9 @@ m1 <- multfsusie(Y=Y,
                  nullweight=10,
                  cal_obj =FALSE,
                  maxit=10)
-plot(m1$fitted_func[[1]][[1]])
+plot(m1$fitted_func[[2]][[1]])
 lines(lf[[3]])
+plot(m1$fitted_func[[1]][[1]])
+lines(lf[[1]])
+plot(m1$fitted_func[[3]][[1]])
+lines(lf[[2]])

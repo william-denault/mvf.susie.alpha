@@ -601,16 +601,26 @@ get_post_sd_u <- function(G_prior, Bhat, Shat, low_u=FALSE)
 }
 
 
+#' @title  Compute Residual variance
+#' @description  see title
+#' @param multfsusie.obj a multfsusie object
+#' @param Y observed response data
+#' @param X observed covariates
+#' @export
+#' @keywords internal
+estimate_residual_variance <- function(multfsusie.obj,Y,X,... )
+  UseMethod("estimate_residual_variance")
 
 
 
-# @rdname estimate_residual_variance
+#' @rdname estimate_residual_variance
 #
-# @method estimate_residual_variance susiF
+#' @method estimate_residual_variance multfsusie
 #
-# @export estimate_residual_variance.susiF
+#' @export estimate_residual_variance.multfsusie
 #
-# @export
+#' @export
+#' @keywords internal
 estimate_residual_variance.multfsusie <- function(multfsusie.obj,Y,X, ... )
 {
 

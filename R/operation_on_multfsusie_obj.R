@@ -1,12 +1,24 @@
 
-# @rdname cal_partial_resid
+
+#' @title Compute partial residuals
+#' @param multfsusie.obj a multfsusie object
+#' @param \ldots other arguments
+#' @export
+#' @keywords internal
+
+cal_partial_resid <- function(multfsusie.obj,...)
+  UseMethod("cal_partial_resid")
+
+
+
+#' @rdname cal_partial_resid
 #
-# @method cal_partial_resid multfsusie
+#' @method cal_partial_resid multfsusie
 #
-# @export cal_partial_resid.multfsusie
+#' @export cal_partial_resid.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 
 
 cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,
@@ -78,14 +90,14 @@ cal_partial_resid_sub <- function( multfsusie.obj, l, X, D, C, indx_lst,cord){
 
 
 #
-# @title Check purity credible sets
+#' @title Check purity credible sets
 #
-# @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
-# @param min.purity minimal purity within a CS
-# @param X matrix of covariate
-# @return a multfsusie.obj without "dummy" credible s
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param min.purity minimal purity within a CS
+#' @param X matrix of covariate
+#' @return a multfsusie.obj without "dummy" credible s
 #
-# @export
+#' @export
 #
 #
 check_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
@@ -93,14 +105,15 @@ check_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
 
 
 
-# @rdname check_cs
+#' @rdname check_cs
 #
-# @method check_cs multfsusie
+#' @method check_cs multfsusie
 #
-# @export check_cs.multfsusie
+#' @export check_cs.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
+
 
 check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X )
 {
@@ -129,15 +142,17 @@ check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X )
 
 
 
-# @title Discard credible sets
+#' @title Discard credible sets
 #
-# @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
 #
-# @param cs vector of integer containing the credible sets to discard
+#' @param cs vector of integer containing the credible sets to discard
 #
-# @return a multfsusie.obj without "dummy" credible sets
+#' @return a multfsusie.obj without "dummy" credible sets
 #
-# @export
+#' @export
+#' @keywords internal
+
 
 
 
@@ -146,13 +161,13 @@ discard_cs <- function(multfsusie.obj, cs,...)
 
 
 
-# @rdname discard_cs
+#' @rdname discard_cs
 #
-# @method discard_cs multfsusie
+#' @method discard_cs multfsusie
 #
-# @export discard_cs.multfsusie
+#' @export discard_cs.multfsusie
 #
-# @export
+#' @export
 #
 
 discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE)
@@ -373,22 +388,25 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
 
 
 
-
-
-
+#' @title Acces mixture proportion  for multfsusie.obj
+#' @description see title
+#' @param multfsusie.obj a multfsusie object
+#' @param l effect to be accesed
+#' @export
+#' @keywords internal
 get_pi <- function(multfsusie.obj,l, ...)
   UseMethod("get_pi")
 
 
 
-# @rdname get_pi
+#' @rdname get_pi
 #
-# @method get_pi multfsusie
+#' @method get_pi multfsusie
 #
-# @export get_pi.multfsusie
+#' @export get_pi.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 get_pi.multfsusie <- function(multfsusie.obj, l, ...)
 {
 
@@ -404,19 +422,31 @@ get_pi.multfsusie <- function(multfsusie.obj, l, ...)
   return(out)
 }
 
+
+
+
+
+#' @title Acces mixture proportion for null component for multfsusie.obj
+#' @description see title
+#' @param multfsusie.obj a multfsusie object
+#' @param l effect to be accesed
+#' @export
+#' @keywords internal
+
 get_pi0<- function(multfsusie.obj,l, ...)
   UseMethod("get_pi0")
 
 
+#' @rdname get_pi0
+#
+#' @method get_pi0 multfsusie
+#
+#' @export get_pi0.multfsusie
+#' @keywords internal
 
-# @rdname get_pi0
-#
-# @method get_pi0 multfsusie
-#
-# @export get_pi0.multfsusie
-#
-# @export
-#
+
+
+
 get_pi0.multfsusie <-function(multfsusie.obj, l, ... ){
 
   if (missing( l)){
@@ -461,15 +491,25 @@ get_pi0.multfsusie <-function(multfsusie.obj, l, ... ){
 
 
 
+#' @title Acces prior object for multfsusie.obj
+#' @description see title
+#' @param multfsusie.obj a multfsusie object
+#' @export
+#' @keywords internal
 
-# @rdname get_G_prior
+
+get_G_prior<- function(multfsusie.obj, ...)
+  UseMethod("get_G_prior")
+
+
+#' @rdname get_G_prior
 #
-# @method get_G_prior multfsusie
+#' @method get_G_prior multfsusie
 #
-# @export get_G_prior.multfsusie
+#' @export get_G_prior.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 get_G_prior.multfsusie <- function(multfsusie.obj){
   out <- multfsusie.obj$G_prior
   return(out)
@@ -477,14 +517,25 @@ get_G_prior.multfsusie <- function(multfsusie.obj){
 
 
 
-# @rdname get_lBF
+
+#' @title Acces log Bayes factors for multfsusie.obj
+#' @description see title
+#' @param multfsusie.obj a multfsusie object
+#' @param l effect to be accesed
+#' @export
+#' @keywords internal
+
+
+get_lBF<- function(multfsusie.obj,l, ...)
+  UseMethod("get_lBF")
+#' @rdname get_lBF
 #
-# @method get_lBF multfsusie
+#' @method get_lBF multfsusie
 #
-# @export get_lBF.multfsusie
+#' @export get_lBF.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 get_lBF.multfsusie <- function(multfsusie.obj,l){
   out <- multfsusie.obj$lBF[[l]]
   return(out)
@@ -683,14 +734,25 @@ get_post_F2.multfsusie <- function (multfsusie.obj,l){
 }
 
 
+#' @title Compute expected sum of squares
+#' @description  See title
+#' @param multfsusie.obj a multfsusie object
+#' @param Y matrix of observation
+#' @param X matri of covaraites
+#' @export
+#' @keywords internal
+get_ER2  <- function(multfsusie.obj,Y,X, ...)
+  UseMethod("get_ER2")
 
-# @rdname get_ER2
+
+#' @rdname get_ER2
 #
-# @method get_ER2 multfsusie
+#' @method get_ER2 multfsusie
 #
-# @export get_ER2.multfsusie
+#' @export get_ER2.multfsusie
 #
-# @export
+#' @export
+#' @keywords internal
 
 get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
   postF <- get_post_F(multfsusie.obj )# J by N matrix
@@ -728,27 +790,27 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
 
 
 
-# @title Update  susiF via greedy search or backfit
+#' @title Update  susiF via greedy search or backfit
 #
-# @param multfsusie.obj a susiF object defined by \code{\link{init_susiF_obj}} function
+#' @param multfsusie.obj a susiF object defined by \code{\link{init_multfsusie.obj_obj}} function
 #
-# @return susiF object
+#' @return multfsusie.obj object
 #
-# @importFrom susiF.alpha cal_cor_cs
-# @export
-#
+#' @importFrom susiF.alpha cal_cor_cs
+#' @export get_pi0.multfsusie
+#' @keywords internal
 #
 greedy_backfit  <-  function(multfsusie.obj, verbose,cov_lev,X,min.purity, ...  )
   UseMethod("greedy_backfit")
 
-# @rdname greedy_backfit
+#' @rdname greedy_backfit
+#'
+#' @method greedy_backfit multfsusie
+#'
+#' @export greedy_backfit.multfsusie
 #
-# @method greedy_backfit multfsusie
-#
-# @export greedy_backfit.multfsusie
-#
-# @export
-#
+#' @export get_pi0.multfsusie
+#' @keywords internal
 
 greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.purity, ...  )
 {
@@ -965,27 +1027,28 @@ list_post_mean_sd <- function(G_prior, Bhat,Shat,  indx_lst, lowc_wc=NULL)
 
 
 
-# @title Merging effect function
+#' @title Merging effect function
 #
-# @param multfsusie.obj a susiF object defined by \code{\link{init_susiF_obj}} function
+#' @param multfsusie.obj a susiF object defined by \code{\link{init_multfsusie_obj}} function
 #
-# @param tl see  \code{\link{greedy_backfit}}
+#' @param tl see  \code{\link{greedy_backfit}}
 #
 #
 #
-# @return  a susiF object
-# @export
+#' @return  a multfusie  object
+#' @export
+#' @keywords internal
 merge_effect <- function( multfsusie.obj, tl, ...)
   UseMethod("merge_effect")
 
-# @rdname merge_effect
+#' @rdname merge_effect
 #
-# @method merge_effect susiF
+#' @method merge_effect multfsusie
 #
-# @export merge_effect.susiF
+#' @export merge_effect.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 
 merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=TRUE){
 
@@ -1095,16 +1158,30 @@ pred_partial_u <- function( multfsusie.obj, l, X )
   return(pred_l)
 }
 
+#' @title Update alpha   susiF mixture proportion of effect l
+#
+#' @param multfsusie.obj a multfsusie  object defined by \code{\link{init_multfsusie_obj}} function
+#
+#' @param l integer larger or equal to 1. Corresponds to the effect to be accessed
+#
+#' @param alpha  vector of p alpha values summing up to one
+#
+#' @return multfsusie.obj object
+#
+#' @export
+#' @keywords internal
 
+update_alpha  <-  function(multfsusie.obj, l, alpha,... )
+  UseMethod("update_alpha")
 
-# @rdname update_alpha
+#' @rdname update_alpha
 #
-# @method update_alpha multfsusie
+#' @method update_alpha multfsusie
 #
-# @export update_alpha.multfsusie
+#' @export update_alpha.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 update_alpha.multfsusie <-  function(multfsusie.obj, l, alpha, ... )
 {
   multfsusie.obj$alpha[[l]] <- alpha
@@ -1114,29 +1191,29 @@ update_alpha.multfsusie <-  function(multfsusie.obj, l, alpha, ... )
 
 
 
-# @title Update alpha_hist   multfsusie object
+#' @title Update alpha_hist   multfsusie object
 #
-# @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
 #
-# @param  discard logical set to FALSE by default, if true remove element of history longer than L
+#' @param  discard logical set to FALSE by default, if true remove element of history longer than L
 #
-# @return multfsusie object
+#' @return multfsusie object
 #
-# @export
-#
+#' @export
+#' @keywords internal
 
 update_alpha_hist  <-  function(multfsusie.obj, discard, ... )
   UseMethod("update_alpha_hist")
 
 
-# @rdname update_alpha
+#' @rdname update_alpha
 #
-# @method update_alpha_hist multfsusie
+#' @method update_alpha_hist multfsusie
 #
-# @export update_alpha_hist.multfsusie
+#' @export update_alpha_hist.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 update_alpha_hist.multfsusie <-  function(multfsusie.obj , discard=FALSE, ... )
 {
   if(!discard){
@@ -1222,6 +1299,12 @@ update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
 }
 
 
+
+
+
+update_pi  <- function    (multfsusie.obj, l, tpi, ...)
+  UseMethod("update_pi")
+
 # @rdname update_pi
 #
 # @method update_pi multfsusie
@@ -1249,17 +1332,31 @@ update_pi.multfsusie <- function( multfsusie.obj, l, tpi, ...)
 }
 
 
+#' @title Compute KL divergence effect l
+#'  @param multfsusie.obj a multfsusie object
+#' @param X matrix of covariates
+#
+#' @param Y observed response
+#
+#' @param list_indx_lst  list generated by gen_wavelet_indx for the given level of resolution
+#
+#' @return susiF object
+#' @export
+#' @keywords internal
 
 
+update_KL  <- function    (multfsusie.obj,Y, X , list_indx_lst , ...)
+  UseMethod("update_KL")
 
-# @rdname update_KL
+#' @rdname update_KL
 #
-# @method update_KL multfsusie
+#' @method update_KL multfsusie
 #
-# @export update_KL.multfsusie
+#' @export update_KL.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
+
 
 update_KL.multfsusie <- function(multfsusie.obj, Y, X , list_indx_lst, ...)
 {
@@ -1271,25 +1368,28 @@ update_KL.multfsusie <- function(multfsusie.obj, Y, X , list_indx_lst, ...)
 
 
 
-#@title Update multfsusie log Bayes factor
+#'@title Update multfsusie log Bayes factor
 #
-#@param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
-#@param  ELBO new ELBO value
-#@return multfsusie object
-#@export
+#'@param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#'@param  ELBO new ELBO value
+#'@return multfsusie object
+#' @export
+#' @keywords internal
+
 
 update_ELBO  <- function    (multfsusie.obj,ELBO , ...)
   UseMethod("update_ELBO")
 
 
-# @rdname update_ELBO
+#' @rdname update_ELBO
 #
-# @method update_ELBO multfsusie
+#' @method update_ELBO multfsusie
 #
-# @export update_ELBO.multfsusie
+#' @export update_ELBO.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
+
 
 update_ELBO.multfsusie <- function    (multfsusie.obj,ELBO, ...)
 {
@@ -1298,19 +1398,28 @@ update_ELBO.multfsusie <- function    (multfsusie.obj,ELBO, ...)
   return(multfsusie.obj)
 }
 
+
+
+
+
+
+#' @title Update residual variance
+#' @description  See title
+#' @param multfsusie.obj a multfsusie object
+#' @param sigma2 the new values for residual variance
 update_residual_variance  <- function(multfsusie.obj,sigma2, ...)
   UseMethod("update_residual_variance")
 
 
 
-# @rdname update_residual_variance
+#' @rdname update_residual_variance
 #
-# @method update_residual_variance multfsusie
+#' @method update_residual_variance multfsusie
 #
-# @export update_residual_variance.multfsusie
+#' @export update_residual_variance.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 
 update_residual_variance.multfsusie <- function(multfsusie.obj,sigma2)
 {
@@ -1321,23 +1430,24 @@ update_residual_variance.multfsusie <- function(multfsusie.obj,sigma2)
 
 
 
-#@title Update multfsusie by computing PiP
+#' @title Update multfsusie by computing PiP
 #
-#@param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
-#@return multfsusie object
-#@export
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @return multfsusie object
+#' @export
+#' @keywords internal
 
 update_cal_pip  <- function (multfsusie.obj, ...)
   UseMethod("update_cal_pip")
 
-# @rdname update_cal_pip
+#' @rdname update_cal_pip
 #
-# @method update_cal_pip multfsusie
+#' @method update_cal_pip multfsusie
 #
-# @export update_cal_pip.multfsusie
+#' @export update_cal_pip.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 
 update_cal_pip.multfsusie <- function (multfsusie.obj, ...)
 {
@@ -1357,27 +1467,27 @@ update_cal_pip.multfsusie <- function (multfsusie.obj, ...)
 
 
 
-#@title Update multfsusie by computing credible sets
+#' @title Update multfsusie by computing credible sets
 #
-# @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
 #
-# @param cov_lev numeric between 0 and 1, corresponding to the expected level of coverage of the cs if not specified set to 0.95
+#' @param cov_lev numeric between 0 and 1, corresponding to the expected level of coverage of the cs if not specified set to 0.95
 #
-# @return multfsusie object
+#' @return multfsusie object
 #
-# @export
-
+#' @export
+#' @keywords internal
 update_cal_cs  <- function(multfsusie.obj, cov_lev=0.95, ...)
   UseMethod("update_cal_cs")
 
-# @rdname update_cal_cs
+#' @rdname update_cal_cs
 #
-# @method update_cal_cs multfsusie
+#' @method update_cal_cs multfsusie
 #
-# @export update_cal_cs.multfsusie
+#' @export update_cal_cs.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 
 update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95)
 {
@@ -1398,28 +1508,29 @@ update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95)
 }
 
 
-# @title Preparing output of main multfsusie function
+#' @title Preparing output of main multfsusie function
 #
-# @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
 #
-# @param Y  data
-# @param X matrix of size N by p
+#' @param Y  data
+#' @param X matrix of size N by p
 #
-# @param list_indx_lst list generated by gen_wavelet_indx for the given level of resolution
+#' @param list_indx_lst list generated by gen_wavelet_indx for the given level of resolution
 #
-# @param filter.cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
-#
+#' @param filter.cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
+#' @export
+#' @keywords internal
 out_prep <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs, ...)
   UseMethod("out_prep")
 
-# @rdname out_prep
+#' @rdname out_prep
 #
-# @method out_prep multfsusie.obj
+#' @method out_prep multfsusie
 #
-# @export out_prep.multfsusie.obj
+#' @export out_prep.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 
 
 
@@ -1436,15 +1547,28 @@ out_prep.multfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
 }
 
 
+#' @title Update multfsusie by computing posterior curves
+#
+#' @param multfsusie.obj a susiF object defined by \code{\link{init_multfsusie_obj}} function
+#
+#
+#' @param list_indx_lst list generated by gen_wavelet_indx for the given level of resolution
+#
+#' @return multfsusie object
+#
+#' @export
+#' @keywords internal
+update_cal_fit_func  <- function(multfsusie.obj, list_indx_lst,...)
+  UseMethod("update_cal_fit_func")
 
-# @rdname update_cal_fit_func
+#' @rdname update_cal_fit_func
 #
-# @method update_cal_fit_func multfsusie
+#' @method update_cal_fit_func multfsusie
 #
-# @export update_cal_fit_func.multfsusie
+#' @export update_cal_fit_func.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 
 
 update_cal_fit_func.multfsusie <- function(multfsusie.obj,list_indx_lst,... ){
@@ -1475,16 +1599,28 @@ update_cal_fit_func.multfsusie <- function(multfsusie.obj,list_indx_lst,... ){
 }
 
 
+#' @title Update multfsusie log Bayes factor
+#
+#' @param multfsusie.obj a susiF object defined by \code{\link{init_multfsusie_obj}} function
+#' @param l effect to update
+#' @param lBF vector of length p, containing the updated log Bayes factors
+#' @return multfsusie object
+#' @export
+#' @keywords internal
+
+update_lBF  <- function    (susiF.obj, l, lBF,...)
+  UseMethod("update_lBF")
 
 
-# @rdname update_lBF
+#' @rdname update_lBF
 #
-# @method update_lBF multfsusie
+#' @method update_lBF multfsusie
 #
-# @export update_lBF.multfsusie
+#' @export update_lBF.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
+
 
 
 update_lBF.multfsusie <- function    (multfsusie.obj,l, lBF, ...)
@@ -1499,23 +1635,23 @@ update_lBF.multfsusie <- function    (multfsusie.obj,l, lBF, ...)
 }
 
 #
-# @title Check tolerance for stopping criterion
+#' @title Check tolerance for stopping criterion
 #
-# @export
-#
+#' @export
+#' @keywords internal
 #
 test_stop_cond <- function(multfsusie.obj, check, cal_obj, Y_data, X, list_indx_lst  ,...)
   UseMethod("test_stop_cond")
 
 
 
-# @rdname test_stop_cond
+#' @rdname test_stop_cond
 #
-# @method test_stop_cond multfsusie
+#' @method test_stop_cond multfsusie
 #
-# @export test_stop_cond.multfsusie
+#' @export test_stop_cond.multfsusie
 #
-# @export
+#' @export
 #
 
 
@@ -1563,6 +1699,9 @@ test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y, X, list_
         T1 <- do.call( rbind, multfsusie.obj$alpha_hist[[len ]])
         T1 <- T1[1:multfsusie.obj$L,] #might be longer than L because alpha computed before discarding effect
         T2 <- do.call( rbind, multfsusie.obj$alpha_hist[[(len-1) ]])
+        if(!(multfsusie.obj$L==nrow(T2))){
+          return(multfsusie.obj)
+        }
         T2 <- T2[1:multfsusie.obj$L,]
         if(multfsusie.obj$L==1){
           T2 <- T2[1,]
@@ -1597,19 +1736,30 @@ test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y, X, list_
 
 
 #
-# @title Return which credible sets are  dummy
+#' @title Return which credible sets are  dummy
 #
-# @param multfsusie.obj a susif object defined by \code{\link{init_susiF_obj}} function
-# @param min.purity minimal purity within a CS
-# @param X matrix of covariate
+#' @param multfsusie.obj a susif object defined by \code{\link{init_susiF_obj}} function
+#' @param min.purity minimal purity within a CS
+#' @param X matrix of covariate
 #
-# @return a list of index corresponding the the dummy effect
+#' @return a list of index corresponding the the dummy effect
 #
-# @export
-#
+#' @export
+#' @keywords internal
 #
 which_dummy_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
   UseMethod("which_dummy_cs")
+
+
+
+#' @rdname which_dummy_cs
+#
+#' @method which_dummy_cs multfsusie
+#
+#' @export which_dummy_cs.multfsusie
+#' @export
+#' @keywords internal
+#
 
 which_dummy_cs.multfsusie  <- function(multfsusie.obj, min.purity =0.5, X){
   dummy.cs<- c()

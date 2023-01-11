@@ -80,19 +80,21 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,co
 }
 
 
-
-
+#' @export
+#' @keywords internal
 
 get_pi_G_prior <- function(G_prior, ...)
   UseMethod("get_pi_G_prior")
 
 
-#@title Extract mixture component from a multfsusie_prior
+#' @title Extract mixture component from a multfsusie_prior
 #
-#@param G_prior an object of class "multfsusie_prior"
-#@return an object of class "pi_multfsusie" which is a list of two
+#' @param G_prior an object of class "multfsusie_prior"
+#' @return an object of class "pi_multfsusie" which is a list of two
 #\item {est_pi_u} corresponding of the k ash prior for each of the univariate traits
 #\item {est_pi_f} corresponding of the k  "mixture_normal_per_scale" prior for each of the functional trait
+#' @export
+#' @keywords internal
 
 get_pi_G_prior.multfsusie_prior <- function(G_prior)
 {
@@ -137,14 +139,25 @@ update_G_prior_univ_mult <- function(k,  tpi, G_prior)
   return(G_prior$G_prior_u[[k]])
 }
 
-# @rdname update_prior
+
+#' @title Update prior for multfsusie object
+#' @description see title
+#' @param G_prior a prior for multfsusie object
+#' @param tpi mixture proportions
+#' @export
+#' @keywords internal
+
+update_prior <- function(G_prior, tpi, ...)
+  UseMethod("update_prior")
+
+#' @rdname update_prior
 #
-# @method update_prior multfsusie_prior
+#' @method update_prior multfsusie_prior
 #
-# @export update_prior.multfsusie_prior
+#' @export update_prior.multfsusie_prior
 #
-# @export
-#
+#' @export
+#' @keywords internal
 
 
 

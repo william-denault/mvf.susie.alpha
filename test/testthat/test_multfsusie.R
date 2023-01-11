@@ -254,10 +254,10 @@ test_that("The highest assignation should be equal to", {
                tolerance = 0.01)
   expect_equal(tpi$est_pi_u[[3]][1], 0,
                tolerance = 0.01)
-  expect_lt( get_pi0(tpi = tpi$est_pi_f[[1]])[1 ], c(0.1  ) )
-  expect_lt( get_pi0(tpi = tpi$est_pi_f[[1]])[2], c( 0.6 ) )
-  expect_lt( get_pi0(tpi = tpi$est_pi_f[[2]])[1 ], c(0.1  ) )
-  expect_lt( get_pi0(tpi = tpi$est_pi_f[[2]])[2], c( 0.6 ) )
+  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[1]])[1 ], c(0.1  ) )
+  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[1]])[2], c( 0.6 ) )
+  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[2]])[1 ], c(0.1  ) )
+  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[2]])[2], c( 0.6 ) )
 })
 
 threshs <- create_null_thresh(type_mark = type_mark)
@@ -275,7 +275,29 @@ Y_data   <- list(Y_u =Y_u,
                  Y_f =Y_f)
 
 res <- multfsusie(Y=Y_data,X=G, L=3)
+
+indx_lst <- susiF.alpha::gen_wavelet_indx(log2(length(res$fitted_func[[1]][[1]])))
+temp <- wavethresh::wd(rep(0,length(res$fitted_func[[1]][[1]])))
+
+temp$D                     <-  res$fitted_func[[1]][[1]][ -indx_lst[[length(indx_lst)]]]
+temp$C[length(temp$C)]     <-  res$fitted_func[[1]][[1]][ indx_lst[[length(indx_lst)]]]
+fitted_coef   <-  wavethresh::wr(temp)
 plot(res$fitted_func[[1]][[1]], type="l")
+plot(fitted_coef, type="l")
+
+
+
+
 lines(f1$sim_func, col="blue")
 plot(res$fitted_func[[1]][[2]], type="l")
+
+
+indx_lst <- susiF.alpha::gen_wavelet_indx(log2(length(res$fitted_func[[1]][[2]])))
+temp <- wavethresh::wd(rep(0,length(res$fitted_func[[1]][[2]])))
+
+temp$D                     <-  res$fitted_func[[1]][[2]][ -indx_lst[[length(indx_lst)]]]
+temp$C[length(temp$C)]     <-  res$fitted_func[[1]][[2]][ indx_lst[[length(indx_lst)]]]
+fitted_coef   <-  wavethresh::wr(temp)
+
+plot(fitted_coef, type="l")
 lines(f2$sim_func, col="blue")
