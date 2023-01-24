@@ -223,20 +223,37 @@ expand_multfsusie_obj <- function(multfsusie.obj,L_extra)
   L_extra <- ifelse ( max(multfsusie.obj$L_max - (multfsusie.obj$L+L_extra),0 ) >0.1,#check if we are adding more effect that maximum specified by user
                       L_extra,
                       abs(multfsusie.obj$L_max -(multfsusie.obj$L+L_extra))
-  )
+                    )
   if( L_extra==0){
     return(multfsusie.obj)
   }else{
     L_old <- multfsusie.obj$L
     L_new <- multfsusie.obj$L+L_extra
     multfsusie.obj$L <- ifelse(L_new<(multfsusie.obj$P+1),L_new,P)
+    l=1
+    k=1
 
     for ( l in (L_old+1):multfsusie.obj$L )
     {
-      multfsusie.obj$fitted_wc[[l]]        <- lapply(1:length(multfsusie.obj$fitted_wc[[1]]),
-                                                      function (k) 0*multfsusie.obj$fitted_wc[[1]][k])
-      multfsusie.obj$fitted_wc2[[l]]       <- lapply(1:length(multfsusie.obj$fitted_wc[[1]]),
-                                                       function (k) (0*multfsusie.obj$fitted_wc2[[1]][k] +1))
+
+      if( !is.null(multfsusie.obj$fitted_wc)){
+
+        multfsusie.obj$fitted_wc[[l]]  <-    lapply( 1:length(multfsusie.obj$n_wac), function(j)
+                                                      matrix( 0,
+                                                              ncol = multfsusie.obj$n_wac[[j]] ,
+                                                              nrow = ncol(X)))
+        multfsusie.obj$fitted_wc2[[l]] <-    lapply( 1:length(multfsusie.obj$n_wac), function(j)
+                                                       matrix( 1,
+                                                              ncol = multfsusie.obj$n_wac[[j]],
+                                                              nrow = ncol(X)))
+
+         }
+      if(!is.null(multfsusie.obj$fitted_uni)){
+        multfsusie.obj$fitted_uni[[l]]        <- 0*multfsusie.obj$fitted_uni[[1]]
+        multfsusie.obj$fitted_uni2[[l]]       <- 0*multfsusie.obj$fitted_uni2[[1]]
+
+      }
+
       multfsusie.obj$alpha [[l]]           <- rep(0, length(multfsusie.obj$alpha [[1]]))
       multfsusie.obj$cs[[l]]               <- list()
       multfsusie.obj$est_pi [[l]]          <- multfsusie.obj$est_pi[[1]]
@@ -338,7 +355,7 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
       sigma2
     }
     if(!is.null(Y$Y_u)){
-      fitted_uni [[l]]       <-    matrix(0, ncol= ncol(Y$Y_u), nrow = ncol(X))
+      fitted_uni [[l]]       <-     matrix(0, ncol= ncol(Y$Y_u), nrow = ncol(X))
       fitted_uni2[[l]]       <-     matrix(0, ncol= ncol(Y$Y_u), nrow = ncol(X))
       sigma2$sd_u            <-   rep( 1, ncol(Y$Y_u))
     }
@@ -991,7 +1008,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 
 
 
-    multfsusie.obj <- expand_susiF_obj(multfsusie.obj,L_extra = temp)
+    multfsusie.obj <- expand_multfsusie_obj(multfsusie.obj,L_extra = temp)
     return(multfsusie.obj)
   }
 
@@ -1061,7 +1078,7 @@ merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=TRUE){
       for ( k in 1: length(multfsusie.obj$fitted_wc[[1]])){
         multfsusie.obj$fitted_wc[[tl[  2]]][[k]] <- 0* multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
         multfsusie.obj$fitted_wc[[tl[  1]]][[k]] <- multfsusie.obj$fitted_wc[[tl[  1]]][[k]]+   multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
-        multfsusie.obj$fitted_wc2[[tl[ 1]]][[k]]<- multfsusie.obj$fitted_wc2[[tl[  1]]][[k]] +   multfsusie.obj$fitted_wc2[[tl[  2]]][[k]]
+        multfsusie.obj$fitted_wc2[[tl[ 1]]][[k]] <- multfsusie.obj$fitted_wc2[[tl[  1]]][[k]] +   multfsusie.obj$fitted_wc2[[tl[  2]]][[k]]
 
       }
 
@@ -1069,9 +1086,9 @@ merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=TRUE){
     }
     if(!is.null(multfsusie.obj$fitted_uni[[1]])){
 
-        multfsusie.obj$fitted_uni[[tl[  2]]]  <- 0* multfsusie.obj$fitted_uni[[tl[ 2]]]
-        multfsusie.obj$fitted_uni[[tl[  1]]]  <- multfsusie.obj$fitted_uni[[tl[  1]]]  +   multfsusie.obj$fitted_uni[[tl[ 2]]]
-        multfsusie.obj$fitted_wc2[[tl[  1]]] <- multfsusie.obj$fitted_uni2[[tl[  1]]]  +   multfsusie.obj$fitted_uni2[[tl[  2]]]
+        multfsusie.obj$fitted_uni [[tl[  2]]]  <- 0* multfsusie.obj$fitted_uni[[tl[ 2]]]
+        multfsusie.obj$fitted_uni [[tl[  1]]]  <- multfsusie.obj$fitted_uni[[tl[  1]]]  +   multfsusie.obj$fitted_uni[[tl[ 2]]]
+        multfsusie.obj$fitted_uni2[[tl[  1]]] <- multfsusie.obj$fitted_uni2[[tl[  1]]]  +   multfsusie.obj$fitted_uni2[[tl[  2]]]
 
     }
     tindx <-  tl[  2]
@@ -1094,9 +1111,9 @@ merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=TRUE){
         }
         if(!is.null(multfsusie.obj$fitted_uni[[1]])){
 
-          multfsusie.obj$fitted_uni[[tl[  2]]]  <- 0* multfsusie.obj$fitted_uni[[tl[ 2]]]
-          multfsusie.obj$fitted_uni[[tl[  1]]]  <- multfsusie.obj$fitted_uni[[tl[  1]]]  +   multfsusie.obj$fitted_uni[[tl[ 2]]]
-          multfsusie.obj$fitted_uni2[[tl[  1]]] <- multfsusie.obj$fitted_uni2[[tl[  1]]]  +   multfsusie.obj$fitted_uni2[[tl[  2]]]
+          multfsusie.obj$fitted_uni[[tl[   2]]]  <- 0* multfsusie.obj$fitted_uni[[tl[ 2]]]
+          multfsusie.obj$fitted_uni[[tl[   1]]]  <- multfsusie.obj$fitted_uni[[tl[    1]]]  +   multfsusie.obj$fitted_uni[[tl[ 2]]]
+          multfsusie.obj$fitted_uni2[[tl[  1]]] <- multfsusie.obj$fitted_uni2[[tl[    1]]]  +   multfsusie.obj$fitted_uni2[[tl[  2]]]
 
         }
         tindx <- c(tindx, tl[o, 2])
@@ -1538,6 +1555,9 @@ out_prep.multfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
+
+  multfsusie.obj <-  update_cal_fit_uni(multfsusie.obj )
+
   multfsusie.obj <-  name_cs(multfsusie.obj,X)
   if(filter.cs)
   {
@@ -1597,6 +1617,54 @@ update_cal_fit_func.multfsusie <- function(multfsusie.obj,list_indx_lst,... ){
   }
  return( multfsusie.obj)
 }
+
+
+
+#' @title Update multfsusie by computing univariate estimates
+#
+#' @param multfsusie.obj a susiF object defined by \code{\link{init_multfsusie_obj}} function
+#
+
+#' @return multfsusie object
+#
+#' @export
+#' @keywords internal
+#'
+update_cal_fit_uni  <- function(multfsusie.obj, ...)
+  UseMethod("update_cal_fit_uni")
+
+#' @rdname update_cal_fit_uni
+#
+#' @method update_cal_fit_uni multfsusie
+#
+#' @export update_cal_fit_uni.multfsusie
+#
+#' @export
+#' @keywords internal
+
+
+update_cal_fit_uni.multfsusie <- function(multfsusie.obj, ... ){
+
+  if(is.null(multfsusie.obj$fitted_uni)){
+    return(multfsusie.obj)
+  }
+
+
+  for( l in 1: length(multfsusie.obj$cs)){
+
+      multfsusie.obj$fitted_uni[[l]] <- (multfsusie.obj$alpha[[l]]) * sweep( multfsusie.obj$fitted_uni[[l]] ,
+                                                                         1,
+                                                                         1/(multfsusie.obj$csd_X ), "*")
+
+
+
+
+  }
+  return( multfsusie.obj)
+}
+
+
+
 
 
 #' @title Update multfsusie log Bayes factor

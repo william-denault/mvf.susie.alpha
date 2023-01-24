@@ -319,6 +319,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     iter <- 1
     while(check >tol & (h/L) <maxit)
     {
+
+      str(  multfsusie.obj$fitted_wc2)
       for( l in 1:multfsusie.obj$L)
       {
 
@@ -359,7 +361,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                     low_trait       = low_trait
                                    )
         }
-
+        str(  multfsusie.obj$fitted_wc2)
         multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
                                             l               = l,
                                             EM_pi           = EM_out,
@@ -369,12 +371,13 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
 
       }#end for l in 1:L  -----
+
       multfsusie.obj <- greedy_backfit (multfsusie.obj,
                                         verbose        = verbose,
                                         cov_lev        = cov_lev,
                                         X              = X,
                                         min.purity     = min.purity
-      )
+                                        )
 
       sigma2         <- estimate_residual_variance.multfsusie(multfsusie.obj,Y=Y_data,X)
       multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )

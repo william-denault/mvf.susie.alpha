@@ -12,14 +12,14 @@ simu_effect_multfsusie(
 )
 }
 \arguments{
-\item{list_lev_res}{list of level of resoultion (can be set to NULL if non)}
+\item{list_lev_res}{list of level of resolution (can be set to NULL if non)}
 
 \item{n_univ}{number of univariate trait to be analysed}
 
 \item{effect_univ}{possible effect size of the SNP on the univariate phenotype (if missing the effect size are sample at random as -1 or 1)}
 
-\item{output_level}{if equal to 1 (default) provide simplified output for functionnal effect, setting it to 2 provide more detailled output see
-simu_IBSS_per_level in susiF.alpha for additional detail}
+\item{output_level}{if equal to 1 (default) provide simplified output for functional effect, setting it to 2 provide more detailled output see
+simu_IBSS_per_level in susiF.alpha for additional details}
 }
 \description{
 Simulate effect under the multfsusie model
