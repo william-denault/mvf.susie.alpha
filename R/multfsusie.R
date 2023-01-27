@@ -320,7 +320,6 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     while(check >tol & (h/L) <maxit)
     {
 
-      str(  multfsusie.obj$fitted_wc2)
       for( l in 1:multfsusie.obj$L)
       {
 
@@ -361,7 +360,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                     low_trait       = low_trait
                                    )
         }
-        str(  multfsusie.obj$fitted_wc2)
+
         multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
                                             l               = l,
                                             EM_pi           = EM_out,
