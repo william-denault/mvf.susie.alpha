@@ -8,7 +8,10 @@
 #' contains a xi (number of condition) by 2^S matrix. The matrix corresponds to the
 #' individuals multivariate time series
 #' @param X matrix of size n by p contains the covariates
-#'
+#'@param pos  list of sampling position for Y$Y_f entries, if not provided the alogirthm will consider that the column are venly spaced
+#'if only one of the entry (say entry 2 out of 3 entries) has some non evenly spaced data then you can defined pos as follow,
+#'pos =list(pos1=NULL,pos2=pos_uneven, pos3=NULL), where pos_uneven  is a vector containning the sampling position (assumed to be increasing)
+#')
 #' @param L the number of effect to fit (if not specified set to =2)
 #'
 #' @param pos vector of length J, corresponding to position/time pf
@@ -53,7 +56,7 @@
 #' @param  cal_obj logical if set as true compute ELBO for convergence monitoring
 #' @param min.purity minimum purity for estimated credible sets
 #' @param filter.cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
-#'  @param thresh_lowcount list  of numeric (check example), use to check the
+#'@param thresh_lowcount list  of numeric (check example), use to check the
 #'   wavelet coefficients/univariate trait have with
 #'  problematic distribution (very low dispersion even after standardization).
 #'  Basically check if the median of the absolute value of the distribution of
@@ -115,6 +118,7 @@
 #'
 #'m1 <- multfsusie(Y=Y,
 #'                 X=G,
+#'                 pos,
 #'                 L=11 ,
 #'                 data.format="list_df",
 #'                 L_start=11 ,
@@ -188,13 +192,39 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   {
     Y_f <- NULL
   }else{
+
+    if(missing(pos)){
+      pos <- list()
+      for ( k in which(type_mark$mark_type=="functional"))
+      {
+        pos[[k]] <- 1:ncol(list_dfs[[k]])
+      }
+    }
+    for (i in 1:length(which(type_mark$mark_type=="functional"))){
+      if ( !(length(pos[[i]])==ncol(list_dfs[[k]]))) #miss matching positions and number of observations
+      {
+        stop(paste("Error: number of position provided different from the number of column of Y$Y_f, entry",i))
+      }
+    }
+
+
+
+
+    outing_grid <- list()
     h <- 1
     for ( k in which(type_mark$mark_type=="functional"))
     {
-      temp               <- DWT2(list_dfs[[k]])
+
+      map_data <-  susiF.alpha::remap_data(Y=list_dfs[[k]],
+                                           pos=pos[[k]],
+                                           verbose=verbose)
+      outing_grid[[k]] <- map_data$outing_grid
+
+      temp               <- DWT2(map_data$Y)
       list_wdfs[[h]]     <- cbind( temp$D,temp$C)
       list_indx_lst[[h]] <- susiF.alpha::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
       h <- h+1
+      rm(map_data)
     }
     Y_f <- list_wdfs
     v1  <- nrow( Y_f [[1]])
@@ -214,15 +244,46 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     h <- 1
     list_wdfs <- list()
     list_indx_lst  <-  list()
-    for ( k in 1:length(Y$Y_f))
-    {
-      temp               <- DWT2(Y$Y_f[[k]])
-      list_wdfs[[h]]     <- cbind( temp$D,temp$C)
-      list_indx_lst[[h]] <- susiF.alpha:::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
-      h <- h+1
+    if( !is.null(Y$Y_f)){
+      outing_grid <- list()
+
+      if(missing(pos)){
+        pos <- list()
+        for (i in 1:length(Y$Y_f))
+        {
+          pos[[i]] <- 1:ncol(Y$Y_f[[i]])
+        }
+      }
+      for (i in 1:length(Y$Y_f)){
+        if ( !(length(pos[[i]])==ncol(Y$Y_f[[i]]))) #miss matching positions and number of observations
+        {
+          stop(paste("Error: number of position provided different from the number of column of Y$Y_f, entry",i))
+        }
+      }
+
+
+
+      for ( k in 1:length(Y$Y_f))
+      {
+        map_data <-  susiF.alpha::remap_data(Y=Y$Y_f[[k]],
+                                             pos=pos[[k]],
+                                             verbose=verbose)
+        outing_grid[[k]] <- map_data$outing_grid
+
+        temp               <- DWT2( map_data$Y)
+        list_wdfs[[h]]     <- cbind( temp$D,temp$C)
+        list_indx_lst[[h]] <- susiF.alpha:::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
+        h <- h+1
+        rm(map_data)
+      }
+      Y_f <- list_wdfs
+      v1  <- nrow( Y_f [[1]])
+    }else{
+      Y_f <- NULL
+      v1  <- nrow( Y_u)
     }
-    Y_f <- list_wdfs
-    v1  <- nrow( Y_f [[1]])
+
+
     Y_data   <- list(Y_u =Y$Y_u,
                      Y_f =Y_f)
 
@@ -404,7 +465,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                    Y          = Y_data,
                                    X          = X,
                               list_indx_lst   = list_indx_lst,
-                                   filter.cs  = filter.cs
+                                   filter.cs  = filter.cs,
+                                 outing_grid  = outing_grid
     )
    multfsusie.obj$runtime <- proc.time()-pt
   return(multfsusie.obj)

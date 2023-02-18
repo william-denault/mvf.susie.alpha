@@ -1551,7 +1551,12 @@ out_prep <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs, ...)
 
 
 
-out_prep.multfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
+out_prep.multfsusie <- function(multfsusie.obj,
+                                Y,
+                                X,
+                                list_indx_lst,
+                                filter.cs,
+                                outing_grid)
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
@@ -1563,6 +1568,7 @@ out_prep.multfsusie <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs )
   {
     multfsusie.obj <- check_cs(multfsusie.obj,min.purity=0.5,X=X)
   }
+  multfsusie.obj$outing_grid <-outing_grid
   return( multfsusie.obj)
 }
 
