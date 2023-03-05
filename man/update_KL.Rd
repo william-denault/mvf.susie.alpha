@@ -8,7 +8,7 @@
 \usage{
 update_KL(multfsusie.obj, Y, X, list_indx_lst, ...)
 
-\method{update_KL}{multfsusie}(multfsusie.obj, Y, X, list_indx_lst, ...)
+\method{update_KL}{multfsusie}(multfsusie.obj, Y, X, list_indx_lst, ind_analysis, ...)
 }
 \arguments{
 \item{Y}{observed response}

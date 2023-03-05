@@ -1752,7 +1752,7 @@ test_stop_cond <- function(multfsusie.obj, check, cal_obj, Y_data, X, list_indx_
 #
 
 
-test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y, X, list_indx_lst  ,...)
+test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y, X, list_indx_lst, ind_analysis  ,...)
 {
 
   if( multfsusie.obj$L==1)
@@ -1767,13 +1767,15 @@ test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y, X, list_
       multfsusie.obj <- update_KL(multfsusie.obj,
                                   Y              = Y,
                                   X              = X,
-                                  list_indx_lst  = list_indx_lst)
+                                  list_indx_lst  = list_indx_lst,
+                                  ind_analysis   = ind_analysis)
 
       multfsusie.obj <- update_ELBO(multfsusie.obj,
                                     get_objective( multfsusie.obj,
                                                    Y              = Y,
                                                    X              = X,
-                                                   list_indx_lst  = list_indx_lst
+                                                   list_indx_lst  = list_indx_lst,
+                                                   ind_analysis   = ind_analysis
                                     )
       )
 

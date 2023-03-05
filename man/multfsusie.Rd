@@ -36,7 +36,7 @@ individuals multivariate time series}
 \item{L}{the number of effect to fit (if not specified set to =2)}
 
 \item{pos}{vector of length J, corresponding to position/time pf
-the observed column in Y, if missing suppose that the observation
+the observed column in each entery of Y$Y_f, if missing suppose that the observation
 are evenly spaced}
 
 \item{data.format}{character specify hw the input data is organised,
@@ -66,15 +66,7 @@ expected level of coverage of the cs if not specified set to 0.95}
 
 \item{L_start}{number of effect initialized at the start of the algorithm}
 
-\item{filter.cs}{logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
-@param thresh_lowcount list  of numeric (check example), use to check the
- wavelet coefficients/univariate trait have with
-problematic distribution (very low dispersion even after standardization).
-Basically check if the median of the absolute value of the distribution of
- a wavelet coefficient/univariate trait is below a given threshold, if yes the algorithm discard
- this wavelet coefficient (setting its estimate effect to 0 and estimate sd to 1).
- Set to 0 by default. Can be useful when analyzing sparse data from sequence
-  based assay or small samples.}
+\item{filter.cs}{logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)}
 
 \item{init_pi0_w}{starting value of weight on null compoenent in mixsqp
 (between 0 and 1)}
@@ -84,10 +76,11 @@ Basically check if the median of the absolute value of the distribution of
 
 \item{control_mixsqp}{list of parameter for mixsqp function see  mixsqp package}
 
-\item{thresh_lowcount}{numeric, use to check the wavelet coefficients have
+\item{thresh_lowcount}{list  of numeric (check example), use to check the
+ wavelet coefficients/univariate trait have with
 problematic distribution (very low dispersion even after standardization).
 Basically check if the median of the absolute value of the distribution of
- a wavelet coefficient is below this threshold, if yes the algorithm discard
+ a wavelet coefficient/univariate trait is below a given threshold, if yes the algorithm discard
  this wavelet coefficient (setting its estimate effect to 0 and estimate sd to 1).
  Set to 0 by default. Can be useful when analyzing sparse data from sequence
   based assay or small samples.}
@@ -153,8 +146,13 @@ Y <- list( Y_f = Y_f, Y_u=Y_u) # preparing data ,
 #current ouput type expect list of two which element named
 #Y_f for functional trait and Y_u for univariate trait
 
+
+pos = list(pos1= 1: ncol(Y$Y_f[[1]]),
+          pos2= 1: ncol(Y$Y_f[[2]])) # if you signal is sample between 1 and 64
+
 m1 <- multfsusie(Y=Y,
                 X=G,
+                pos=pos,
                 L=11 ,
                 data.format="list_df",
                 L_start=11 ,

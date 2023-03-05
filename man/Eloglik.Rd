@@ -7,7 +7,7 @@
 \usage{
 Eloglik(multfsusie.obj, Y, X, ...)
 
-\method{Eloglik}{multfsusie}(multfsusie.obj, Y, X)
+\method{Eloglik}{multfsusie}(multfsusie.obj, Y, X, ind_analysis)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}

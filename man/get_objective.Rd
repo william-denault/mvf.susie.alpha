@@ -7,7 +7,7 @@
 \usage{
 get_objective(multfsusie.obj, Y, X, D, C, indx_lst, ...)
 
-\method{get_objective}{multfsusie}(multfsusie.obj, Y, X, list_indx_lst, ...)
+\method{get_objective}{multfsusie}(multfsusie.obj, Y, X, list_indx_lst, ind_analysis, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}

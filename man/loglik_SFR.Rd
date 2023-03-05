@@ -7,7 +7,7 @@
 \usage{
 loglik_SFR(multfsusie.obj, l, ...)
 
-\method{loglik_SFR}{multfsusie}(multfsusie.obj, l, Y, X)
+\method{loglik_SFR}{multfsusie}(multfsusie.obj, l, Y, X, ind_analysis = ind_analysis)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}

@@ -7,7 +7,7 @@
 \usage{
 estimate_residual_variance(mvfsusie, DW_tens, X, ...)
 
-\method{estimate_residual_variance}{multfsusie}(multfsusie.obj, Y, X, ...)
+\method{estimate_residual_variance}{multfsusie}(multfsusie.obj, Y, X, ind_analysis, ...)
 }
 \arguments{
 \item{X}{observed covariates}

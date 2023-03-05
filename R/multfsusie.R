@@ -182,6 +182,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 #Formatting the data ----
 ####ind mark type ----
   if(data.format=="ind_mark")  {
+    print("This input choice currently do not support missing data, please use list_df type of format if you have NA in you data")
+
   list_dfs  <- list()
   for ( k in 1:length(Y[[1]]))
   {
@@ -309,7 +311,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   if( missing(thresh_lowcount)){
     threshs <- create_null_thresh(type_mark = type_mark)
   }
-  low_trait <- check_low_count  (Y_data, thresh_lowcount=threshs  )
+  low_trait <- check_low_count  (Y_data, thresh_lowcount=threshs,ind_analysis = ind_analysis  )
 
   v1 <- rep( 1, nrow(X))
 
@@ -319,12 +321,15 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                  list_indx_lst  = list_indx_lst,
                                  low_trait      = low_trait,
                                  control_mixsqp = control_mixsqp,
-                                 nullweight     = nullweight
-                                 )
+                                 nullweight     = nullweight,
+                                 ind_analysis   = ind_analysis
+  )
 
   G_prior          <- temp$G_prior
   effect_estimate  <- temp$res
   init             <- TRUE
+
+
   multfsusie.obj <- init_multfsusie_obj( L_max=L,
                                          G_prior=G_prior,
                                          Y=Y_data,
@@ -332,10 +337,10 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                          type_mark=type_mark,
                                          L_start=L_start,
                                          greedy=greedy,
-                                         backfit=backfit)
+                                         backfit=backfit,
+                                         ind_analysis   = ind_analysis)
 
 
-  # numerical value to check breaking condition of while
   check <- 3*tol
 
   update_Y    <-  Y_data
@@ -344,7 +349,9 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   if( L==1)
   {
 
-    effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,low_trait=low_trait)
+    effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
+                                                  low_trait=low_trait,
+                                                  ind_analysis   = ind_analysis)
     tpi               <- get_pi(multfsusie.obj,1)
     G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
 
@@ -356,7 +363,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                control_mixsqp  = control_mixsqp,
                                nullweight      = nullweight,
                                low_trait       = low_trait
-                              )
+    )
 
 
 
@@ -372,11 +379,15 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                   get_objective( multfsusie.obj = multfsusie.obj,
                                                  Y         = Y_data ,
                                                  X         = X,
-                                                 list_indx_lst  = indx_lst
+                                                 list_indx_lst  = indx_lst,
+                                                 ind_analysis = ind_analysis
                                   )
     )
 
-    sigma2    <- estimate_residual_variance(multfsusie.obj,Y=Y_data,X)
+    sigma2    <- estimate_residual_variance(multfsusie.obj,
+                                            Y=Y_data,
+                                            X=X,
+                                            ind_analysis = ind_analysis)
     multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
 
   }else{
@@ -407,23 +418,28 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                                             effect_estimate,
                                                             list_indx_lst,
                                                             low_trait = low_trait)
-                                       )
+          )
           class(EM_out) <- c("EM_pi_multfsusie","list")
           init <- FALSE
         }else{
-         effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
-                                                       low_trait = low_trait)
-         tpi               <- get_pi(multfsusie.obj,l)
-         G_prior <- update_prior(G_prior, tpi= tpi ) #allow EM to start close to previous solution (to double check)
 
-         EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
-                                    effect_estimate = effect_estimate,
-                                    list_indx_lst   = list_indx_lst,
-                                    init_pi0_w      = init_pi0_w,
-                                    control_mixsqp  = control_mixsqp,
-                                    nullweight      = nullweight,
-                                    low_trait       = low_trait
-                                   )
+          effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
+                                                        low_trait=low_trait,
+                                                        ind_analysis   = ind_analysis)
+          tpi               <- get_pi(multfsusie.obj,1)
+          G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
+
+
+          EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
+                                     effect_estimate = effect_estimate,
+                                     list_indx_lst   = list_indx_lst,
+                                     init_pi0_w      = init_pi0_w,
+                                     control_mixsqp  = control_mixsqp,
+                                     nullweight      = nullweight,
+                                     low_trait       = low_trait
+          )
+
+
         }
 
         multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
@@ -431,7 +447,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                             EM_pi           = EM_out,
                                             effect_estimate = effect_estimate,
                                             list_indx_lst   = list_indx_lst,
-                                            low_trait       = low_trait)
+                                            low_trait       = low_trait )
 
 
       }#end for l in 1:L  -----
@@ -441,17 +457,22 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                         cov_lev        = cov_lev,
                                         X              = X,
                                         min.purity     = min.purity
-                                        )
+      )
 
-      sigma2         <- estimate_residual_variance.multfsusie(multfsusie.obj,Y=Y_data,X)
-      multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
+      sigma2    <- estimate_residual_variance(multfsusie.obj,
+                                              Y=Y_data,
+                                              X=X,
+                                              ind_analysis = ind_analysis)
+      multfsusie.obj <- update_residual_variance(multfsusie.obj,
+                                                 sigma2 = sigma2 )
 
-      multfsusie.obj <- test_stop_cond(multfsusie.obj = multfsusie.obj,
-                                  check               = check,
-                                  cal_obj             = cal_obj,
-                                  Y                   = Y_data,
-                                  X                   = X,
-                                  list_indx_lst       = list_indx_lst)
+      multfsusie.obj <- test_stop_cond(multfsusie.obj      = multfsusie.obj,
+                                       check               = check,
+                                       cal_obj             = cal_obj,
+                                       Y                   = Y_data,
+                                       X                   = X,
+                                       list_indx_lst       = list_indx_lst,
+                                       ind_analysis        = ind_analysis)
       check <- multfsusie.obj$check
 
 
@@ -462,6 +483,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
     }#end while
   }
+
+
 
 
   #preparing output

@@ -5,9 +5,9 @@
 \alias{cal_KL_l.multfsusie}
 \title{Compute KL divergence effect l}
 \usage{
-cal_KL_l(multfsusie.obj, l, Y, X, D, C, list_indx_lst, ...)
+cal_KL_l(multfsusie.obj, l, Y, X, D, C, list_indx_lst, ind_analysis, ...)
 
-\method{cal_KL_l}{multfsusie}(multfsusie.obj, l, Y, X, list_indx_lst, ...)
+\method{cal_KL_l}{multfsusie}(multfsusie.obj, l, Y, X, list_indx_lst, ind_analysis, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a susisF object defined by \code{\link{init_multfsusie_obj}} function}

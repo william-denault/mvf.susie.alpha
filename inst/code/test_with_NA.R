@@ -289,7 +289,7 @@ if( L==1)
       }
 
       multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
-                                          l               = 1,
+                                          l               = l,
                                           EM_pi           = EM_out,
                                           effect_estimate = effect_estimate,
                                           list_indx_lst   = list_indx_lst,

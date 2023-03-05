@@ -7,7 +7,7 @@
 \usage{
 get_ER2(mvfsusie.obj, update_DW_tens, X, ...)
 
-\method{get_ER2}{multfsusie}(multfsusie.obj, Y, X)
+\method{get_ER2}{multfsusie}(multfsusie.obj, Y, X, ind_analysis)
 }
 \arguments{
 \item{X}{matri of covaraites}
