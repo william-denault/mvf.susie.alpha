@@ -15,7 +15,7 @@
 #' @param L the number of effect to fit (if not specified set to =2)
 #'
 #' @param pos vector of length J, corresponding to position/time pf
-#' the observed column in Y, if missing suppose that the observation
+#' the observed column in each entery of Y$Y_f, if missing suppose that the observation
 #' are evenly spaced
 #' @param L_start number of effect initialized at the start of the algorithm
 #'@param data.format character specify hw the input data is organised,
@@ -116,9 +116,13 @@
 #'#current ouput type expect list of two which element named
 #'#Y_f for functional trait and Y_u for univariate trait
 #'
+#'
+#'pos = list(pos1= 1: ncol(Y$Y_f[[1]]),
+#'           pos2= 1: ncol(Y$Y_f[[2]])) # if you signal is sample between 1 and 64
+#'
 #'m1 <- multfsusie(Y=Y,
 #'                 X=G,
-#'                 pos,
+#'                 pos=pos,
 #'                 L=11 ,
 #'                 data.format="list_df",
 #'                 L_start=11 ,
@@ -294,12 +298,11 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
   #### centering and scaling covariate ----
   X <- susiF.alpha:::colScale(X)
+
   # centering input
   Y_data <- multi_array_colScale(Y_data, scale=FALSE)
   #
 
-
-  ##### continuer ici ----
   ### Cleaning ------
 
   #### discarding  null/low variance    ------
@@ -348,9 +351,9 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
     EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
                                effect_estimate = effect_estimate,
-                               list_indx_lst   =  list_indx_lst,
+                               list_indx_lst   = list_indx_lst,
                                init_pi0_w      = init_pi0_w,
-                               control_mixsqp  =  control_mixsqp,
+                               control_mixsqp  = control_mixsqp,
                                nullweight      = nullweight,
                                low_trait       = low_trait
                               )
@@ -361,7 +364,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                         l               = 1,
                                         EM_pi           = EM_out,
                                         effect_estimate = effect_estimate,
-                                        list_indx_lst   = list_indx_lst)
+                                        list_indx_lst   = list_indx_lst,
+                                        low_trait       = low_trait )
 
 
     multfsusie.obj <- update_ELBO(multfsusie.obj,

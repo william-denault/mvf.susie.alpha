@@ -119,27 +119,47 @@ cal_Bhat_Shat_tensor  <- function(Y, X, v1)
 # @export
 
 
-cal_Bhat_Shat_multfsusie <- function( Y,X,v1,list_indx_lst=NULL, low_trait=NULL)
+cal_Bhat_Shat_multfsusie <- function( Y,X,v1,list_indx_lst=NULL, low_trait=NULL,ind_analysis  )
 {
 
   if(is.null(Y$Y_u)){
     res_uni <- NULL
   }else{
-    res_uni   <- susiF.alpha:::cal_Bhat_Shat(Y=Y$Y_u,
-                                             X=X,
-                                             v1=v1,
-                                             lowc_wc=low_trait$low_u)
+    if(missing(ind_analysis)){
+      res_uni   <- susiF.alpha:::cal_Bhat_Shat(Y=Y$Y_u,
+                                               X=X,
+                                               v1=v1,
+                                               lowc_wc=low_trait$low_u)
+    }else{
+      res_uni   <- susiF.alpha:::cal_Bhat_Shat(Y=Y$Y_u,
+                                               X=X,
+                                               v1=v1,
+                                               lowc_wc=low_trait$low_u,
+                                               ind_analysis=ind_analysis$idx_u)
+    }
+
   }
 
   if(is.null(Y$Y_f)){
     res_f <- NULL
   }else{
-    res_f <- lapply(1:length(Y$Y_f),
-                    function(k) susiF.alpha:::cal_Bhat_Shat(Y$Y_f[[k]],
-                                                            X       = X,
-                                                            v1      = v1,
-                                                            lowc_wc = low_trait$low_wc[[k]])
+    if(missing(ind_analysis)){
+      res_f <- lapply(1:length(Y$Y_f),
+                      function(k) susiF.alpha:::cal_Bhat_Shat(Y$Y_f[[k]],
+                                                              X       = X,
+                                                              v1      = v1,
+                                                              lowc_wc = low_trait$low_wc[[k]])
                       )
+    }else{
+      res_f <- lapply(1:length(Y$Y_f),
+                      function(k) susiF.alpha:::cal_Bhat_Shat(Y$Y_f[[k]],
+                                                              X       = X,
+                                                              v1      = v1,
+                                                              lowc_wc = low_trait$low_wc[[k]],
+                                                              ind_analysis=ind_analysis$idx_f[[k]])
+                      )
+    }
+
   }
 
  res  <- list( res_uni = res_uni,
@@ -621,20 +641,39 @@ estimate_residual_variance <- function(multfsusie.obj,Y,X,... )
 #
 #' @export
 #' @keywords internal
-estimate_residual_variance.multfsusie <- function(multfsusie.obj,Y,X, ... )
+estimate_residual_variance.multfsusie <- function(multfsusie.obj,Y,X, ind_analysis, ... )
 {
+  if (missing(ind_analysis)){
+    R2 <- get_ER2( multfsusie.obj, Y, X)
+    est_sd2 <-  list()
+    if(!is.null(R2$uni))
+    {
+      est_sd2$sd_u <-  R2$uni/nrow(Y$Y_u)
+    }
+    if(!is.null(R2$f)){
+      n <- rep(nrow(Y$Y_f[[1]]), length(Y$Y_f) )
+      t <- do.call( c, lapply(1: length(Y$Y_f), function(k) ncol(Y$Y_f[[k]] ) ))
+      est_sd2$sd_f <- R2$f / (n*t)
+    }
 
-  R2 <- get_ER2( multfsusie.obj, Y, X)
-  est_sd2 <-  list()
-  if(!is.null(R2$uni))
-  {
-    est_sd2$sd_u <-  R2$uni/nrow(Y$Y_u)
+  }else{
+    R2 <- get_ER2( multfsusie.obj, Y, X, ind_analysis)
+    est_sd2 <-  list()
+    if(!is.null(R2$uni))
+    {
+      est_sd2$sd_u <-  R2$uni/(nrow(Y$Y_u)- (  nrow(Y$Y_u) - lengths(ind_analysis$idx_u) ))# accounting for missing data points
+    }
+    if(!is.null(R2$f)){# accounting for missing data points
+      n <-  do.call(c,  lapply( 1: length(Y$Y_f), function( k) (nrow(Y$Y_f[[k]])- ( nrow(Y$Y_f[[k]]) - length(ind_analysis$idx_f[[k]]) ))))
+      t <- do.call( c, lapply(1: length(Y$Y_f), function(k) ncol(Y$Y_f[[k]] ) ))
+      est_sd2$sd_f <- R2$f / (n*t)
+    }
+
   }
-  if(!is.null(R2$f)){
-    n <- rep(nrow(Y$Y_f[[1]]), length(Y$Y_f) )
-    t <- do.call( c, lapply(1: length(Y$Y_f), function(k) ncol(Y$Y_f[[k]] ) ))
-    est_sd2$sd_f <- R2$f / (n*t)
-  }
+
+
+
+
 
   out <-  est_sd2
   return(out)

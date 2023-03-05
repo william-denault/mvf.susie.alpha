@@ -301,7 +301,7 @@ expand_multfsusie_obj <- function(multfsusie.obj,L_extra)
 # \item{ELBO}{ The evidence lower bound}
 # \item{lfsr_wc}{Local fasle sign rate of the fitted wavelet coefficients}
 # @export
-init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,backfit )
+init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,backfit, ind_analysis )
 {
   sigma2          <- list()
   if(!is.null(Y$Y_f)){
@@ -346,6 +346,7 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
   greedy          <- greedy
   backfit         <- backfit
   greedy_backfit_update <- FALSE
+  ind_analysis    <- ind_analysis
   for ( l in 1:L )
   {
 
@@ -396,7 +397,8 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
                n_expand        = n_expand,
                greedy          = greedy,
                backfit         = backfit,
-               greedy_backfit_update=greedy_backfit_update)
+               greedy_backfit_update=greedy_backfit_update,
+               ind_analysis    =  ind_analysis)
 
   class(obj) <- "multfsusie"
   return(obj)
@@ -771,7 +773,7 @@ get_ER2  <- function(multfsusie.obj,Y,X, ...)
 #' @export
 #' @keywords internal
 
-get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
+get_ER2.multfsusie = function (  multfsusie.obj,Y, X,ind_analysis ) {
   postF <- get_post_F(multfsusie.obj )# J by N matrix
   #Xr_L = t(X%*% postF)
   postF2 <- get_post_F2(multfsusie.obj ) # Posterior second moment.
@@ -779,11 +781,21 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
   ER2 <-  list()
   if(! is.null(Y$Y_u)){
 
-    ER2$uni <-  do.call( c,
-                          lapply(1:ncol( Y$Y_u),
-                                function(k) sum((Y$Y_u[,k] - X%*%postF$post_uni[,k] )^2) -sum( postF$post_uni_sd2[,k]^2) +sum( postF2$post_uni_sd2[,k])
-                          )
-    )
+    if( missing(ind_analysis)){
+      ER2$uni <-  do.call( c,
+                           lapply(1:ncol( Y$Y_u),
+                                  function(k) sum((Y$Y_u[,k] - X%*%postF$post_uni[,k] )^2) -sum( postF$post_uni_sd2[,k]^2) +sum( postF2$post_uni_sd2[,k])
+                           )
+      )
+    }else{
+      ER2$uni <-  do.call( c,
+                           lapply(1:ncol( Y$Y_u),
+                                  function(k) sum((Y$Y_u[ind_analysis$idx_u[[k]],k] - X[ind_analysis$idx_u[[k]],]%*%postF$post_uni[,k] )^2) -sum( postF$post_uni_sd2[,k]^2) +sum( postF2$post_uni_sd2[,k])
+                           )
+      )
+    }
+
+
 
 
   }else
@@ -792,11 +804,20 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X) {
   }
   if( !is.null(Y$Y_f))
   {
-    ER2$f <-  do.call( c,
+    if( missing(ind_analysis)){
+      ER2$f <-  do.call( c,
                          lapply(1:length( Y$Y_f),
                                 function(k) sum((Y$Y_f[[k]] - X%*%postF$post_f[[k]])^2)  -sum(postF$post_f[[k]]^2) + sum( postF2$post_f_sd2 [[k]])
                          )
-    )
+      )
+    }else{
+      ER2$f <-  do.call( c,
+                         lapply(1:length( Y$Y_f),
+                                function(k) sum((Y$Y_f[[k]][ind_analysis$idx_f[[k]],] - X[ind_analysis$idx_f[[k]],]%*%postF$post_f[[k]])^2)  -sum(postF$post_f[[k]]^2) + sum( postF2$post_f_sd2 [[k]])
+                         )
+      )
+    }
+
 
   }else{
     ER2$f <- NULL
@@ -1375,11 +1396,13 @@ update_KL  <- function    (multfsusie.obj,Y, X , list_indx_lst , ...)
 #' @keywords internal
 
 
-update_KL.multfsusie <- function(multfsusie.obj, Y, X , list_indx_lst, ...)
+update_KL.multfsusie <- function(multfsusie.obj, Y, X , list_indx_lst,ind_analysis, ...)
 {
   multfsusie.obj$KL <-  do.call(c,lapply(1:multfsusie.obj$L,
                                          FUN=function(l)
-                                           cal_KL_l(multfsusie.obj, l, Y, X, list_indx_lst)))
+                                           cal_KL_l(multfsusie.obj, l, Y, X,
+                                                    list_indx_lst = list_indx_lst,
+                                                    ind_analysis=ind_analysis)))
   return( multfsusie.obj)
 }
 

@@ -14,14 +14,19 @@
 # @importFrom ashr ash
 #
 # @export
-init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,control_mixsqp, nullweight )
+init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,control_mixsqp, nullweight,ind_analysis )
 {
 
   if(is.null(Y$Y_u)){
     G_prior_u <- NULL
     res_uni   <- NULL
   }else{
-    res_uni   <- susiF.alpha:::cal_Bhat_Shat(Y$Y_u,X,v1)
+    if(missing(ind_analysis )){
+      res_uni   <- susiF.alpha:::cal_Bhat_Shat(Y$Y_u,X,v1)
+    }else{
+      res_uni   <- susiF.alpha:::cal_Bhat_Shat(Y$Y_u,X,v1,lowc_wc=NULL,ind_analysis =ind_analysis$idx_u)
+    }
+
     if (is.null(low_trait$low_u)){
               G_prior_u <- lapply(1:ncol(Y$Y_u), function(j) ashr::ash(res_uni$Bhat[,j],
                                                                   res_uni$Shat[,j],
@@ -47,18 +52,35 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,co
     G_prior_f < NULL
     res_f <- NULL
   }else{
-    t_G_prior_f <-lapply(1:length(Y$Y_f),
-                         function(k) susiF.alpha:::init_prior.default( Y       = Y$Y_f[[k]],
-                                                              X        = X,
-                                                              v1       = v1,
-                                                              prior    = "mixture_normal_per_scale",
-                                                              indx_lst = list_indx_lst[[k]],
-                                                              lowc_wc  = low_trait$low_wc[[k]],
-                                                              control_mixsqp=control_mixsqp,
-                                                              nullweight=  nullweight
-                                                                #TODO make it different depending on marks
-                                                                          )
-                          )
+    if(missing(ind_analysis)){
+      t_G_prior_f <-lapply(1:length(Y$Y_f),
+                           function(k) susiF.alpha:::init_prior.default( Y       = Y$Y_f[[k]],
+                                                                         X        = X,
+                                                                         v1       = v1,
+                                                                         prior    = "mixture_normal_per_scale",
+                                                                         indx_lst = list_indx_lst[[k]],
+                                                                         lowc_wc  = low_trait$low_wc[[k]],
+                                                                         control_mixsqp=control_mixsqp,
+                                                                         nullweight=  nullweight
+                                                                         #TODO make it different depending on marks
+                           )
+      )
+    }else{
+      t_G_prior_f <-lapply(1:length(Y$Y_f),
+                           function(k) susiF.alpha:::init_prior.default( Y              = Y$Y_f[[k]],
+                                                                         X              = X,
+                                                                         v1             = v1,
+                                                                         prior          = "mixture_normal_per_scale",
+                                                                         indx_lst       = list_indx_lst[[k]],
+                                                                         lowc_wc        = low_trait$low_wc[[k]],
+                                                                         control_mixsqp =control_mixsqp,
+                                                                         nullweight     = nullweight,
+                                                                         ind_analysis   = ind_analysis$idx_f[[k]]
+                                                                         #TODO make it different depending on marks
+                           )
+      )
+    }
+
     G_prior_f <- lapply(1:length(Y$Y_f), function(k)  t_G_prior_f [[k]]$G_prior)
     res_f     <- lapply(1:length(Y$Y_f), function(k)  t_G_prior_f [[k]]$tt)
   }

@@ -19,7 +19,7 @@
 #' @return The KL divergence for effect l
 #' @export
 #' @keywords internal
-cal_KL_l <- function(multfsusie.obj, l, Y, X, D,C , list_indx_lst, ...)
+cal_KL_l <- function(multfsusie.obj, l, Y, X, D,C , list_indx_lst,ind_analysis, ...)
   UseMethod("cal_KL_l")
 
 
@@ -34,7 +34,7 @@ cal_KL_l <- function(multfsusie.obj, l, Y, X, D,C , list_indx_lst, ...)
 #' @export
 #' @keywords internal
 
-cal_KL_l.multfsusie <- function(multfsusie.obj, l, Y, X, list_indx_lst, ...)
+cal_KL_l.multfsusie <- function(multfsusie.obj, l, Y, X, list_indx_lst,ind_analysis, ...)
 {
 
 
@@ -48,7 +48,7 @@ cal_KL_l.multfsusie <- function(multfsusie.obj, l, Y, X, list_indx_lst, ...)
 
 
 
-  out <-  - loglik_SFR(multfsusie.obj, l,Y,X)- loglik_SFR_post(multfsusie.obj, l,R_l,X)
+  out <-  - loglik_SFR(multfsusie.obj, l,Y,X,ind_analysis=ind_analysis)- loglik_SFR_post(multfsusie.obj, l,R_l,X,ind_analysis=ind_analysis)
   return(out)
 }
 
@@ -81,7 +81,7 @@ loglik_SFR <- function    (multfsusie.obj, l,  ...)
 #' @export
 #' @keywords internal
 
-loglik_SFR.multfsusie <- function(multfsusie.obj, l,Y ,X )
+loglik_SFR.multfsusie <- function(multfsusie.obj, l,Y ,X,ind_analysis=ind_analysis )
 {
   lBF <- get_lBF(multfsusie.obj,l)
   prior_weights <- rep(1/ncol(X),ncol(X))
@@ -95,17 +95,18 @@ loglik_SFR.multfsusie <- function(multfsusie.obj, l,Y ,X )
   sum_over_effect <-  0
   if(!is.null(Y$Y_u)){
     sum_over_effect <- sum_over_effect+Reduce("+", lapply( 1:ncol(Y$Y_u),
-                                                           function(k)  sum(dnorm(Y$Y_u[,k],
+                                                           function(k)  sum(dnorm(Y$Y_u[  ind_analysis$idx_u[[k]],k],
                                                                                   0,
                                                                                   sqrt(multfsusie.obj$sigma2$sd_u[k]),
                                                                                   log = TRUE)
                                                            )
     )
     )
+
   }
   if(!is.null(Y$Y_f)){
     sum_over_effect <- sum_over_effect+Reduce("+", lapply( 1:length(Y$Y_f),
-                                                           function(k)  sum(dnorm(Y$Y_f[[k]],
+                                                           function(k)  sum(dnorm(Y$Y_f[[k]][  ind_analysis$idx_f[[k]],],
                                                                                   0,
                                                                                   sqrt(multfsusie.obj$sigma2$sd_f[k]),
                                                                                   log = TRUE)
@@ -146,7 +147,7 @@ loglik_SFR_post <- function    (multfsusie.obj, l,  ...)
 #' @export
 #' @keywords internal
 
-loglik_SFR_post.multfsusie <- function(multfsusie.obj, l,Y,X)
+loglik_SFR_post.multfsusie <- function(multfsusie.obj, l,Y,X, ind_analysis )
 {
 
   EF  <- get_post_F(multfsusie.obj,l)
@@ -157,7 +158,7 @@ loglik_SFR_post.multfsusie <- function(multfsusie.obj, l,Y,X)
   {
     n <- nrow(Y$Y_u)
     out <-  Reduce("+",lapply(1: ncol(Y$Y_u),
-                              function(k) -0.5*n*log(2*pi*s2$sd_u[k]) - 0.5/s2$sd_u[k]*(sum(Y$Y_u[,k]*Y$Y_u[,k])- 2*sum(Y$Y_u[,k]*X%*%EF$post_uni[,k])+ sum(attr(X,"d") * EF2$post_uni_sd2[,k]))
+                              function(k) -0.5*n*log(2*pi*s2$sd_u[k]) - 0.5/s2$sd_u[k]*(sum(Y$Y_u[ind_analysis$idx_u[[k]],k]*Y$Y_u[ind_analysis$idx_u[[k]],k])- 2*sum(Y$Y_u[ind_analysis$idx_u[[k]],k]*X[ind_analysis$idx_u[[k]],]%*%EF$post_uni[,k])+ sum(attr(X,"d") * EF2$post_uni_sd2[,k]))
     )
     )
   }
@@ -170,7 +171,7 @@ loglik_SFR_post.multfsusie <- function(multfsusie.obj, l,Y,X)
 
 
     tt <- Reduce("+",lapply(1: length(Y$Y_f),
-                            function(k) -0.5*n[k]*t[[k]]*log(2*pi*s2$sd_f[k]) - 0.5/s2$sd_f[k]*(sum(Y$Y_f[[k]]*Y$Y_f[[k]])- 2*sum(Y$Y_f[[k]]*X%*%EF$post_f[[k]])+ sum(attr(X,"d") * EF2$post_f_sd2[[k]]))
+                            function(k) -0.5*n[k]*t[[k]]*log(2*pi*s2$sd_f[k]) - 0.5/s2$sd_f[k]*(sum(Y$Y_f[[k]][ind_analysis$idx_f[[k]],]*Y$Y_f[[k]][ind_analysis$idx_f[[k]],])- 2*sum(Y$Y_f[[k]][ind_analysis$idx_f[[k]],]*X[ind_analysis$idx_f[[k]],]%*%EF$post_f[[k]])+ sum(attr(X,"d") * EF2$post_f_sd2[[k]]))
     )
     )
     out <- tt + out
@@ -202,9 +203,9 @@ Eloglik <- function    (multfsusie.obj, Y, X,  ...)
 #' @export Eloglik.multfsusie
 #' @export
 #' @keywords internal
-Eloglik.multfsusie <-  function (multfsusie.obj,Y ,X) {
+Eloglik.multfsusie <-  function (multfsusie.obj,Y ,X,ind_analysis ) {
   out <- 0
-  R2 <- get_ER2( multfsusie.obj, Y, X)
+  R2 <- get_ER2( multfsusie.obj, Y, X, ind_analysis=ind_analysis)
   if( !is.null( Y$Y_u)){
     n = nrow(Y$Y_u)
     n_col <- ncol(Y$Y_u)
@@ -254,9 +255,9 @@ get_objective <- function    (multfsusie.obj,  Y, X, D, C , indx_lst,  ...)
 #' @export get_objective.multfsusie
 #' @export
 #' @keywords internal
-get_objective.multfsusie <- function    (multfsusie.obj, Y, X , list_indx_lst,  ...)
+get_objective.multfsusie <- function    (multfsusie.obj, Y, X , list_indx_lst,ind_analysis, ...)
 {
-    out <- Eloglik(multfsusie.obj, Y, X) - sum(multfsusie.obj$KL)
+    out <- Eloglik(multfsusie.obj, Y, X,ind_analysis=ind_analysis) - sum(multfsusie.obj$KL)
   return(out)
 
 }

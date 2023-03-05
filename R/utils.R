@@ -85,16 +85,21 @@ shifter <- function(x, n = 1) {
 #@title
 #@export
 
+# Based on Rfast implementation.
 fast_lm <- function(x,y)
 {
+
   be <- solve(crossprod(x),crossprod(x,y))
-  resid <-  y - x %*% be
-  out <- list(be = be,
-              residuals = resid)
-  return(out)
+  sd <-  sqrt(fast_var(y - x %*% be)/(length(x)-1))
+
+  return(c(be,sd))
 }
 
 
+fast_var <- function (x)
+{
+  .Call(stats:::C_cov, x, x, 5, FALSE)
+}
 
 # @title transform 3d array into a matrix
 #
@@ -218,12 +223,40 @@ create_null_thresh <- function(type_mark ){
 #@param  Y data list with two entry Y_u and Y_f containning ther differnet phenotypes
 #@param thresh_lowcount an object created by \link{\code{ threshold_set_up }}
 
-check_low_count <- function(Y, thresh_lowcount ){
+check_low_count <- function(Y, thresh_lowcount, ind_analysis ){
+
+if(missing(ind_analysis )){
+  if( !is.null(Y$Y_f)){
+    temp_f <-  lapply( 1:length(Y$Y_f), function(d)
+      susiF.alpha:::which_lowcount(Y_f=Y$Y_f[[d]] ,
+                                   thresh_lowcount= thresh_lowcount$thresh_f[d]
+      )
+    )
+  }else{
+    temp_f <- NULL
+  }
+  if( !is.null(Y$Y_u)){
+    temp_u <-  do.call(c,
+                       lapply( 1:ncol(Y$Y_u), function(d)
+                         (  median(abs(Y$Y_u[ ,d]))<= thresh_lowcount$thresh_u[d])
+
+                       )
+    )
+    temp_u <- which(temp_u)
+    if(length(temp_u)==0){
+      temp_u <- NULL
+    }
+
+
+  }else{
+    temp_u <- NULL
+  }
+}else{
 
 
   if( !is.null(Y$Y_f)){
    temp_f <-  lapply( 1:length(Y$Y_f), function(d)
-                                     susiF.alpha:::which_lowcount(Y_f=Y$Y_f[[d]],
+                                     susiF.alpha:::which_lowcount(Y_f=Y$Y_f[[d]][ind_analysis$idx_f[[d]],],
                                                            thresh_lowcount= thresh_lowcount$thresh_f[d]
                                                            )
                   )
@@ -233,7 +266,7 @@ check_low_count <- function(Y, thresh_lowcount ){
   if( !is.null(Y$Y_u)){
     temp_u <-  do.call(c,
                        lapply( 1:ncol(Y$Y_u), function(d)
-                                             (  median(abs(Y$Y_u[,d]))<= thresh_lowcount$thresh_u[d])
+                                             (  median(abs(Y$Y_u[ind_analysis$idx_u[[d]],d]))<= thresh_lowcount$thresh_u[d])
 
                               )
                       )
@@ -246,6 +279,7 @@ check_low_count <- function(Y, thresh_lowcount ){
   }else{
     temp_u <- NULL
   }
+}
   out <- list( low_wc =temp_f,
                low_u  =  temp_u)
   return( out)

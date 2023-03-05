@@ -23,21 +23,31 @@
 DWT2 <- function (data, filter.number = 10, family = "DaubLeAsymm")
 {
 
+  NA_pos <- which(!complete.cases(data))
+  if (length(NA_pos )>0){
+    data [is.na(data)]<-0
+  }
   J <- ncol(data)
   n <- nrow(data)
   D <- matrix(NA, nrow = n, ncol = J - 1)
   C <- rep(NA, n)
   for (i in 1:n) { ## Speed Gain
     temp <- wavethresh::wd(data[i, ], filter.number = filter.number,
-               family = family)
+                           family = family)
     D[i, ] <- temp$D
     C[i] <- wavethresh::accessC(temp, level = 0)
   }
+  if (length(NA_pos )>0){
+    D [NA_pos,] <- NA
+    C [NA_pos]  <- NA
+  }
+
   output <- list(C = C, D = D, J = log2(J), filter.number = filter.number,
                  family = family)
   class(output) <- "DWT"
   return(output)
 }
+
 
 
 
