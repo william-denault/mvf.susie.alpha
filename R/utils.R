@@ -284,3 +284,34 @@ if(missing(ind_analysis )){
                low_u  =  temp_u)
   return( out)
 }
+
+
+
+which_notNA_pos <-  function( Y){
+
+  if( !is.null(Y$Y_f)){
+    temp_f <-  lapply( 1:length(Y$Y_f), function(d)
+      which(complete.cases(Y$Y_f[[d]]))
+    )
+
+  }else{
+    temp_f <- NULL
+  }
+  if( !is.null(Y$Y_u)){
+    temp_u <-    lapply( 1:ncol(Y$Y_u), function(d)
+      which(complete.cases(Y$Y_u[,d]))
+
+    )
+
+    if(length(temp_u)==0){
+      temp_u <- NULL
+    }
+
+
+  }else{
+    temp_u <- NULL
+  }
+  out <- list( idx_f =temp_f,
+               idx_u  =  temp_u)
+  return( out)
+}

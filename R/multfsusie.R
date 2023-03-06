@@ -246,7 +246,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                    Y_f =Y_f)
 }####list_df ----
   if(data.format=="list_df"){
-
+    ind_analysis <- which_notNA_pos(Y)
     h <- 1
     list_wdfs <- list()
     list_indx_lst  <-  list()
