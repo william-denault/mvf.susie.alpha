@@ -369,7 +369,7 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
 
   }
 
-
+ sigma2 <-  init_var_multf(Y)
 
   obj <- list( fitted_wc       = fitted_wc,
                fitted_wc2      = fitted_wc2,

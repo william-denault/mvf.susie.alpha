@@ -16,7 +16,7 @@
 # @export
 init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,control_mixsqp, nullweight,ind_analysis )
 {
-
+  sigma2 <- init_var_multf (Y)
   if(is.null(Y$Y_u)){
     G_prior_u <- NULL
     res_uni   <- NULL
@@ -29,7 +29,7 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,co
 
     if (is.null(low_trait$low_u)){
               G_prior_u <- lapply(1:ncol(Y$Y_u), function(j) ashr::ash(res_uni$Bhat[,j],
-                                                                  res_uni$Shat[,j],
+                                                                  res_uni$Shat[,j]*sqrt(sigma2$sd_u[j]),
                                                                   mixcompdist = "normal" ,
                                                                   outputlevel=0)
                               )

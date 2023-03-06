@@ -315,3 +315,27 @@ which_notNA_pos <-  function( Y){
                idx_u  =  temp_u)
   return( out)
 }
+
+
+init_var_multf <- function(Y){
+  sigma2          <- list()
+
+  if(!is.null(Y$Y_f)){
+
+    sigma2$sd_f     <- sapply(1:length(Y$Y_f) ,
+                        function( k) mean(apply( Y$Y_f[[k]], 2,function(x) var(x,na.rm=TRUE)))
+                )
+  }else {
+
+    sigma2$sd_f   <- NULL
+  }
+  if(!is.null(Y$Y_u)){
+    sigma2$sd_u     <-   apply( Y$Y_u , 2,function(x) var(x,na.rm=TRUE) )
+
+
+  }else{
+
+    sigma2$sd_u   <- NULL
+  }
+  return(sigma2)
+}
