@@ -179,6 +179,10 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   {
     L_start <- L
   }
+  if(verbose){
+    print("Starting initialization")
+  }
+
 #Formatting the data ----
 ####ind mark type ----
   if(data.format=="ind_mark")  {
@@ -246,6 +250,10 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                    Y_f =Y_f)
 }####list_df ----
   if(data.format=="list_df"){
+    if(verbose){
+      print("Data transform")
+    }
+
     ind_analysis <- which_notNA_pos(Y)
     h <- 1
     list_wdfs <- list()
@@ -304,6 +312,9 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   # centering input
   Y_data <- multi_array_colScale(Y_data, scale=FALSE)
   #
+  if(verbose){
+    print("Data transform done")
+  }
 
   ### Cleaning ------
 
@@ -314,6 +325,9 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   low_trait <- check_low_count  (Y_data, thresh_lowcount=threshs,ind_analysis = ind_analysis  )
 
   v1 <- rep( 1, nrow(X))
+  if(verbose){
+    print("Initializing prior")
+  }
 
   temp  <- init_prior_multfsusie(Y              = Y_data ,
                                  X              = X,
@@ -345,7 +359,9 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
   update_Y    <-  Y_data
 
-
+  if(verbose){
+    print("Initialization done")
+  }
   if( L==1)
   {
 

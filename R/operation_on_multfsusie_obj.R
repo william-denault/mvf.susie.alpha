@@ -1592,6 +1592,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
     multfsusie.obj <- check_cs(multfsusie.obj,min.purity=0.5,X=X)
   }
   multfsusie.obj$outing_grid <-outing_grid
+  multfsusie.obj$purity      <-susiF.alpha::cal_purity(l_cs= multfsusie.obj$cs, X=X)
   return( multfsusie.obj)
 }
 
