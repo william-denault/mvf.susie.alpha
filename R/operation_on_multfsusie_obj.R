@@ -241,11 +241,11 @@ expand_multfsusie_obj <- function(multfsusie.obj,L_extra)
         multfsusie.obj$fitted_wc[[l]]  <-    lapply( 1:length(multfsusie.obj$n_wac), function(j)
                                                       matrix( 0,
                                                               ncol = multfsusie.obj$n_wac[[j]] ,
-                                                              nrow = ncol(X)))
+                                                              nrow =  multfsusie.obj$P))
         multfsusie.obj$fitted_wc2[[l]] <-    lapply( 1:length(multfsusie.obj$n_wac), function(j)
                                                        matrix( 1,
                                                               ncol = multfsusie.obj$n_wac[[j]],
-                                                              nrow = ncol(X)))
+                                                              nrow = multfsusie.obj$P))
 
          }
       if(!is.null(multfsusie.obj$fitted_uni)){
@@ -340,6 +340,7 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
   lBF             <- list()
   KL              <- rep(NA,L)
   ELBO            <- c()
+  P               <- ncol(X)
   mean_X          <- attr(X, "scaled:center")
   csd_X           <- attr(X, "scaled:scale")
   n_expand        <- 0 #number of greedy expansion
@@ -393,6 +394,7 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
                mean_X          = mean_X,
                csd_X           = csd_X,
                L               = L,
+               P               = P,
                L_max           = L_max,
                n_expand        = n_expand,
                greedy          = greedy,
@@ -943,6 +945,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 
   if( length(dummy.cs)==0& !( multfsusie.obj$greedy))
   {
+
     multfsusie.obj$backfit <- FALSE
   }
 
@@ -975,6 +978,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
   if(multfsusie.obj$greedy & (length(dummy.cs)==0)){
 
     tt <- multfsusie.obj$L_max -multfsusie.obj$L
+
     temp <- min( ifelse(tt>0,tt,0 ) , 7)
 
     if(temp==0){
@@ -994,6 +998,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
       }
 
       if(verbose){
+
         print( paste( "Discarding ",(multfsusie.obj$L_max- multfsusie.obj$L), " effects"))
         print( "Greedy search and backfitting done")
       }
@@ -1025,7 +1030,6 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 
       }
     }
-
 
 
 
