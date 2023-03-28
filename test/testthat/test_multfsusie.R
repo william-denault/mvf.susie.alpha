@@ -11,7 +11,7 @@ set.seed(9)
 f2 <- simu_IBSS_per_level(lev_res=6, alpha=0, prop_decay =1.5 )
 # f2$true_coef effect is on wavelet coeff at scale 1 and 50 of coeff scale 2
 plot(f2$sim_func, type="l", ylab="y")
-N=500
+N=50
 P=10
 
 nullweight= 0
@@ -106,6 +106,8 @@ if("univariate" %!in% type_mark$mark_type)
 
 Y_data   <- list(Y_u =Y_u,
                  Y_f =Y_f)
+
+
 
 X <- susiF.alpha:::colScale(X)
 # centering input

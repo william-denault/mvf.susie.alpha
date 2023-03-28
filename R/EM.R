@@ -260,13 +260,30 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
 {
 
 
-  L_mat  <- L_mixsq_multsusie (G_prior, effect_estimate, list_indx_lst)
+
+  lBF <- log_BF(G_prior,
+                effect_estimate = effect_estimate,
+                list_indx_lst   = list_indx_lst,
+                low_trait       = low_trait )
+
+
+
+
   if( !is.null(effect_estimate$res_uni)){
     J <- nrow( effect_estimate$res_uni$Bhat)
   }else{
     J <- nrow( effect_estimate$res_f[[1]]$Bhat)
   }
 
+
+  if( length(lBF)> 1000){ # basically allow runing EM only on data point with most signal
+    idx <- order(lBF)[1:1000]
+
+  }else{
+    idx <- 1:length(lBF)
+  }
+
+  L_mat  <- L_mixsq_multsusie (G_prior, effect_estimate, list_indx_lst,idx=idx)
 
   #dynamic parameters
   tpi_k = get_pi_G_prior(G_prior)
@@ -276,10 +293,6 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
   zeta <- rep(1/J,J) #assignation initial value
   k <- 1 #counting the number of iteration
 
-  lBF <- log_BF(G_prior,
-                effect_estimate = effect_estimate,
-                list_indx_lst   = list_indx_lst,
-                low_trait       = low_trait )
 
   while( k <max_step &  abs(newloglik-oldloglik)>=espsilon)
   {
@@ -289,7 +302,7 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
 
     # M step ----
     tpi_k   <- m_step_multsusie(L_mat          = L_mat,
-                                zeta           = zeta ,
+                                zeta           = zeta[idx] ,
                                 list_indx_lst  = list_indx_lst,
                                 init_pi0_w     = init_pi0_w,
                                 control_mixsqp = control_mixsqp,
@@ -315,15 +328,15 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
 
 
 
-L_mixsq_multsusie <- function(G_prior, effect_estimate, list_indx_lst) {
+L_mixsq_multsusie <- function(G_prior, effect_estimate, list_indx_lst,idx ) {
 
   if(is.null(G_prior$G_prior_u)){
     L_mat_u <- NULL
   }else{
     L_mat_u <- lapply( 1: length(G_prior$G_prior_u) ,function( k)
       L_mixsq_u(G_prior$G_prior_u[[k]],
-                Bhat = effect_estimate$res_u$Bhat[,k],
-                Shat = effect_estimate$res_u$Shat[,k]
+                Bhat = effect_estimate$res_u$Bhat[idx,k],
+                Shat = effect_estimate$res_u$Shat[idx,k]
       )
     )
 
@@ -333,8 +346,8 @@ L_mixsq_multsusie <- function(G_prior, effect_estimate, list_indx_lst) {
   }else{
     L_mat_f <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
       susiF.alpha::L_mixsq(G_prior$G_prior_f[[k]],
-                           Bhat     = effect_estimate$res_f[[k]]$Bhat,
-                           Shat     = effect_estimate$res_f[[k]]$Shat,
+                           Bhat     = effect_estimate$res_f[[k]]$Bhat[idx,],
+                           Shat     = effect_estimate$res_f[[k]]$Shat[idx,],
                            indx_lst = list_indx_lst[[k]]
       )
     )

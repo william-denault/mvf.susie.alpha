@@ -1,7 +1,7 @@
 Encoding: UTF-8
 Type: Package
 Package: mvf.susie.alpha
-Version: 0.1.013
+Version: 0.1.014
 Date: 2022-02-16
 Title: Mutlivariate Sum of Single Functions
 Authors@R: person("William R. P.","Denault",role = c("aut","cre"),
@@ -13,7 +13,7 @@ Depends:
   R (>= 3.1.0),
 Imports:
   wavethresh (>= 4.6.8),
-  susiF.alpha (>= 0.1.204),
+  susiF.alpha (>= 0.1.205),
   graphics,
   stats,
   ashr (>= 2.2-47),
