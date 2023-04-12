@@ -44,6 +44,9 @@ m1 <- multfsusie(Y=Y,
                  maxit=10)
 plot(m1$fitted_func[[2]][[1]])
 lines(lf[[3]])
+
+sum(abs(m1$fitted_func[[2]][[1]]-lf[[3]]))
+
 plot(m1$fitted_func[[1]][[1]])
 lines(lf[[1]])
 plot(m1$fitted_func[[3]][[1]])

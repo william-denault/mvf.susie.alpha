@@ -14,7 +14,7 @@
 # @importFrom ashr ash
 #
 # @export
-init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,control_mixsqp, nullweight,ind_analysis )
+init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,control_mixsqp, nullweight,ind_analysis,parallel=FALSE )
 {
 
   if(is.null(Y$Y_u)){
@@ -53,32 +53,71 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,co
     res_f <- NULL
   }else{
     if(missing(ind_analysis)){
-      t_G_prior_f <-lapply(1:length(Y$Y_f),
-                           function(k) susiF.alpha:::init_prior.default( Y        = Y$Y_f[[k]],
-                                                                         X        = X,
-                                                                         v1       = v1,
-                                                                         prior    = "mixture_normal_per_scale",
-                                                                         indx_lst = list_indx_lst[[k]],
-                                                                         lowc_wc  = low_trait$low_wc[[k]],
-                                                                         control_mixsqp=control_mixsqp,
-                                                                         nullweight=  nullweight
-                                                                         #TODO make it different depending on marks
-                           )
-      )
+
+      if( parallel){
+        t_G_prior_f <-parallel::mclapply(1:length(Y$Y_f),
+                             function(k) susiF.alpha:::init_prior.default( Y        = Y$Y_f[[k]],
+                                                                           X        = X,
+                                                                           v1       = v1,
+                                                                           prior    = "mixture_normal_per_scale",
+                                                                           indx_lst = list_indx_lst[[k]],
+                                                                           lowc_wc  = low_trait$low_wc[[k]],
+                                                                           control_mixsqp=control_mixsqp,
+                                                                           nullweight=  nullweight
+                                                                           #TODO make it different depending on marks
+                                                                           ),
+                                       mc.cores=numCores,
+                                       mc.preschedule=FALSE
+                                      )
+      }else{
+        t_G_prior_f <-lapply(1:length(Y$Y_f),
+                             function(k) susiF.alpha:::init_prior.default( Y        = Y$Y_f[[k]],
+                                                                           X        = X,
+                                                                           v1       = v1,
+                                                                           prior    = "mixture_normal_per_scale",
+                                                                           indx_lst = list_indx_lst[[k]],
+                                                                           lowc_wc  = low_trait$low_wc[[k]],
+                                                                           control_mixsqp=control_mixsqp,
+                                                                           nullweight=  nullweight
+                                                                           #TODO make it different depending on marks
+                             )
+        )
+      }
+
     }else{
-      t_G_prior_f <-lapply(1:length(Y$Y_f),
-                           function(k) susiF.alpha:::init_prior.default( Y              = Y$Y_f[[k]],
-                                                                         X              = X,
-                                                                         v1             = v1,
-                                                                         prior          = "mixture_normal_per_scale",
-                                                                         indx_lst       = list_indx_lst[[k]],
-                                                                         lowc_wc        = low_trait$low_wc[[k]],
-                                                                         control_mixsqp =control_mixsqp,
-                                                                         nullweight     = nullweight,
-                                                                         ind_analysis   = ind_analysis$idx_f[[k]]
-                                                                         #TODO make it different depending on marks
-                           )
-      )
+      if(parallel){
+        t_G_prior_f <-parallel::mclapply(1:length(Y$Y_f),
+                             function(k) susiF.alpha:::init_prior.default( Y              = Y$Y_f[[k]],
+                                                                           X              = X,
+                                                                           v1             = v1,
+                                                                           prior          = "mixture_normal_per_scale",
+                                                                           indx_lst       = list_indx_lst[[k]],
+                                                                           lowc_wc        = low_trait$low_wc[[k]],
+                                                                           control_mixsqp =control_mixsqp,
+                                                                           nullweight     = nullweight,
+                                                                           ind_analysis   = ind_analysis$idx_f[[k]]
+                                                                           #TODO make it different depending on marks
+                             ),
+                             mc.cores=numCores,
+                             mc.preschedule=FALSE
+        )
+
+      }else{
+        t_G_prior_f <-lapply(1:length(Y$Y_f),
+                             function(k) susiF.alpha:::init_prior.default( Y              = Y$Y_f[[k]],
+                                                                           X              = X,
+                                                                           v1             = v1,
+                                                                           prior          = "mixture_normal_per_scale",
+                                                                           indx_lst       = list_indx_lst[[k]],
+                                                                           lowc_wc        = low_trait$low_wc[[k]],
+                                                                           control_mixsqp = control_mixsqp,
+                                                                           nullweight     = nullweight,
+                                                                           ind_analysis   = ind_analysis$idx_f[[k]]
+                                                                           #TODO make it different depending on marks
+                             )
+        )
+      }
+
     }
 
     G_prior_f <- lapply(1:length(Y$Y_f), function(k)  t_G_prior_f [[k]]$G_prior)

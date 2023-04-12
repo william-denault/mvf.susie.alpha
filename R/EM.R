@@ -276,8 +276,8 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
   }
 
 
-  if( length(lBF)> 1000){ # basically allow runing EM only on data point with most signal
-    idx <- order(lBF)[1:1000]
+  if( length(lBF)> 1000){ # basically allow running EM only on data point with most signal
+    idx <- order(lBF, decreasing = FALSE)[1:1000]
 
   }else{
     idx <- 1:length(lBF)

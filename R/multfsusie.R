@@ -165,7 +165,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                        thresh_lowcount,
                        cal_obj=FALSE,
                        greedy=TRUE,
-                       backfit=TRUE
+                       backfit=TRUE,
+                       parallel=FALSE
                       )
 
 
@@ -181,6 +182,10 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   }
   if(verbose){
     print("Starting initialization")
+  }
+
+  if(parallel){
+    numCores <- parallel::detectCores()
   }
 
 #Formatting the data ----
@@ -336,7 +341,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                  low_trait      = low_trait,
                                  control_mixsqp = control_mixsqp,
                                  nullweight     = nullweight,
-                                 ind_analysis   = ind_analysis
+                                 ind_analysis   = ind_analysis,
+                                 parallel       = parallel
   )
 
   G_prior          <- temp$G_prior
@@ -367,7 +373,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
     effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
                                                   low_trait=low_trait,
-                                                  ind_analysis   = ind_analysis)
+                                                  ind_analysis   = ind_analysis,
+                                                  parallel       = parallel)
     tpi               <- get_pi(multfsusie.obj,1)
     G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
 
