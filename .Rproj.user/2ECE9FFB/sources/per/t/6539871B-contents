@@ -1,0 +1,35 @@
+Encoding: UTF-8
+Type: Package
+Package: mvf.susie.alpha
+Version: 0.1.016
+Date: 2022-02-16
+Title: Mutlivariate Sum of Single Functions
+Authors@R: person("William R. P.","Denault",role = c("aut","cre"),
+                  email = "wdenault@uchicago.edu")
+URL: https://github.com/stephenslab/mvf.susie.alpha
+BugReports: https://github.com/stephenslab/mvf.susie.alpha
+Description: Implementation of the Multivariate Sum of Single Functions ("MVFSuSiE") method.
+Depends:
+  R (>= 3.1.0),
+Imports:
+  wavethresh (>= 4.6.8),
+  susiF.alpha (>= 0.1.205),
+  graphics,
+  stats,
+  ashr (>= 2.2-47),
+  mixsqp (>= 0.3-43),
+  mashr (>= 0.2.57),
+  abind (>= 1.4-5),
+  matrixStats (>= 0.62.0),
+  mvtnorm,
+  parallel
+License: GPL (>=3)
+LazyData: true
+LazyDataCompression: xz
+NeedsCompilation: yes
+RoxygenNote: 7.2.3
+ByteCompile: yes
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
