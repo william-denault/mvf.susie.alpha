@@ -119,7 +119,10 @@ cal_Bhat_Shat_tensor  <- function(Y, X, v1)
 # @export
 
 
-cal_Bhat_Shat_multfsusie <- function( Y,X,v1,list_indx_lst=NULL, low_trait=NULL,ind_analysis, parallel =FALSE  )
+cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
+                                      list_indx_lst=NULL,
+                                      low_trait=NULL,
+                                      ind_analysis, parallel =FALSE  )
 {
 
   if(is.null(Y$Y_u)){

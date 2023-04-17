@@ -14,7 +14,13 @@
 # @importFrom ashr ash
 #
 # @export
-init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,control_mixsqp, nullweight,ind_analysis,parallel=FALSE )
+init_prior_multfsusie <- function(Y,X, v1 ,
+                                  list_indx_lst=NULL,
+                                  low_trait=NULL,
+                                  control_mixsqp,
+                                  nullweight,ind_analysis,
+                                  parallel=FALSE,
+                                  max_SNP_EM)
 {
 
   if(is.null(Y$Y_u)){
@@ -63,7 +69,8 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,co
                                                                            indx_lst = list_indx_lst[[k]],
                                                                            lowc_wc  = low_trait$low_wc[[k]],
                                                                            control_mixsqp=control_mixsqp,
-                                                                           nullweight=  nullweight
+                                                                           nullweight=  nullweight,
+                                                                           max_SNP_EM= max_SNP_EM
                                                                            #TODO make it different depending on marks
                                                                            ),
                                        mc.cores=numCores,
@@ -78,7 +85,8 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,co
                                                                            indx_lst = list_indx_lst[[k]],
                                                                            lowc_wc  = low_trait$low_wc[[k]],
                                                                            control_mixsqp=control_mixsqp,
-                                                                           nullweight=  nullweight
+                                                                           nullweight=  nullweight,
+                                                                           max_SNP_EM= max_SNP_EM
                                                                            #TODO make it different depending on marks
                              )
         )
@@ -95,7 +103,8 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,co
                                                                            lowc_wc        = low_trait$low_wc[[k]],
                                                                            control_mixsqp =control_mixsqp,
                                                                            nullweight     = nullweight,
-                                                                           ind_analysis   = ind_analysis$idx_f[[k]]
+                                                                           ind_analysis   = ind_analysis$idx_f[[k]],
+                                                                           max_SNP_EM= max_SNP_EM
                                                                            #TODO make it different depending on marks
                              ),
                              mc.cores=numCores,
@@ -112,7 +121,8 @@ init_prior_multfsusie <- function(Y,X, v1 , list_indx_lst=NULL,low_trait=NULL,co
                                                                            lowc_wc        = low_trait$low_wc[[k]],
                                                                            control_mixsqp = control_mixsqp,
                                                                            nullweight     = nullweight,
-                                                                           ind_analysis   = ind_analysis$idx_f[[k]]
+                                                                           ind_analysis   = ind_analysis$idx_f[[k]],
+                                                                           max_SNP_EM= max_SNP_EM
                                                                            #TODO make it different depending on marks
                              )
         )
