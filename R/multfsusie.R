@@ -167,7 +167,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                        greedy=TRUE,
                        backfit=TRUE,
                        parallel=FALSE,
-                       max_SNP_EM=1000
+                       max_SNP_EM=1000,
+                       gridmult=sqrt(2)
                       )
 
 
@@ -344,7 +345,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                  nullweight     = nullweight,
                                  ind_analysis   = ind_analysis,
                                  parallel       = parallel,
-                                 max_SNP_EM= max_SNP_EM
+                                 max_SNP_EM     = max_SNP_EM,
+                                 gridmult       = gridmult
   )
 
   G_prior          <- temp$G_prior

@@ -23,7 +23,9 @@ multfsusie(
   thresh_lowcount,
   cal_obj = FALSE,
   greedy = TRUE,
-  backfit = TRUE
+  backfit = TRUE,
+  parallel = FALSE,
+  max_SNP_EM = 1000
 )
 }
 \arguments{
