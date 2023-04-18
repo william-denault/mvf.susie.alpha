@@ -39,7 +39,7 @@ EM_pi_mvfsusie <- function(G_prior,tens_marg, list_indx_lst, init_pi0_w,  contro
 
   lBF <- log_BF_tens  ( G_prior, tens_marg, indx_lst)
 
-  while( k <max_step &  abs(newloglik-oldloglik)>=espsilon)
+  while( k <=max_step &  abs(newloglik-oldloglik)>=espsilon)
   {
     # E step----
     oldloglik <- cal_lik_mvfsusie (lBF,zeta)

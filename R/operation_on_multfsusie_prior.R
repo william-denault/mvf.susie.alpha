@@ -21,7 +21,8 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                   nullweight,ind_analysis,
                                   parallel=FALSE,
                                   max_SNP_EM,
-                                  gridmult=sqrt(2))
+                                  gridmult=sqrt(2),
+                                  max_step_EM=100)
 {
 
   if(is.null(Y$Y_u)){
@@ -65,16 +66,17 @@ init_prior_multfsusie <- function(Y,X, v1 ,
 
       if( parallel){
         t_G_prior_f <-parallel::mclapply(1:length(Y$Y_f),
-                             function(k) susiF.alpha:::init_prior.default( Y        = Y$Y_f[[k]],
-                                                                           X        = X,
-                                                                           v1       = v1,
-                                                                           prior    = "mixture_normal_per_scale",
-                                                                           indx_lst = list_indx_lst[[k]],
-                                                                           lowc_wc  = low_trait$low_wc[[k]],
-                                                                           control_mixsqp=control_mixsqp,
-                                                                           nullweight=  nullweight,
-                                                                           max_SNP_EM= max_SNP_EM,
-                                                                           gridmult=gridmult
+                             function(k) susiF.alpha:::init_prior.default( Y              = Y$Y_f[[k]],
+                                                                           X              = X,
+                                                                           v1             = v1,
+                                                                           prior          = "mixture_normal_per_scale",
+                                                                           indx_lst       = list_indx_lst[[k]],
+                                                                           lowc_wc        = low_trait$low_wc[[k]],
+                                                                           control_mixsqp = control_mixsqp,
+                                                                           nullweight     =  nullweight,
+                                                                           max_SNP_EM     = max_SNP_EM,
+                                                                           gridmult       = gridmult,
+                                                                           max_step_EM    = max_step_EM
                                                                            #TODO make it different depending on marks
                                                                            ),
                                        mc.cores=numCores,
@@ -82,16 +84,17 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                       )
       }else{
         t_G_prior_f <-lapply(1:length(Y$Y_f),
-                             function(k) susiF.alpha:::init_prior.default( Y        = Y$Y_f[[k]],
-                                                                           X        = X,
-                                                                           v1       = v1,
-                                                                           prior    = "mixture_normal_per_scale",
-                                                                           indx_lst = list_indx_lst[[k]],
-                                                                           lowc_wc  = low_trait$low_wc[[k]],
-                                                                           control_mixsqp=control_mixsqp,
-                                                                           nullweight=  nullweight,
-                                                                           max_SNP_EM= max_SNP_EM,
-                                                                           gridmult=gridmult
+                             function(k) susiF.alpha:::init_prior.default( Y              = Y$Y_f[[k]],
+                                                                           X              = X,
+                                                                           v1             = v1,
+                                                                           prior          = "mixture_normal_per_scale",
+                                                                           indx_lst       = list_indx_lst[[k]],
+                                                                           lowc_wc        = low_trait$low_wc[[k]],
+                                                                           control_mixsqp = control_mixsqp,
+                                                                           nullweight     =  nullweight,
+                                                                           max_SNP_EM     = max_SNP_EM,
+                                                                           gridmult       = gridmult,
+                                                                           max_step_EM    = max_step_EM
                                                                            #TODO make it different depending on marks
                              )
         )
@@ -109,8 +112,9 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                                                            control_mixsqp =control_mixsqp,
                                                                            nullweight     = nullweight,
                                                                            ind_analysis   = ind_analysis$idx_f[[k]],
-                                                                           max_SNP_EM= max_SNP_EM,
-                                                                           gridmult=gridmult
+                                                                           max_SNP_EM     = max_SNP_EM,
+                                                                           gridmult       = gridmult,
+                                                                           max_step_EM    = max_step_EM
                                                                            #TODO make it different depending on marks
                              ),
                              mc.cores=numCores,
@@ -128,8 +132,9 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                                                            control_mixsqp = control_mixsqp,
                                                                            nullweight     = nullweight,
                                                                            ind_analysis   = ind_analysis$idx_f[[k]],
-                                                                           max_SNP_EM= max_SNP_EM,
-                                                                           gridmult=gridmult
+                                                                           max_SNP_EM     = max_SNP_EM,
+                                                                           gridmult       = gridmult,
+                                                                           max_step_EM    = max_step_EM
                                                                            #TODO make it different depending on marks
                              )
         )
