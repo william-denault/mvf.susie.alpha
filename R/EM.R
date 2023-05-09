@@ -257,15 +257,17 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
                             control_mixsqp ,
                             nullweight,
                             low_trait,
-                            max_SNP_EM=1000)
+                            max_SNP_EM=1000,
+                            df=NULL)
 {
 
-
+  ### Work here ------
 
   lBF <- log_BF(G_prior,
                 effect_estimate = effect_estimate,
                 list_indx_lst   = list_indx_lst,
-                low_trait       = low_trait )
+                low_trait       = low_trait ,
+                df              = df)
 
 
 
@@ -313,7 +315,8 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
     lBF <- log_BF(G_prior,
                   effect_estimate = effect_estimate,
                   list_indx_lst   = list_indx_lst,
-                  low_trait       = low_trait )
+                  low_trait       = low_trait ,
+                  df              = df)
     lBF <- ifelse(lBF==-Inf,0,lBF)
     newloglik <- susiF.alpha::cal_lik(lBF,zeta)
     k <- k+1
@@ -374,7 +377,7 @@ L_mixsq_multsusie <- function(G_prior, effect_estimate, list_indx_lst,idx ) {
 # @export
 L_mixsq_u <- function(G_prior, Bhat, Shat){
   m     <-  (G_prior )
-  sdmat <- sqrt(outer(c(Shat ^2), m$fitted_g$sd^2,"+"))
+  sdmat <- outer(c(Shat ^2), m$fitted_g$sd^2,"+")
   L     <- (
     dnorm(
       outer(

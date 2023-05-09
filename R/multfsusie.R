@@ -169,7 +169,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                        parallel=FALSE,
                        max_SNP_EM=1000,
                        gridmult=sqrt(2),
-                       max_step_EM=1
+                       max_step_EM=1,
+                       cor_small=FALSE
                       )
 
 
@@ -191,6 +192,11 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     numCores <- parallel::detectCores()
   }
 
+  tidx <- which(apply(X,2,var)==0)
+  if( length(tidx)>0){
+    warning(paste("Some of the columns of X are constants, we removed" ,length(tidx), "columns"))
+    X <- X[,-tidx]
+  }
 #Formatting the data ----
 ####ind mark type ----
   if(data.format=="ind_mark")  {
@@ -218,8 +224,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
         pos[[k]] <- 1:ncol(list_dfs[[k]])
       }
     }
-    for (i in 1:length(which(type_mark$mark_type=="functional"))){
-      if ( !(length(pos[[i]])==ncol(list_dfs[[k]]))) #miss matching positions and number of observations
+    for (k in 1:length(which(type_mark$mark_type=="functional"))){
+      if ( !(length(pos[[k]])==ncol(list_dfs[[k]]))) #miss matching positions and number of observations
       {
         stop(paste("Error: number of position provided different from the number of column of Y$Y_f, entry",i))
       }
@@ -336,7 +342,27 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   if(verbose){
     print("Initializing prior")
   }
+  ### Work here ------
 
+  if( cor_small){
+    df <- list()
+
+    if( !is.null(ind_analysis$idx_u)){
+      df$Y_u <- lengths(ind_analysis$idx_u)-1
+    }else{
+      df$Y_u <- NULL
+    }
+    if( !is.null(ind_analysis$idx_f)){
+      df$Y_f <- lengths(ind_analysis$idx_f)-1
+    }else{
+      df$Y_f <- NULL
+    }
+
+  }else{
+    df= NULL
+  }
+
+  print( paste("df is ", df))
   temp  <- init_prior_multfsusie(Y              = Y_data ,
                                  X              = X,
                                  v1             = v1,
@@ -393,7 +419,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                nullweight      = nullweight,
                                low_trait       = low_trait,
                                max_SNP_EM      = max_SNP_EM,
-                               max_step        = max_step_EM
+                               max_step        = max_step_EM,
+                               df              = df
     )
 
 
@@ -469,7 +496,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                      init_pi0_w      = init_pi0_w,
                                      control_mixsqp  = control_mixsqp,
                                      nullweight      = nullweight,
-                                     low_trait       = low_trait
+                                     low_trait       = low_trait,
+                                     df              = df
           )
 
 

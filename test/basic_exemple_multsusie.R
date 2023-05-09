@@ -3,7 +3,7 @@ library(susiF.alpha)
 library(mvf.susie.alpha)
 library(sim1000G)
 set.seed(1)
-N <-100
+N <-20
 P <- 100
 genotypes  = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
 res <- list()
@@ -56,7 +56,21 @@ res <- list()
                    L_start=11 ,
                    nullweight=10,
                    cal_obj =FALSE,
-                   maxit=10)
+                   maxit=10, cor_small = TRUE)
+
+  m2 <- multfsusie(Y=Y,
+                   X=G,
+                   L=11 ,
+                   data.format="list_df",
+                   L_start=11 ,
+                   nullweight=10,
+                   cal_obj =FALSE,
+                   maxit=10 )
+
+
+
+  plot( m2$lBF[[1]], m1$lBF[[1]])
+
 
  t(m1$alpha[[1]])%*%m1$fitted_uni[[1]]
  t(m1$alpha[[2]])%*%m1$fitted_uni[[2]]

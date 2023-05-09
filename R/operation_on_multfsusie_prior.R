@@ -22,7 +22,8 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                   parallel=FALSE,
                                   max_SNP_EM,
                                   gridmult=sqrt(2),
-                                  max_step_EM=100)
+                                  max_step_EM=100
+                                  )
 {
 
   if(is.null(Y$Y_u)){

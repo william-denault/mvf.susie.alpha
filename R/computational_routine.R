@@ -336,28 +336,46 @@ fit_mash_level <- function(tens_marg, s, indx_lst, data.driven=TRUE,verbose=FALS
 #
 # @export
 
-log_BFu <- function (G_prior, Bhat, Shat,low_u=FALSE, ...) {
+log_BFu <- function (G_prior, Bhat, Shat,low_u=FALSE,df=NULL, ...) {
 
-  if( low_u){
-    out <- rep(0, length(Bhat))
-  }else{
-    tt   <- rep(0,length(Shat))
-    pi_k <- G_prior$fitted_g$pi
-    sd_k <- G_prior$fitted_g$sd
-    # Speed Gain: could potential skip the one that are exactly zero.
-    for (o in 1:length(G_prior$fitted_g$pi)){
-      tt <- tt + pi_k[o] * dnorm(Bhat ,sd = sqrt(sd_k[o]^2 + Shat ^2))
+  if( is.null(df)){
+    if( low_u){
+      out <- rep(0, length(Bhat))
+    }else{
+      tt   <- rep(0,length(Shat))
+      pi_k <- G_prior$fitted_g$pi
+      sd_k <- G_prior$fitted_g$sd
+      # Speed Gain: could potential skip the one that are exactly zero.
+      for (o in 1:length(G_prior$fitted_g$pi)){
+        tt <- tt + pi_k[o] * dnorm(Bhat ,sd = sqrt(sd_k[o]^2 + Shat ^2))
+      }
+
+      out <-  (log(tt) - dnorm(Bhat ,sd = Shat ,log = TRUE))
+
     }
+  }else{
+    if( low_u){
+      out <- rep(0, length(Bhat))
+    }else{
+      tt   <- rep(0,length(Shat))
+      pi_k <- G_prior$fitted_g$pi
+      sd_k <- G_prior$fitted_g$sd
+      # Speed Gain: could potential skip the one that are exactly zero.
+      for (o in 1:length(G_prior$fitted_g$pi)){
+        tt <- tt + pi_k[o] *LaplacesDemon::dstp(Bhat,tau = 1/(sd_k[o]^2 + Shat ^2), nu=df)
+      }
 
-    out <-  (log(tt) - dnorm(Bhat ,sd = Shat ,log = TRUE))
+    }
+    out <- sum(log(tt) - LaplacesDemon::dstp(Bhat ,tau = 1/Shat ^2,nu=df,log = TRUE))
 
   }
+
 
 
   return(out)
 }
 
-log_BF <- function( G_prior,effect_estimate ,list_indx_lst,low_trait  )
+log_BF <- function( G_prior,effect_estimate ,list_indx_lst,low_trait , df=NULL )
   UseMethod("log_BF")
 
 # @title Compute Log-Bayes Factor for a multiple f susie regression model
@@ -372,33 +390,75 @@ log_BF <- function( G_prior,effect_estimate ,list_indx_lst,low_trait  )
 # @return  The log-Bayes factor for each covariate.
 #
 # @export
-log_BF.multfsusie_prior <- function( G_prior,effect_estimate ,list_indx_lst,low_trait  )
+log_BF.multfsusie_prior <- function( G_prior,
+                                     effect_estimate ,
+                                     list_indx_lst,
+                                     low_trait,
+                                     df=NULL)
 {
-  if( is.null(G_prior$G_prior_u)){
-    u_logBF <- rep(0,nrow(effect_estimate$res_f[[1]]$Bhat  ))
-  }else{
-    u_logBF <-  lapply(1:ncol(effect_estimate$res_uni$Bhat),
-                       function(k)
-                         log_BFu(G_prior = G_prior$G_prior_u[[k]],
-                                 Bhat    =  effect_estimate$res_uni$Bhat[,k] ,
-                                 Shat    =  effect_estimate$res_uni$Shat[,k],
-                                 low_u   =  ifelse(k%in%low_trait$low_u, TRUE,FALSE)
-                         )
-    )
-    u_logBF <- apply(do.call(rbind, u_logBF),2,sum)
-  }
-  if(is.null(G_prior$G_prior_f)){
-    f_logBF <- rep(0,nrow(effect_estimate$res_uni[[1]] ))
-  }else{
-    f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
-      susiF.alpha::log_BF(G_prior  = G_prior$G_prior_f[[k]],
-                          Bhat     = effect_estimate$res_f[[k]]$Bhat,
-                          Shat     = effect_estimate$res_f[[k]]$Shat,
-                          indx_lst = list_indx_lst[[k]],
-                          lowc_wc  = low_trait$lowc_wc[[k]]
+  if(is.null(df)){
+    if( is.null(G_prior$G_prior_u)){
+      u_logBF <- rep(0,nrow(effect_estimate$res_f[[1]]$Bhat  ))
+    }else{
+      u_logBF <-  lapply(1:ncol(effect_estimate$res_uni$Bhat),
+                         function(k)
+                           log_BFu(G_prior = G_prior$G_prior_u[[k]],
+                                   Bhat    =  effect_estimate$res_uni$Bhat[,k] ,
+                                   Shat    =  effect_estimate$res_uni$Shat[,k],
+                                   low_u   =  ifelse(k%in%low_trait$low_u, TRUE,FALSE)
+                           )
       )
-    )
-    f_logBF <- apply(do.call(rbind, f_logBF),2,sum)
+      u_logBF <- apply(do.call(rbind, u_logBF),2,sum)
+    }
+    if(is.null(G_prior$G_prior_f)){
+      f_logBF <- rep(0,nrow(effect_estimate$res_uni[[1]] ))
+    }else{
+      f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
+        susiF.alpha::log_BF(G_prior  = G_prior$G_prior_f[[k]],
+                            Bhat     = effect_estimate$res_f[[k]]$Bhat,
+                            Shat     = effect_estimate$res_f[[k]]$Shat,
+                            indx_lst = list_indx_lst[[k]],
+                            lowc_wc  = low_trait$lowc_wc[[k]]
+        )
+      )
+      f_logBF <- apply(do.call(rbind, f_logBF),2,sum)
+    }
+
+  }else{
+    ### Work here ------
+    if( is.null(G_prior$G_prior_u)){
+      u_logBF <- rep(0,nrow(effect_estimate$res_f[[1]]$Bhat  ))
+    }else{
+      print( "moderated BF u ")
+      u_logBF <-  lapply(1:ncol(effect_estimate$res_uni$Bhat),
+                         function(k)
+                           log_BFu(G_prior =  G_prior$G_prior_u[[k]],
+                                   Bhat    =  effect_estimate$res_uni$Bhat[,k] ,
+                                   Shat    =  effect_estimate$res_uni$Shat[,k],
+                                   low_u   =  ifelse(k%in%low_trait$low_u, TRUE,FALSE),
+                                   df      =  df$Y_u[k]
+                           )
+      )
+      u_logBF <- apply(do.call(rbind, u_logBF),2,sum)
+    }
+    if(is.null(G_prior$G_prior_f)){
+      f_logBF <- rep(0,nrow(effect_estimate$res_uni[[1]] ))
+    }else{
+      print( "moderated BF f ")
+      f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
+        susiF.alpha::log_BF(G_prior  = G_prior$G_prior_f[[k]],
+                            Bhat     = effect_estimate$res_f[[k]]$Bhat,
+                            Shat     = effect_estimate$res_f[[k]]$Shat,
+                            indx_lst = list_indx_lst[[k]],
+                            lowc_wc  = low_trait$lowc_wc[[k]],
+                            df       = df$Y_f[k]
+        )
+      )
+      f_logBF <- apply(do.call(rbind, f_logBF),2,sum)
+    }
+
+
+
   }
 
   out <- f_logBF+u_logBF
