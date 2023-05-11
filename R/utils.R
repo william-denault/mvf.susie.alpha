@@ -255,6 +255,7 @@ if(missing(ind_analysis )){
 
 
   if( !is.null(Y$Y_f)){
+
    temp_f <-  lapply( 1:length(Y$Y_f), function(d)
                                      susiF.alpha:::which_lowcount(Y_f=Y$Y_f[[d]][ind_analysis$idx_f[[d]],],
                                                            thresh_lowcount= thresh_lowcount$thresh_f[d]

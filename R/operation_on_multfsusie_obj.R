@@ -1547,7 +1547,9 @@ update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95)
     multfsusie.obj$cs[[l]]  <- order(temp, decreasing = TRUE)[1:max_indx_cs ]
 
   }
-
+print( unlist(multfsusie.obj$cs))
+print( unlist( lapply(1:length(multfsusie.obj$alpha), function(i)which.max(multfsusie.obj$alpha[[i]])
+)))
   return(multfsusie.obj)
 }
 
@@ -1583,12 +1585,16 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                 X,
                                 list_indx_lst,
                                 filter.cs,
-                                outing_grid)
+                                outing_grid,
+                                cov_lev)
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
 
   multfsusie.obj <-  update_cal_fit_uni(multfsusie.obj )
+
+  multfsusie.obj <- update_cal_cs(multfsusie.obj,
+                                  cov_lev=cov_lev)
 
   multfsusie.obj <-  name_cs(multfsusie.obj,X)
   if(filter.cs)

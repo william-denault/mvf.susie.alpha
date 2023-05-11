@@ -188,9 +188,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     print("Starting initialization")
   }
 
-  if(parallel){
-    numCores <- parallel::detectCores()
-  }
+
 
   tidx <- which(apply(X,2,var)==0)
   if( length(tidx)>0){
@@ -451,7 +449,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   }else{
     ##### Start While -----
     iter <- 1
-    while(check >tol & (h/L) <maxit)
+    while(check >tol & iter <=maxit)
     {
 
       for( l in 1:multfsusie.obj$L)
@@ -554,7 +552,8 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
                                    X          = X,
                               list_indx_lst   = list_indx_lst,
                                    filter.cs  = filter.cs,
-                                 outing_grid  = outing_grid
+                                 outing_grid  = outing_grid,
+                                     cov_lev  = cov_lev
     )
    multfsusie.obj$runtime <- proc.time()-pt
   return(multfsusie.obj)

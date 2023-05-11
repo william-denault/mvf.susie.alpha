@@ -67,9 +67,12 @@ res <- list()
                    cal_obj =FALSE,
                    maxit=10 )
 
+m1$cs
+
+m2$cs
 
 
-  plot( m2$lBF[[1]], m1$lBF[[1]])
+plot( m2$lBF[[1]], m1$lBF[[1]])
 
 
  t(m1$alpha[[1]])%*%m1$fitted_uni[[1]]
