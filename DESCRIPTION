@@ -23,7 +23,7 @@ Imports:
   matrixStats (>= 0.62.0),
   mvtnorm,
   parallel
-License: GPL (>=3)
+License: BSD_3_clause + file LICENSE
 LazyData: true
 LazyDataCompression: xz
 NeedsCompilation: yes
