@@ -1547,9 +1547,7 @@ update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95)
     multfsusie.obj$cs[[l]]  <- order(temp, decreasing = TRUE)[1:max_indx_cs ]
 
   }
-print( unlist(multfsusie.obj$cs))
-print( unlist( lapply(1:length(multfsusie.obj$alpha), function(i)which.max(multfsusie.obj$alpha[[i]])
-)))
+
   return(multfsusie.obj)
 }
 

@@ -360,7 +360,6 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
     df= NULL
   }
 
-  print( paste("df is ", df))
   temp  <- init_prior_multfsusie(Y              = Y_data ,
                                  X              = X,
                                  v1             = v1,
