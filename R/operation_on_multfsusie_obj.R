@@ -1889,7 +1889,7 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj, min.purity =0.5, X){
 
     }else{
 
-      if( min(cor( X[,multfsusie.obj$cs[[l]]])) <  min.purity){#check if the purity of cs l is lower that min.purity
+      if( min(abs(cor( X[,multfsusie.obj$cs[[l]]]))) <  min.purity){#check if the purity of cs l is lower that min.purity
 
         dummy.cs<-  c( dummy.cs,l)
 

@@ -540,7 +540,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
 
     }#end while
-  }
+  }#end else in if(L==1)
 
 
 
