@@ -33,3 +33,4 @@ Suggests:
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+Remotes: stephenslab/susiF.alpha
