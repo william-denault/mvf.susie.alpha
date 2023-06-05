@@ -870,7 +870,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
   if(multfsusie.obj$backfit & (length(dummy.cs)>0)){
 
     multfsusie.obj$greedy <- FALSE
-    if(length(dummy.cs)== multfsusie.obj$L){
+    if(length(dummy.cs)== multfsusie.obj$L){###  avoid returning empty object
       dummy.cs <- dummy.cs[-1]
       multfsusie.obj$backfit <- FALSE
     }
@@ -894,10 +894,12 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
         if ( length(tl )==0){
 
         }else{
-
+# if merging don't discard
           tl <-  tl[which(tl[,1] < tl[,2]),]
-          multfsusie.obj <- merge_effect(multfsusie.obj, tl)
-
+          multfsusie.obj <- merge_effect(multfsusie.obj, tl, discard=TRUE)
+          # L_extra <- temp_L- multfsusie.obj$L
+          #multfsusie.obj <- expand_multfsusie_obj(multfsusie.obj,L_extra = L_extra)
+          # return(multfsusie.obj)
         }
       }
       if(verbose){
@@ -932,8 +934,9 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
       }else{
 
         tl <-  tl[which(tl[,1] < tl[,2]),]
-        multfsusie.obj <- merge_effect(multfsusie.obj, tl)
-
+        multfsusie.obj <- merge_effect(multfsusie.obj, tl, discard=TRUE)
+        # multfsusie.obj$greedy <- TRUE
+        #return(multfsusie.obj)
       }
     }
     if(verbose){
@@ -943,7 +946,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 
   }
 
-  if( length(dummy.cs)==0& !( multfsusie.obj$greedy))
+  if( length(dummy.cs)==0& !( multfsusie.obj$greedy))#### TO double
   {
 
     multfsusie.obj$backfit <- FALSE
@@ -961,7 +964,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
       }else{
 
         tl <-  tl[which(tl[,1] < tl[,2]),]
-        multfsusie.obj <- merge_effect(multfsusie.obj, tl)
+        multfsusie.obj <- merge_effect(multfsusie.obj, tl, discard=TRUE)
 
       }
     }
@@ -992,8 +995,8 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
         }else{
 
           tl <-  tl[which(tl[,1] < tl[,2]),]
-          multfsusie.obj <- merge_effect(multfsusie.obj, tl)
-
+          multfsusie.obj <- merge_effect(multfsusie.obj, tl, discard = FALSE)
+          return(multfsusie.obj)
         }
       }
 
@@ -1092,29 +1095,27 @@ merge_effect <- function( multfsusie.obj, tl, ...)
 #' @export
 #' @keywords internal
 
-merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=TRUE){
-
-
+merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=FALSE){
 
 
   if(is.vector( tl)){
     #print( tl)
     if( !is.null(multfsusie.obj$fitted_wc[[1]])){
       for ( k in 1: length(multfsusie.obj$fitted_wc[[1]])){
-        multfsusie.obj$fitted_wc[[tl[  2]]][[k]] <- 0* multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
-        multfsusie.obj$fitted_wc[[tl[  1]]][[k]] <- multfsusie.obj$fitted_wc[[tl[  1]]][[k]]+   multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
-        multfsusie.obj$fitted_wc2[[tl[ 1]]][[k]] <- multfsusie.obj$fitted_wc2[[tl[  1]]][[k]] +   multfsusie.obj$fitted_wc2[[tl[  2]]][[k]]
 
+        multfsusie.obj$fitted_wc[[tl[  1]]][[k]] <- multfsusie.obj$fitted_wc[[tl[  1]]][[k]]+     0* multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
+        multfsusie.obj$fitted_wc2[[tl[ 1]]][[k]] <- multfsusie.obj$fitted_wc2[[tl[  1]]][[k]] +   0* multfsusie.obj$fitted_wc2[[tl[  2]]][[k]]
+        multfsusie.obj$fitted_wc[[tl[  2]]][[k]] <- 0* multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
       }
 
 
     }
     if(!is.null(multfsusie.obj$fitted_uni[[1]])){
 
-        multfsusie.obj$fitted_uni [[tl[  2]]]  <- 0* multfsusie.obj$fitted_uni[[tl[ 2]]]
-        multfsusie.obj$fitted_uni [[tl[  1]]]  <- multfsusie.obj$fitted_uni[[tl[  1]]]  +   multfsusie.obj$fitted_uni[[tl[ 2]]]
-        multfsusie.obj$fitted_uni2[[tl[  1]]] <- multfsusie.obj$fitted_uni2[[tl[  1]]]  +   multfsusie.obj$fitted_uni2[[tl[  2]]]
 
+        multfsusie.obj$fitted_uni [[tl[  1]]]  <- multfsusie.obj$fitted_uni[[tl[  1]]]  + 0 *  multfsusie.obj$fitted_uni[[tl[ 2]]]
+        multfsusie.obj$fitted_uni2[[tl[  1]]] <- multfsusie.obj$fitted_uni2[[tl[  1]]]  +  0 *  multfsusie.obj$fitted_uni2[[tl[  2]]]
+        multfsusie.obj$fitted_uni [[tl[  2]]]  <- 0* multfsusie.obj$fitted_uni[[tl[ 2]]]
     }
     tindx <-  tl[  2]
   }else{
@@ -1126,20 +1127,20 @@ merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=TRUE){
       if ( tl[o, 2]%!in%tindx){
         if( !is.null(multfsusie.obj$fitted_wc[[1]])){
           for ( k in 1: length(multfsusie.obj$fitted_wc[[1]])){
-            multfsusie.obj$fitted_wc[[tl[  2]]][[k]] <- 0* multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
-            multfsusie.obj$fitted_wc[[tl[  1]]][[k]] <- multfsusie.obj$fitted_wc[[tl[  1]]][[k]] +   multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
-            multfsusie.obj$fitted_wc2[[tl[  1]]][[k]] <- multfsusie.obj$fitted_wc2[[tl[  1]]][[k]] +   multfsusie.obj$fitted_wc2[[tl[  2]]][[k]]
 
+            multfsusie.obj$fitted_wc[[tl[o,  1]]][[k]] <- multfsusie.obj$fitted_wc[[tl[o,  1]]][[k]] +   0 *  multfsusie.obj$fitted_wc[[tl[o, 2]]][[k]]
+            multfsusie.obj$fitted_wc2[[tl[o,  1]]][[k]] <- multfsusie.obj$fitted_wc2[[tl[o,  1]]][[k]] + 0 *  multfsusie.obj$fitted_wc2[[tl[o,  2]]][[k]]
+            multfsusie.obj$fitted_wc[[tl[o, 2]]][[k]] <- 0* multfsusie.obj$fitted_wc[[tl[o, 2]]][[k]]
           }
 
 
         }
         if(!is.null(multfsusie.obj$fitted_uni[[1]])){
 
-          multfsusie.obj$fitted_uni[[tl[   2]]]  <- 0* multfsusie.obj$fitted_uni[[tl[ 2]]]
-          multfsusie.obj$fitted_uni[[tl[   1]]]  <- multfsusie.obj$fitted_uni[[tl[    1]]]  +   multfsusie.obj$fitted_uni[[tl[ 2]]]
-          multfsusie.obj$fitted_uni2[[tl[  1]]] <- multfsusie.obj$fitted_uni2[[tl[    1]]]  +   multfsusie.obj$fitted_uni2[[tl[  2]]]
 
+          multfsusie.obj$fitted_uni[[tl[ o,  1]]]  <- multfsusie.obj$fitted_uni[[tl[o,    1]]]  +  0  *    multfsusie.obj$fitted_uni[[tl[ o,2]]]
+          multfsusie.obj$fitted_uni2[[tl[ o, 1]]] <- multfsusie.obj$fitted_uni2[[tl[o,    1]]]  +  0 *    multfsusie.obj$fitted_uni2[[tl[o,  2]]]
+          multfsusie.obj$fitted_uni[[tl[o,   2]]]  <- 0* multfsusie.obj$fitted_uni[[tl[o, 2]]]
         }
         tindx <- c(tindx, tl[o, 2])
       }

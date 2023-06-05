@@ -500,7 +500,7 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
 
         }
 
-        multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
+        multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,###TODO:: SLOW
                                             l               = l,
                                             EM_pi           = EM_out,
                                             effect_estimate = effect_estimate,
