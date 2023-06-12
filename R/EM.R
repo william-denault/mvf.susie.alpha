@@ -280,7 +280,7 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
 
 
   if( length(lBF)> max_SNP_EM){ # basically allow running EM only on data point with most signal
-    idx <- order(lBF, decreasing = FALSE)[1:ceiling(max_SNP_EM)]
+    idx <- order(lBF, decreasing =  TRUE)[1:ceiling(max_SNP_EM)]
 
   }else{
     idx <- 1:length(lBF)

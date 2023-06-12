@@ -125,7 +125,6 @@
 #'                 pos=pos,
 #'                 L=11 ,
 #'                 data.format="list_df",
-#'                 L_start=11 ,
 #'                 nullweight=10,
 #'                 maxit=10)
 #'m1$cs# credible sets
