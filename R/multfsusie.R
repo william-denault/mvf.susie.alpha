@@ -333,7 +333,10 @@ multfsusie <- function(Y ,X,L=2, pos = NULL,
   if( missing(thresh_lowcount)){
     threshs <- create_null_thresh(type_mark = type_mark)
   }
-  low_trait <- check_low_count  (Y_data, thresh_lowcount=threshs,ind_analysis = ind_analysis  )
+  low_trait <- check_low_count  (Y_data,
+                                 thresh_lowcount = threshs,
+                                 ind_analysis    = ind_analysis
+                                 )
 
   v1 <- rep( 1, nrow(X))
   if(verbose){

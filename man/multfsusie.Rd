@@ -25,7 +25,10 @@ multfsusie(
   greedy = TRUE,
   backfit = TRUE,
   parallel = FALSE,
-  max_SNP_EM = 1000
+  max_SNP_EM = 1000,
+  gridmult = sqrt(2),
+  max_step_EM = 1,
+  cor_small = FALSE
 )
 }
 \arguments{
@@ -157,7 +160,6 @@ m1 <- multfsusie(Y=Y,
                 pos=pos,
                 L=11 ,
                 data.format="list_df",
-                L_start=11 ,
                 nullweight=10,
                 maxit=10)
 m1$cs# credible sets

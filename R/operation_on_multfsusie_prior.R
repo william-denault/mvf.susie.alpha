@@ -28,24 +28,24 @@ init_prior_multfsusie <- function(Y,X, v1 ,
 
   if(is.null(Y$Y_u)){
     G_prior_u <- NULL
-    res_uni   <- NULL
+    res_u   <- NULL
   }else{
     if(missing(ind_analysis )){
-      res_uni   <- susiF.alpha:::cal_Bhat_Shat(Y$Y_u,X,v1)
+      res_u   <- susiF.alpha:::cal_Bhat_Shat(Y$Y_u,X,v1)
     }else{
-      res_uni   <- susiF.alpha:::cal_Bhat_Shat(Y$Y_u,X,v1,lowc_wc=NULL,ind_analysis =ind_analysis$idx_u)
+      res_u   <- susiF.alpha:::cal_Bhat_Shat(Y$Y_u,X,v1,lowc_wc=NULL,ind_analysis =ind_analysis$idx_u)
     }
 
     if (is.null(low_trait$low_u)){
-              G_prior_u <- lapply(1:ncol(Y$Y_u), function(j) ashr::ash(res_uni$Bhat[,j],
-                                                                  res_uni$Shat[,j] ,
+              G_prior_u <- lapply(1:ncol(Y$Y_u), function(j) ashr::ash(res_u$Bhat[,j],
+                                                                  res_u$Shat[,j] ,
                                                                   mixcompdist = "normal" ,
                                                                   outputlevel=0,
                                                                   gridmult=gridmult)
                               )
     }else{
-      G_prior_u <- lapply((1:ncol(Y$Y_u))[- low_trait$low_u], function(j) ashr::ash(res_uni$Bhat[,j],
-                                                                          res_uni$Shat[,j],
+      G_prior_u <- lapply((1:ncol(Y$Y_u))[- low_trait$low_u], function(j) ashr::ash(res_u$Bhat[,j],
+                                                                          res_u$Shat[,j],
                                                                           mixcompdist = "normal" ,
                                                                           outputlevel=0,
                                                                           gridmult=gridmult)
@@ -148,7 +148,7 @@ init_prior_multfsusie <- function(Y,X, v1 ,
   }
 
 
-  res  <- list( res_uni = res_uni,
+  res  <- list( res_u = res_u,
                 res_f   = res_f)
   G_prior <- list( G_prior_u = G_prior_u,
                    G_prior_f = G_prior_f)
@@ -216,7 +216,7 @@ get_pi_G_prior.multfsusie_prior <- function(G_prior)
 #
 # @export
 #
-update_G_prior_univ_mult <- function(k,  tpi, G_prior)
+update_G_prior_uv_mult <- function(k,  tpi, G_prior)
 {
 
   G_prior$G_prior_u[[k]]$fitted_g$pi <- tpi$est_pi_u[[k]]
@@ -252,7 +252,7 @@ update_prior.multfsusie_prior <- function(G_prior, tpi, ... ){
     stop("tpi should be of class pi_multfsusie")
   }
   if (!is.null(G_prior$G_prior_u)){
-    G_prior$G_prior_u<- lapply( 1:length(G_prior$G_prior_u), function(k) update_G_prior_univ_mult(k , tpi,G_prior)
+    G_prior$G_prior_u<- lapply( 1:length(G_prior$G_prior_u), function(k) update_G_prior_uv_mult(k , tpi,G_prior)
                                 )
   }
 

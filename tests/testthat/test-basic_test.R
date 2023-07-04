@@ -30,7 +30,7 @@ greedy =TRUE
 control_mixsqp=list(verbose=FALSE)
 
 noisy.data  <- list()
- rsnr <- 6
+rsnr <- 6
 for ( i in 1:N)
 {
   f1_obs <- f1$sim_func
@@ -113,6 +113,23 @@ X <- susiF.alpha:::colScale(X)
 # centering input
 Y_data <- multi_array_colScale(Y_data, scale=FALSE)
 
+ind_analysis <- which_notNA_pos(Y_data)
+
+test_that("The number of individuals for each mark should be",
+          {
+            Y_data2 <-Y_data
+            idx_na <- sample (1:nrow(Y_data2$Y_u), size=1)
+            Y_data2$Y_u[idx_na,2] <-NA
+
+            expect_equal(which_notNA_pos(Y_data2)$idx_u[[2]] ,(1:nrow(Y_data2$Y_u))[-idx_na])
+            idx_na <- sample (1:nrow(Y_data2$Y_u), size=1)
+            Y_data2$Y_f[[1]][idx_na] <-NA
+            expect_equal(which_notNA_pos(Y_data2)$idx_f[[1]] ,(1:nrow(Y_data2$Y_f[[1]]))[-idx_na])
+
+          }
+
+
+          )
 
 threshs <- create_null_thresh(type_mark = type_mark)
 low_trait <- check_low_count  (Y_data, thresh_lowcount=threshs  )
@@ -126,14 +143,14 @@ test_that("Y_u and Y_f should be not NULL ",
 )
 
 
-G_prior <- init_prior_multfsusie(Y=Y_data ,
-                                 X=X,
-                                 v1=v1,
-                                 list_indx_lst=list_indx_lst,
-                                 low_trait= low_trait,
-                                 control_mixsqp=control_mixsqp,
-                                 nullweight=  nullweight,
-                                 max_SNP_EM = 100
+G_prior <- init_prior_multfsusie( Y=Y_data ,
+                                  X=X,
+                                  v1=v1,
+                                  list_indx_lst=list_indx_lst,
+                                  low_trait= low_trait,
+                                  control_mixsqp=control_mixsqp,
+                                  nullweight=  nullweight,
+                                  max_SNP_EM = 100
 )$G_prior
 
 test_that("G_prior object should have the following classes ",
@@ -146,25 +163,16 @@ test_that("G_prior object should have the following classes ",
           }
 )
 L=3
-multfsusie.obj <- init_multfsusie_obj(L_max = 3,
-                                      G_prior,
-                                      Y_data,
-                                      X ,
-                                      type_mark,
+multfsusie.obj <- init_multfsusie_obj(L_max = 3, G_prior, Y_data,X , type_mark,
                                       L_start =   3,
                                       greedy = greedy, backfit=backfit,
-                                      ind_analysis = ind_analysis)
+                                      ind_analysis   = ind_analysis)
 test_that("multfsusie internal prior to be equal to ",
           {
-            multfsusie.obj <- init_multfsusie_obj(L_max = 3,
-                                                  G_prior,
-                                                  Y_data,
-                                                  X ,
-                                                  type_mark,
+            multfsusie.obj <- init_multfsusie_obj(L_max = 3, G_prior, Y_data,X , type_mark,
                                                   L_start =   3,
                                                   greedy = greedy, backfit=backfit,
-                                                  ind_analysis = ind_analysis)
-
+                                                  ind_analysis   = ind_analysis)
             expect_equal(get_G_prior (multfsusie.obj ),  G_prior)
 
           }
@@ -174,10 +182,10 @@ test_that("G_prior object should have the following classes ",
             expect_equal( class(multfsusie.obj),"multfsusie")
             expect_equal( length(multfsusie.obj$fitted_wc),L)
             expect_equal( length(multfsusie.obj$fitted_wc2),L)
-            expect_equal( length(multfsusie.obj$fitted_uni),L)
-            expect_equal( length(multfsusie.obj$fitted_uni2),L)
-            expect_equal( dim(multfsusie.obj$fitted_uni2[[1]] ),c(P, sum(type_mark$dim_mark[which(type_mark$mark_type=="univariate")] ) ))
-            expect_equal( dim(multfsusie.obj$fitted_uni[[1]] ),c(P, sum(type_mark$dim_mark[which(type_mark$mark_type=="univariate")] ) ))
+            expect_equal( length(multfsusie.obj$fitted_u),L)
+            expect_equal( length(multfsusie.obj$fitted_u2),L)
+            expect_equal( dim(multfsusie.obj$fitted_u2[[1]] ),c(P, sum(type_mark$dim_mark[which(type_mark$mark_type=="univariate")] ) ))
+            expect_equal( dim(multfsusie.obj$fitted_u[[1]] ),c(P, sum(type_mark$dim_mark[which(type_mark$mark_type=="univariate")] ) ))
             expect_equal( length(multfsusie.obj$fitted_wc[[1]]), length(which(type_mark$mark_type=="functional")))
             expect_equal( length(multfsusie.obj$fitted_wc2[[1]]), length(which(type_mark$mark_type=="functional")))
           }
@@ -190,9 +198,12 @@ effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
 
 
 test_that("The estimated effect should be", {
-  expect_equal(effect_estimate$res_f[[1]]$Bhat[pos1,-128]/attr(X,"scaled:scale")[pos1], f1$true_coef, tol= 2*(1/sqrt(N)))# removing C coefficient
-  expect_equal(effect_estimate$res_f[[2]]$Bhat[pos1,-64]/attr(X,"scaled:scale")[pos1], f2$true_coef, tol= 2*(1/sqrt(N)))# removing C coefficient
-  expect_equal(effect_estimate$res_uni $Bhat[pos1, ]/attr(X,"scaled:scale")[pos1], c(1,-1,1), tol= 2*(1/sqrt(N)))
+  expect_equal(effect_estimate$res_f[[1]]$Bhat[pos1,-128]/attr(X,"scaled:scale")[pos1], f1$true_coef,
+               tolerance = 2*(1/sqrt(N)))# removing C coefficient
+  expect_equal(effect_estimate$res_f[[2]]$Bhat[pos1,-64]/attr(X,"scaled:scale")[pos1], f2$true_coef,
+               tolerance= 2*(1/sqrt(N)))# removing C coefficient
+  expect_equal(effect_estimate$res_u $Bhat[pos1, ]/attr(X,"scaled:scale")[pos1], c(1,-1,1),
+               tolerance= 2*(1/sqrt(N)))
 
 })
 
@@ -205,24 +216,23 @@ test_that("G_prior is correctly updated",
             G_prior <- update_prior(G_prior, tpi= tpi)
             expect_equal(get_pi_G_prior(G_prior)$est_pi_f[[1]][[1]][1] , 10)
           }
-  )
+)
 tpi               <- get_pi(multfsusie.obj,1)
 G_prior <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
 init_pi0_w= 1
 control_mixsqp =  list(
-                        eps = 1e-6,
-                        numiter.em = 40,
-                        verbose = FALSE
-                      )
+  eps = 1e-6,
+  numiter.em = 40,
+  verbose = FALSE
+)
 
 EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
                            effect_estimate = effect_estimate,
-                           list_indx_lst   = list_indx_lst,
+                           list_indx_lst   =  list_indx_lst,
                            init_pi0_w      = init_pi0_w,
-                           control_mixsqp  = control_mixsqp,
+                           control_mixsqp  =  control_mixsqp,
                            nullweight      = nullweight,
-                           low_trait       = low_trait,
-                           max_SNP_EM      = 100,
+                           low_trait       = low_trait
 )
 
 zeta <- cal_zeta(EM_out$lBF)
@@ -234,15 +244,14 @@ test_that("The highest assignation should be equal to", {
 
 tpi <- EM_out$tpi_k
 test_that("The output class should be", {
-expect_equal(class(tpi$est_pi_f[[1]]),"pi_mixture_normal_per_scale")
-expect_equal(class(tpi$est_pi_f[[2]]),"pi_mixture_normal_per_scale")
-expect_equal(class(tpi$est_pi_u[[1]]),"pi_mixture_normal")
-expect_equal(class(tpi$est_pi_u[[2]]),"pi_mixture_normal")
-expect_equal(class(tpi$est_pi_u[[3]]),"pi_mixture_normal")
+  expect_equal(class(tpi$est_pi_f[[1]]),"pi_mixture_normal_per_scale")
+  expect_equal(class(tpi$est_pi_f[[2]]),"pi_mixture_normal_per_scale")
+  expect_equal(class(tpi$est_pi_u[[1]]),"pi_mixture_normal")
+  expect_equal(class(tpi$est_pi_u[[2]]),"pi_mixture_normal")
+  expect_equal(class(tpi$est_pi_u[[3]]),"pi_mixture_normal")
 })
 
-L_mat <- L_mixsq_multsusie (G_prior, effect_estimate, list_indx_lst,
-                            idx = (1:ncol(X)))
+L_mat <- L_mixsq_multsusie (G_prior, effect_estimate, list_indx_lst, idx=1:ncol(X))
 
 
 test_that("The output class should be", {
@@ -284,6 +293,25 @@ multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
                                     effect_estimate = effect_estimate,
                                     list_indx_lst   = list_indx_lst,
                                     low_trait       = low_trait)
+
+
+
+##### lfsr -----
+
+G_prior <- get_G_prior(multfsusie.obj)
+
+cal_clfsr(G_prior         = get_G_prior(multfsusie.obj),
+          effect_estimate = effect_estimate,
+          list_indx_lst   = list_indx_lst)
+
+
+
+
+
+
+
+
+str(effect_estimate)
 
 
 Y_data   <- list(Y_u =Y_u,
