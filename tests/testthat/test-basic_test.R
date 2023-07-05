@@ -9,10 +9,12 @@ f1 <- simu_IBSS_per_level(lev_res=7, alpha=1, prop_decay =1.5)
 plot(f1$sim_func, type="l", ylab="y")
 set.seed(9)
 f2 <- simu_IBSS_per_level(lev_res=6, alpha=0, prop_decay =1.5 )
+f3 <- simu_IBSS_per_level(lev_res=5, alpha=0, prop_decay =1.5 )
+
 # f2$true_coef effect is on wavelet coeff at scale 1 and 50 of coeff scale 2
 plot(f2$sim_func, type="l", ylab="y")
-N=50
-P=10
+N=100
+P=20
 
 nullweight= 0
 set.seed(23)
@@ -20,14 +22,23 @@ G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
 beta0       <- 0
 beta1       <- 1
 pos1 <- 5
+pos2 <- 10
+pos3 <- 1
 noisy.data  <- list()
 
 low_wc=NULL
 G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
-beta1       <- 1
-backfit=TRUE
-greedy =TRUE
-control_mixsqp=list(verbose=FALSE)
+beta1          <- 1
+backfit        = TRUE
+greedy         = TRUE
+verbose        = TRUE
+df             = NULL
+parallel       = FALSE
+control_mixsqp = list(verbose=FALSE)
+cov_lev        = 0.95
+min.purity     = 0.5
+
+
 
 noisy.data  <- list()
 rsnr <- 6
@@ -35,9 +46,11 @@ for ( i in 1:N)
 {
   f1_obs <- f1$sim_func
   f2_obs <- f2$sim_func
+  f3_obs <- f3$sim_func
+
   Y0     <-  G[i,pos1]   +rnorm(1,sd=1)
-  Y1     <- t(beta1*G[i,pos1]*f1_obs +  rnorm(length(f1$sim_func), sd=  (1/  rsnr ) *sd(f1$sim_func)))
-  Y2     <- t(beta1*G[i,pos1]*f2_obs +  rnorm(length(f2$sim_func), sd=  (1/  rsnr ) *sd(f2$sim_func)))
+  Y1     <- t(beta1*G[i,pos1]*f1_obs +  beta1*G[i,pos3]*f3_obs +rnorm(length(f1$sim_func), sd=  (1/  rsnr ) *sd(f1$sim_func)))
+  Y2     <- t(beta1*G[i,pos2]*f2_obs +  rnorm(length(f2$sim_func), sd=  (1/  rsnr ) *sd(f2$sim_func)))
   Y3     <- c(-1,1) *G[i, pos1]  + c(rnorm(2,sd=1))
   noisy.data [[i]] <- list(Y0,Y1,Y2,Y3)
 }
@@ -108,10 +121,23 @@ Y_data   <- list(Y_u =Y_u,
                  Y_f =Y_f)
 
 
-
+X_old <- X
+Y_old <-Y_data
 X <- susiF.alpha:::colScale(X)
+
 # centering input
 Y_data <- multi_array_colScale(Y_data, scale=FALSE)
+test_that("Correct variance estimates  for X component",{
+  expect_equal( attr(X,"scaled:center"),apply(X_old,2, mean))
+  expect_equal( attr(X,"scaled:scale"),apply(X_old,2,sd))
+  expect_equal( attr(X,"scaled:scale"),apply(X_old,2,sd))
+  expect_equal( attr(Y_data$Y_u,"scaled:center"),apply(Y_old$Y_u,2, mean))
+  expect_equal( attr(Y_data$Y_f[[1]],"scaled:center"),apply(Y_old$Y_f[[1]],2, mean))
+  expect_equal( attr(Y_data$Y_f[[2]],"scaled:center"),apply(Y_old$Y_f[[2]],2, mean))
+
+}
+)
+
 
 ind_analysis <- which_notNA_pos(Y_data)
 
@@ -133,6 +159,24 @@ test_that("The number of individuals for each mark should be",
 
 threshs <- create_null_thresh(type_mark = type_mark)
 low_trait <- check_low_count  (Y_data, thresh_lowcount=threshs  )
+
+
+
+test_that("Checking if the null traits are captured",
+          {
+            Y_data2 <-Y_data
+            Y_data2$Y_u[,2]<-0* Y_data2$Y_u[,2]
+
+            Y_data2$Y_f[[2]][,1:20]<-0* Y_data2$Y_f[[2]][,1:20]
+            threshs <- create_null_thresh(type_mark = type_mark)
+            low_trait <- check_low_count  (Y_data2, thresh_lowcount=threshs  )
+            expect_equal(low_trait$low_u,2)
+            expect_equal(low_trait$low_wc[[2]],c(1:20))
+            expect_equal(low_trait$low_wc[[1]],NULL)
+          }
+
+
+)
 
 
 test_that("Y_u and Y_f should be not NULL ",
@@ -163,13 +207,17 @@ test_that("G_prior object should have the following classes ",
           }
 )
 L=3
-multfsusie.obj <- init_multfsusie_obj(L_max = 3, G_prior, Y_data,X , type_mark,
+multfsusie.obj <- init_multfsusie_obj(L_max = 10,
+                                      G_prior=G_prior,
+                                      Y=Y_data,
+                                      X =X,
+                                      type_mark=type_mark,
                                       L_start =   3,
                                       greedy = greedy, backfit=backfit,
                                       ind_analysis   = ind_analysis)
 test_that("multfsusie internal prior to be equal to ",
           {
-            multfsusie.obj <- init_multfsusie_obj(L_max = 3, G_prior, Y_data,X , type_mark,
+            multfsusie.obj <- init_multfsusie_obj(L_max = 10, G_prior, Y_data,X , type_mark,
                                                   L_start =   3,
                                                   greedy = greedy, backfit=backfit,
                                                   ind_analysis   = ind_analysis)
@@ -238,7 +286,7 @@ EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
 zeta <- cal_zeta(EM_out$lBF)
 test_that("The highest assignation should be equal to", {
   zeta <- cal_zeta(EM_out$lBF)
-  expect_equal(which.max(zeta), pos1
+  expect_equal(which.max(zeta), pos3
   )
 })
 
@@ -278,22 +326,220 @@ test_that("The highest assignation should be equal to", {
                tolerance = 0.01)
   expect_equal(tpi$est_pi_u[[3]][1], 0,
                tolerance = 0.01)
-  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[1]])[1 ], c(0.1  ) )
-  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[1]])[2], c( 0.6 ) )
-  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[2]])[1 ], c(0.1  ) )
+  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[1]])[3], c(0.001  ) )
+  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[1]])[6], c(0.001 ) )
+  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[2]])[1], c(0.1  ) )
   expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[2]])[2], c( 0.6 ) )
 })
 
 threshs <- create_null_thresh(type_mark = type_mark)
 low_trait <- check_low_count  (Y_data, thresh_lowcount=threshs  )
 
-multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,
-                                    l               = 1,
-                                    EM_pi           = EM_out,
-                                    effect_estimate = effect_estimate,
-                                    list_indx_lst   = list_indx_lst,
-                                    low_trait       = low_trait)
 
+test_that("check greedy backfit",{
+
+  iter=1
+  init=TRUE
+  for( l in 1:multfsusie.obj$L)
+  {
+
+    update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
+                                  l              = (l-1)  ,
+                                  X              = X,
+                                  Y              = Y_data,
+                                  list_indx_lst  = list_indx_lst
+    )
+
+
+
+    if(verbose){
+      print(paste("Fitting effect ", l,", iter" ,  iter ))
+    }
+    if(init){#recycle operation used to fit the prior
+
+      EM_out <- susiF.alpha:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
+                                          lBF  = log_BF(G_prior,
+                                                        effect_estimate,
+                                                        list_indx_lst,
+                                                        low_trait = low_trait)
+      )
+      class(EM_out) <- c("EM_pi_multfsusie","list")
+      init <- FALSE
+    }else{
+
+      effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
+                                                    low_trait      = low_trait,
+                                                    ind_analysis   = ind_analysis,
+                                                    parallel       = parallel
+      )
+      tpi               <- get_pi(multfsusie.obj,1)
+      G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
+
+
+      EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
+                                 effect_estimate = effect_estimate,
+                                 list_indx_lst   = list_indx_lst,
+                                 init_pi0_w      = init_pi0_w,
+                                 control_mixsqp  = control_mixsqp,
+                                 nullweight      = nullweight,
+                                 low_trait       = low_trait,
+                                 df              = df
+      )
+
+
+    }
+
+  multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,###TODO:: SLOW
+                                      l               = l,
+                                      EM_pi           = EM_out,
+                                      effect_estimate = effect_estimate,
+                                      list_indx_lst   = list_indx_lst,
+                                      low_trait       = low_trait )
+
+
+  }#end for l in 1:L  -----
+
+  multfsusie.obj$lfsr_wc
+  multfsusie.obj$lfsr_u
+  multfsusie.obj <- greedy_backfit (multfsusie.obj,
+                                    verbose        = verbose,
+                                    cov_lev        = cov_lev,
+                                    X              = X,
+                                    min.purity     = min.purity
+  )
+  iter =  iter+1
+  expect_equal(multfsusie.obj$L ,  (7+3))
+
+  expect_equal(length(multfsusie.obj$fitted_wc),  (7+3))
+  expect_equal(length(multfsusie.obj$fitted_u),  (7+3))
+  expect_equal( multfsusie.obj$cs[[1]], pos3)
+  expect_equal( multfsusie.obj$cs[[2]], pos1)
+  expect_equal( multfsusie.obj$cs[[3]], pos2)
+
+
+  for( l in 1:multfsusie.obj$L)
+  {
+
+    update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
+                                  l              = (l-1)  ,
+                                  X              = X,
+                                  Y              = Y_data,
+                                  list_indx_lst  = list_indx_lst
+    )
+
+
+
+    if(verbose){
+      print(paste("Fitting effect ", l,", iter" ,  iter ))
+    }
+    if(init){#recycle operation used to fit the prior
+
+      EM_out <- susiF.alpha:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
+                                          lBF  = log_BF(G_prior,
+                                                        effect_estimate,
+                                                        list_indx_lst,
+                                                        low_trait = low_trait)
+      )
+      class(EM_out) <- c("EM_pi_multfsusie","list")
+      init <- FALSE
+    }else{
+
+      effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
+                                                    low_trait      = low_trait,
+                                                    ind_analysis   = ind_analysis,
+                                                    parallel       = parallel
+      )
+      tpi               <- get_pi(multfsusie.obj,1)
+      G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
+
+
+      EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
+                                 effect_estimate = effect_estimate,
+                                 list_indx_lst   = list_indx_lst,
+                                 init_pi0_w      = init_pi0_w,
+                                 control_mixsqp  = control_mixsqp,
+                                 nullweight      = nullweight,
+                                 low_trait       = low_trait,
+                                 df              = df
+      )
+
+
+    }
+
+    multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,###TODO:: SLOW
+                                        l               = l,
+                                        EM_pi           = EM_out,
+                                        effect_estimate = effect_estimate,
+                                        list_indx_lst   = list_indx_lst,
+                                        low_trait       = low_trait )
+
+
+  }#end for l in 1:L  -----
+
+  multfsusie.obj$lfsr_wc
+  multfsusie.obj$lfsr_u
+  multfsusie.obj <- greedy_backfit (multfsusie.obj,
+                                    verbose        = verbose,
+                                    cov_lev        = cov_lev,
+                                    X              = X,
+                                    min.purity     = min.purity
+  )
+
+  multfsusie.obj$cs
+})
+
+
+
+##### la -----
+
+test_that("The performance  of multfsusie on  this example should be",{
+  library(susiF.alpha)
+  library(mvf.susie.alpha)
+  set.seed(1)
+  N=100
+  P=50
+  G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
+  beta1       <- 1
+  beta2       <- 1
+  L <- 4#actual number of effect
+  lf <-  list()
+  for(l in 1:L){
+    lf[[l]] <- simu_IBSS_per_level(lev_res=5)$sim_func #functional effect for effect l
+  }
+
+  tt <- sample(0:4,1)
+  if( length(which(apply(G,2,var)==0))>0){
+    G <- G[,-which(apply(G,2,var)==0)]
+  }
+  # G <- matrix( rnorm(100*300), nrow = 100)
+  true_pos <- sample( 1:ncol(G), L)
+
+  Y <- matrix(rnorm((2^5)*100 ,sd=4), nrow = 100)
+  for ( i in 1:100){
+    for ( l in 1:L){
+      Y[i,] <- Y[i,]+ lf[[l]]*G[i,true_pos[[l]]]
+    }
+  }
+  Y_f <- list()
+  Y_f[[1]] <- Y
+
+  Y <- list( Y_f = Y_f, Y_u=NULL)
+
+  m1 <- multfsusie(Y=Y,
+                   X=G,
+                   L=11 ,
+                   data.format="list_df",
+                   L_start=11 ,
+                   nullweight=10,
+                   cal_obj =FALSE,
+                   maxit=10, verbose=FALSE)
+
+  expect_lt(  sqrt(mean( (m1$fitted_func[[2]][[1]]-lf[[3]])^2)),0.7)
+  expect_lt(  sqrt(mean( (m1$fitted_func[[1]][[1]]-lf[[1]])^2)),0.7)
+  expect_lt(  sqrt(mean( (m1$fitted_func[[3]][[1]]-lf[[2]])^2)),0.7)
+  expect_equal( length(which(true_pos%in% do.call(c, m1$cs))) , length(true_pos))
+}
+)
 
 
 ##### lfsr -----

@@ -371,14 +371,14 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
       fitted_u [[l]]       <-     matrix(0, ncol= ncol(Y$Y_u), nrow = ncol(X))
       fitted_u2[[l]]       <-     matrix(0, ncol= ncol(Y$Y_u), nrow = ncol(X))
       lfsr_u   [[l]]       <-     rep(1,ncol(Y$Y_u))
-      sigma2$sd_u            <-     rep( 1, ncol(Y$Y_u))
+      sigma2$sd_u          <-     rep( 1, ncol(Y$Y_u))
     }
 
 
-    alpha [[l]]           <-  rep(0, dim(X)[2])
-    cs[[l]]               <-  list()
-    est_pi [[l]]          <-  get_pi_G_prior(G_prior)
-    lBF[[l]]              <-  rep(NA, ncol(X))
+    alpha [[l]]          <-  rep(0, dim(X)[2])
+    cs    [[l]]          <-  list()
+    est_pi[[l]]          <-  get_pi_G_prior(G_prior)
+    lBF   [[l]]          <-  rep(NA, ncol(X))
 
   }
 
@@ -1562,8 +1562,8 @@ update_lfsr_effect.multfsusie  <- function(multfsusie.obj){
       est_min_lfsr_functional <- NULL
     }
     if( !is.null(multfsusie.obj$lfsr_u)){
-      est_lfsr_uvariate <- multfsusie.obj$lfsr_u[[l]]
-      names( est_lfsr_uvariate ) <- paste("trait",
+      est_lfsr_univariate <- multfsusie.obj$lfsr_u[[l]]
+      names( est_lfsr_univariate ) <- paste("trait",
                                             1:length( multfsusie.obj$lfsr_u[[l]])
       )
 
@@ -1571,10 +1571,10 @@ update_lfsr_effect.multfsusie  <- function(multfsusie.obj){
 
 
     }else{
-      est_min_lfsr_functional <- NULL
+      est_lfsr_univariate <- NULL
     }
     multfsusie.obj$lfsr[[l]]  <- list( est_min_lfsr_functional =  est_min_lfsr_functional,
-                                       est_lfsr_uvariate     = est_lfsr_uvariate)
+                                       est_lfsr_univariate     = est_lfsr_univariate)
   }
   return( multfsusie.obj)
 }
