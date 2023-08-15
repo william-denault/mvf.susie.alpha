@@ -207,6 +207,26 @@ check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X )
 
 
 
+create_dummy_susiF <- function( multfsusie.obj   ){
+
+
+
+  G_prior <- list()
+  class(G_prior) <- "mixture_normal_per_scale"
+  susiF.obj <- list(cs=multfsusie.obj$cs ,
+                    G_prior = G_prior,
+                    alpha= multfsusie.obj$alpha,
+                    csd_X= multfsusie.obj$csd_X
+  )
+
+
+  class(susiF.obj)  <- "susiF"
+
+  return( susiF.obj)
+}
+
+
+
 #' @title Discard credible sets
 #
 #' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
@@ -943,6 +963,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 
   dummy.cs <-  which_dummy_cs(multfsusie.obj,
                               min.purity = min.purity,
+                              median_crit=TRUE,
                               X=X)
   if(multfsusie.obj$backfit & (length(dummy.cs)>0)){
 
@@ -2070,107 +2091,6 @@ test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y, X, list_
 
 
 
-#
-#' @title Return which credible sets are  dummy
-#
-#' @param multfsusie.obj a susif object defined by \code{\link{init_susiF_obj}} function
-#' @param min.purity minimal purity within a CS
-#' @param X matrix of covariate
-#
-#' @return a list of index corresponding the the dummy effect
-#
-#' @export
-#' @keywords internal
-#
-which_dummy_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
-  UseMethod("which_dummy_cs")
-
-
-
-#' @rdname which_dummy_cs
-#
-#' @method which_dummy_cs multfsusie
-#
-#' @export which_dummy_cs.multfsusie
-#' @export
-#' @keywords internal
-#
-
-which_dummy_cs.multfsusie  <- function(multfsusie.obj, min.purity =0.5, X){
-  dummy.cs<- c()
-  if(  multfsusie.obj$L==1){
-    return(dummy.cs)
-  }
-
-
-  for (l in 1:multfsusie.obj$L )
-  {
-
-    if (length(multfsusie.obj$cs[[l]])==1)
-    {
-
-      if(   mean(unlist(get_pi0(multfsusie.obj,l=l)))==1){# check if the estimated prior is exactly 0
-
-        dummy.cs<-  c( dummy.cs,l)
-      }
-
-    }else{
-
-      if( min(abs(cor( X[,multfsusie.obj$cs[[l]]]))) <  min.purity){#check if the purity of cs l is lower that min.purity
-
-        dummy.cs<-  c( dummy.cs,l)
-
-      }else{
-        if(  mean(unlist(get_pi0(multfsusie.obj,l=l)))==1){
-
-          dummy.cs<-  c( dummy.cs,l)
-        }
-
-      }
-    }
-
-  }
-
-
-  if( length(dummy.cs)==0)
-  {
-    return(dummy.cs)
-  }else{
-    if(length(dummy.cs)==multfsusie.obj$L) #avoid returning empty results
-    {
-      dummy.cs <- dummy.cs[-length(dummy.cs)]
-    }
-
-    return(dummy.cs)
-  }
-
-}
-
-
-
-
-
-
-create_dummy_susiF <- function( multfsusie.obj   ){
-
-
-
-  G_prior <- list()
-  class(G_prior) <- "mixture_normal_per_scale"
-  susiF.obj <- list(cs=multfsusie.obj$cs ,
-                    G_prior = G_prior,
-                    alpha= multfsusie.obj$alpha,
-                    csd_X= multfsusie.obj$csd_X
-  )
-
-
-class(susiF.obj)  <- "susiF"
-
-  return( susiF.obj)
-}
-
-
-
 
 #'@title Compute refined estimate using translation invariant wavelet transform
 #'
@@ -2223,14 +2143,14 @@ TI_regression.multfsusie<- function(multfsusie.obj,
 
 
   }
- tp <- list()
+  tp <- list()
   for ( l in 1:length(multfsusie.obj$cs)){
     multfsusie.obj$fitted_func[[l]] <- tl
 
     tp[[l]] <- list()
     for ( k in 1: length(Y$Y_f)){
       tp[[l]][[k]]  <- rbind ( rep( 0 , ncol( Y$Y_f[[k]])),
-                                                      rep( 0 , ncol( Y$Y_f[[k]])))
+                               rep( 0 , ncol( Y$Y_f[[k]])))
     }
   }
   multfsusie.obj$cred_band <- tp
@@ -2255,6 +2175,110 @@ TI_regression.multfsusie<- function(multfsusie.obj,
 
   return(multfsusie.obj)
 }
+
+
+
+
+#
+#' @title Return which credible sets are  dummy
+#
+#' @param multfsusie.obj a susif object defined by \code{\link{init_susiF_obj}} function
+#' @param min.purity minimal purity within a CS
+#' @param X matrix of covariate
+#
+#' @return a list of index corresponding the the dummy effect
+#
+#' @export
+#' @keywords internal
+#
+which_dummy_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
+  UseMethod("which_dummy_cs")
+
+
+
+#' @rdname which_dummy_cs
+#
+#' @method which_dummy_cs multfsusie
+#
+#' @export which_dummy_cs.multfsusie
+#' @export
+#' @keywords internal
+#
+
+which_dummy_cs.multfsusie  <- function(multfsusie.obj, min.purity =0.5, X,median_crit=FALSE){
+  dummy.cs<- c()
+  if(  multfsusie.obj$L==1){
+    return(dummy.cs)
+  }
+  f_crit <- function (multfsusie.obj, min.purity=0.5, l, median_crit=FALSE){
+    if( median_crit){
+      #if( length(multfsusie.obj$cs[[l]] )  < ncol(X)/10) {
+      #  is.dummy.cs <- FALSE
+      #   return(is.dummy.cs )
+      #}
+      if(length(multfsusie.obj$cs[[l]]) <5){
+        is.dummy.cs <- FALSE
+      }else{
+        tt <-  cor( X[,multfsusie.obj$cs[[l]]])
+
+        is.dummy.cs <-   median(abs( tt[lower.tri(tt, diag =FALSE)]))  <  min.purity
+      }
+
+
+    }else{
+      is.dummy.cs <-   min(abs(cor( X[,multfsusie.obj$cs[[l]]]))) <  min.purity
+    }
+
+    return( is.dummy.cs)
+  }
+
+
+
+
+  for (l in 1:multfsusie.obj$L )
+  {
+
+    if (length(multfsusie.obj$cs[[l]])==1)
+    {
+
+      if(   mean(unlist(get_pi0(multfsusie.obj,l=l)))==1){# check if the estimated prior is exactly 0
+
+        dummy.cs<-  c( dummy.cs,l)
+      }
+
+    }else{
+
+      if(   f_crit(multfsusie.obj = multfsusie.obj, min.purity=0.5, l, median_crit )){#check if the purity of cs l is lower that min.purity
+
+        dummy.cs<-  c( dummy.cs,l)
+
+      }else{
+        if(  mean(unlist(get_pi0(multfsusie.obj,l=l)))==1){
+
+          dummy.cs<-  c( dummy.cs,l)
+        }
+
+      }
+    }
+
+  }
+
+
+  if( length(dummy.cs)==0)
+  {
+    return(dummy.cs)
+  }else{
+    if(length(dummy.cs)==multfsusie.obj$L) #avoid returning empty results
+    {
+      dummy.cs <- dummy.cs[-length(dummy.cs)]
+    }
+
+    return(dummy.cs)
+  }
+
+}
+
+
 
 
 
