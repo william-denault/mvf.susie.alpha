@@ -1,0 +1,34 @@
+affected_reg_effect.multfsusie <- function( multfsusie.obj, l,k ){
+  outing_grid <- multfsusie.obj$outing_grid
+  
+  reg <-  list()
+  h <- 1
+  for (   l in 1:length(multfsusie.obj$cs)){
+    
+    pos_up <-  which(multfsusie.obj$cred_band[[l]][[k]][1,]<0)
+    pos_low <- which(multfsusie.obj$cred_band[[l]][[k]][2,]>0)
+    
+    
+    reg_up <- split( pos_up,cumsum(c(1,diff( pos_up)!=1)))
+    
+    reg_low <- split( pos_low,cumsum(c(1,diff( pos_low)!=1)))
+    for( o in 1:length(reg_up)){
+      reg[[h]] <- c(l, outing_grid[reg_up[[o]][1]], outing_grid[reg_up[[o]][length(reg_up[[o]])]])
+      
+      h <- h+1
+    }
+    for( k in 1:length(reg_low )){
+      reg[[h]] <- c(l, outing_grid[reg_low [[o]][1]], outing_grid[reg_low [[o]][length(reg_low [[o]])]])
+      
+      h <- h+1
+    }
+    
+    
+  }
+  reg <-  do.call(rbind, reg)
+  colnames(reg) <- c("CS", "Start","End")
+  reg <- as.data.frame(reg)
+  reg <- reg[order(reg$CS, reg$Start),]
+  reg <- reg[complete.cases(reg),]
+  return(reg)
+}

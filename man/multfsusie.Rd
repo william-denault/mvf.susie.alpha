@@ -27,8 +27,12 @@ multfsusie(
   parallel = FALSE,
   max_SNP_EM = 1000,
   gridmult = sqrt(2),
+  max_scale = 10,
   max_step_EM = 1,
-  cor_small = FALSE
+  cor_small = FALSE,
+  filter.number = 10,
+  family = "DaubLeAsymm",
+  TI = TRUE
 )
 }
 \arguments{

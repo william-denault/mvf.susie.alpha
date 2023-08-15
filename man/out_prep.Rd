@@ -7,7 +7,18 @@
 \usage{
 out_prep(mvfsusie.obj, Y, X, indx_lst, filter.cs, lfsr_curve, ...)
 
-\method{out_prep}{multfsusie}(multfsusie.obj, Y, X, list_indx_lst, filter.cs, outing_grid, cov_lev)
+\method{out_prep}{multfsusie}(
+  multfsusie.obj,
+  Y,
+  X,
+  list_indx_lst,
+  filter.cs,
+  outing_grid,
+  cov_lev,
+  filter.number = 10,
+  family = "DaubLeAsymm",
+  TI = FALSE
+)
 }
 \arguments{
 \item{Y}{data}
