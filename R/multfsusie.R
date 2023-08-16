@@ -120,7 +120,6 @@
 #'                 X=G,
 #'                 pos=pos,
 #'                 L=11 ,
-#'                 data.format="list_df",
 #'                 nullweight=10,
 #'                 maxit=10)
 #'m1$cs# credible sets
