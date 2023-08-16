@@ -7,7 +7,7 @@
 \usage{
 which_dummy_cs(multfsusie.obj, min.purity = 0.5, X, ...)
 
-\method{which_dummy_cs}{multfsusie}(multfsusie.obj, min.purity = 0.5, X)
+\method{which_dummy_cs}{multfsusie}(multfsusie.obj, min.purity = 0.5, X, median_crit = FALSE)
 }
 \arguments{
 \item{multfsusie.obj}{a susif object defined by \code{\link{init_susiF_obj}} function}

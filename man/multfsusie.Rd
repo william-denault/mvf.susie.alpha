@@ -9,7 +9,6 @@ multfsusie(
   X,
   L = 2,
   pos = NULL,
-  data.format = "list_df",
   verbose = TRUE,
   maxit = 100,
   tol = 0.001,
@@ -18,7 +17,7 @@ multfsusie(
   L_start = 3,
   filter.cs = TRUE,
   init_pi0_w = 1,
-  nullweight,
+  nullweight = 10,
   control_mixsqp = list(eps = 1e-06, numiter.em = 40, verbose = FALSE),
   thresh_lowcount,
   cal_obj = FALSE,
@@ -36,9 +35,11 @@ multfsusie(
 )
 }
 \arguments{
-\item{Y}{list of observed time series. Length of N in which every element
-contains a xi (number of condition) by 2^S matrix. The matrix corresponds to the
-individuals multivariate time series}
+\item{Y}{a list of  of data frames
+in which element from univariate trait are stored in Y$Y_u, one column corresponds to a univariate trait
+ (can be set to NULL if no univariate trait considered) and functional trait are stored in the sub list Y$Y_f
+ where each element of the sub list  Y$Y_f is a n by T data frame (T being the number of observation points)
+ (can be NULL if no functional trait considered)}
 
 \item{X}{matrix of size n by p contains the covariates}
 
@@ -47,14 +48,6 @@ individuals multivariate time series}
 \item{pos}{vector of length J, corresponding to position/time pf
 the observed column in each entery of Y$Y_f, if missing suppose that the observation
 are evenly spaced}
-
-\item{data.format}{character specify hw the input data is organised,
-"ind_mark" the input is a list in which each element is a list of individual mark measurement.
- "list_df", corresponds to the case where the input is a list of  of data frames
-  in which element from univariate trait are stored in Y$Y_u, one column corresponds to a univariate trait
-   (can be set to NULL if no univariate trait considered) and functional trait are stored in the sub list Y$Y_f
-   where each element of the sub list  Y$Y_f is a n by T data frame (T being the number of observation points)
-   (can be NULL if no functional trait considered)}
 
 \item{verbose}{If \code{verbose = TRUE}, the algorithm's progress,
 and a summary of the optimization settings, are printed to the
@@ -163,7 +156,6 @@ m1 <- multfsusie(Y=Y,
                 X=G,
                 pos=pos,
                 L=11 ,
-                data.format="list_df",
                 nullweight=10,
                 maxit=10)
 m1$cs# credible sets

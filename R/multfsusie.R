@@ -251,8 +251,7 @@ multfsusie <- function(Y ,X,L=2,
     Y_data   <- list(Y_u =Y$Y_u,
                      Y_f =Y_f)
 
-    type_mark <- is.functional ( Y=Y_data,
-                                 data.format=data.format)
+    type_mark <- is.functional ( Y=Y_data  )
 
 
 

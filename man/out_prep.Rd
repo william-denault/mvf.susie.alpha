@@ -10,6 +10,7 @@ out_prep(mvfsusie.obj, Y, X, indx_lst, filter.cs, lfsr_curve, ...)
 \method{out_prep}{multfsusie}(
   multfsusie.obj,
   Y,
+  interpolated_Y,
   X,
   list_indx_lst,
   filter.cs,
