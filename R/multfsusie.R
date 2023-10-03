@@ -15,7 +15,9 @@
 #'pos =list(pos1=NULL,pos2=pos_uneven, pos3=NULL), where pos_uneven  is a vector containning the sampling position (assumed to be increasing)
 #')
 #' @param L the number of effect to fit (if not specified set to =2)
-#'
+#'#'@param  post_processing character, use "TI" for translation invariant wavelet estimates,
+#'"HMM" for hidden Markov model (useful for estimating non-zero regions),
+#' "none" for simple wavelet estimate (not recommended)
 #' @param pos vector of length J, corresponding to position/time pf
 #' the observed column in each entery of Y$Y_f, if missing suppose that the observation
 #' are evenly spaced
@@ -141,7 +143,7 @@
 
 multfsusie <- function(Y ,X,L=2,
                        pos = NULL,
-
+                       post_processing="TI",
                        verbose=TRUE,
                        maxit = 100,
                        tol = 1e-3,
@@ -168,8 +170,8 @@ multfsusie <- function(Y ,X,L=2,
                        max_step_EM=1,
                        cor_small=FALSE,
                        filter.number = 10,
-                       family = "DaubLeAsymm",
-                       TI=TRUE
+                       family = "DaubLeAsymm"
+
                       )
 
 
@@ -184,6 +186,19 @@ multfsusie <- function(Y ,X,L=2,
     print("Starting initialization")
   }
 
+
+  if(post_processing=="TI"){
+    TI  <- TRUE
+    HMM <- FALSE
+  }
+  if(post_processing=="HMM"){
+    TI  <- FALSE
+    HMM <- TRUE
+  }
+  if(post_processing=="none"){
+    TI  <- FALSE
+    HMM <- FALSE
+  }
 
 
   tidx <- which(apply(X,2,var)==0)
@@ -270,6 +285,8 @@ multfsusie <- function(Y ,X,L=2,
   #### discarding  null/low variance    ------
   if( missing(thresh_lowcount)){
     threshs <- create_null_thresh(type_mark = type_mark)
+  }else{
+    threshs <- thresh_lowcount
   }
   low_trait <- check_low_count  (Y_data,
                                  thresh_lowcount = threshs,
@@ -496,7 +513,8 @@ multfsusie <- function(Y ,X,L=2,
                               cov_lev         = cov_lev,
                               filter.number   = filter.number,
                               family          = family,
-                              TI              = TI
+                              TI            = TI,
+                              HMM           = HMM
 
     )
    multfsusie.obj$runtime <- proc.time()-pt

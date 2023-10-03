@@ -359,6 +359,89 @@ expand_multfsusie_obj <- function(multfsusie.obj,L_extra)
 
 }
 
+#'@title Compute refined estimate using HMM regression
+#'
+#' @description    Compute refined estimate using HMM regression
+#' @param multfsusie.obj  a multfsusie.obj object
+#'
+#' @param Y  multfsusie.obj data object
+#'
+#' @param X matrix containing the covariates
+#' @param verbose logical
+#'  @param maxit max number of iteration
+#' @export
+
+
+HMM_regression<- function (multfsusie.obj,Y,X,verbose, maxit,...)
+  UseMethod("HMM_regression")
+
+
+#' @rdname HMM_regression
+#'
+#' @method HMM_regression multfsusie
+#'
+#' @export HMM_regression.multfsusie
+#'
+#' @export
+#'
+
+
+HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,verbose=TRUE, maxit=5   ){
+
+  if(is.null(multfsusie.obj$fitted_wc)){
+    return(multfsusie.obj)
+  }
+  if(verbose){
+    print( "Fine mapping done, refining effect estimates using HMM regression")
+  }
+
+  #renaming lfsr output
+  for (  l in 1: length(multfsusie.obj$lfsr)){
+    names(multfsusie.obj$lfsr[[l]])[1] <- "est_lfsr_functional"
+    multfsusie.obj$lfsr[[l]]$est_lfsr_functional  <- list()
+  }
+
+  tl <- list()
+
+  for ( k in 1: length(Y$Y_f)){
+    tl[[k]] <- rep (0, ncol (Y$Y_f[[k]]))
+
+
+  }
+  tp <- list()
+  for ( l in 1:length(multfsusie.obj$cs)){
+    multfsusie.obj$fitted_func[[l]] <- tl
+
+    tp[[l]] <- list()
+    for ( k in 1: length(Y$Y_f)){
+      tp[[l]][[k]]  <- rbind ( rep( 0 , ncol( Y$Y_f[[k]])),
+                               rep( 0 , ncol( Y$Y_f[[k]])))
+    }
+  }
+  multfsusie.obj$cred_band <- tp
+  dummy_susiF.obj <- create_dummy_susiF(multfsusie.obj)
+
+  for ( k in 1: length(Y$Y_f)){
+
+    susiF.obj <- susiF.alpha::HMM_regression.susiF( susiF.obj    = dummy_susiF.obj,
+                                                    Y             = Y$Y_f[[k]],
+                                                    X             = X,
+                                                    verbose       = FALSE ,
+                                                    fit_indval    = FALSE)
+
+    for ( l in 1:length(multfsusie.obj$cs)){
+
+      multfsusie.obj$fitted_func[[l]][[k]] <- susiF.obj$fitted_func[[l]]
+      multfsusie.obj$lfsr[[l]]$est_lfsr_functional[[k]] <-  susiF.obj$lfsr_func[[l]]
+
+    }
+
+
+  }
+
+
+  return(multfsusie.obj)
+}
 
 
 # @title Initialize a multsusie object
@@ -1810,21 +1893,34 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                 cov_lev,
                                 filter.number = 10,
                                 family = "DaubLeAsymm",
-                                TI=FALSE)
+                                TI=FALSE,
+                                HMM=FALSE)
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   multfsusie.obj <-  update_cal_fit_u(multfsusie.obj )
-  if( TI==FALSE){
+  multfsusie.obj  <- update_lfsr_effect(multfsusie.obj)
+
+  if( TI==FALSE& HMM==FALSE){
     multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
 
-  }else{
-    multfsusie.obj <-  TI_regression(multfsusie.obj = multfsusie.obj,
+  }
+    if( TI==TRUE){
+      multfsusie.obj <-  TI_regression(multfsusie.obj = multfsusie.obj,
                                      Y              = interpolated_Y,
                                      X              = X,
                                      verbose        = TRUE,
                                      filter.number  = filter.number,
                                      family         = family)
-  }
+    }
+    if(HMM==TRUE) {
+      multfsusie.obj <-  HMM_regression(multfsusie.obj = multfsusie.obj,
+                                       Y               = interpolated_Y,
+                                       X               = X,
+                                       verbose         = TRUE )
+    }
+  print( "her out")
+
+
 
 
   multfsusie.obj <- update_cal_cs(multfsusie.obj,
@@ -1835,20 +1931,12 @@ out_prep.multfsusie <- function(multfsusie.obj,
   {
     multfsusie.obj <- check_cs(multfsusie.obj,min.purity=0.5,X=X)
   }
-  multfsusie.obj  <- update_lfsr_effect(multfsusie.obj)
+
 
   multfsusie.obj$outing_grid <- outing_grid
   multfsusie.obj$purity      <- susiF.alpha::cal_purity(l_cs= multfsusie.obj$cs, X=X)
 
-  #multfsusie.obj$affect_reg  <- lapply( 1:length(multfsusie.obj$cs), function (l){
-    # lapply(1:length(Y$Y_f),
-                                                                       #   function(k){
-                                                                         # affected_reg_effect(multfsusie.obj,l,k)
-                                                                         #}
-                                                                       #)
-    #}
 
-                                        #)
   return( multfsusie.obj)
 }
 
@@ -2094,9 +2182,9 @@ test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y, X, list_
 
 #'@title Compute refined estimate using translation invariant wavelet transform
 #'
-#' @description e Compute refined estimate using translation invariant wavelet transform
+#' @description   Compute refined estimate using translation invariant wavelet transform
 #'
-#' @param susiF.obj  a susiF object
+#' @param multfsusie.obj  a multfsusie.obj object
 #'
 #' @param Y  multfsusie.obj data object
 #'
@@ -2175,6 +2263,12 @@ TI_regression.multfsusie<- function(multfsusie.obj,
 
   return(multfsusie.obj)
 }
+
+
+
+
+
+
 
 
 
