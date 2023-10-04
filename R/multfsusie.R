@@ -513,8 +513,9 @@ multfsusie <- function(Y ,X,L=2,
                               cov_lev         = cov_lev,
                               filter.number   = filter.number,
                               family          = family,
-                              TI            = TI,
-                              HMM           = HMM
+                              ind_analysis    = ind_analysis,
+                              TI              = TI,
+                              HMM             = HMM
 
     )
    multfsusie.obj$runtime <- proc.time()-pt

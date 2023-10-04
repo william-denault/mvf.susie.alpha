@@ -25,7 +25,7 @@ affected_reg_effect.multfsusie <- function( multfsusie.obj, l,k ){
   if(is.null(multfsusie.obj$fitted_wc)){
     return(multfsusie.obj)
   }
-  print("ici")
+
   outing_grid <- multfsusie.obj$outing_grid
 
   reg <-  list()
@@ -386,7 +386,7 @@ HMM_regression<- function (multfsusie.obj,Y,X,verbose, maxit,...)
 #'
 
 
-HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,verbose=TRUE, maxit=5   ){
+HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,ind_analysis ,verbose=TRUE, maxit=5   ){
 
   if(is.null(multfsusie.obj$fitted_wc)){
     return(multfsusie.obj)
@@ -423,9 +423,10 @@ HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,verbose=TRUE, maxit=5 
 
   for ( k in 1: length(Y$Y_f)){
 
+
     susiF.obj <- susiF.alpha::HMM_regression.susiF( susiF.obj    = dummy_susiF.obj,
-                                                    Y             = Y$Y_f[[k]],
-                                                    X             = X,
+                                                    Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],
+                                                    X             = X[ind_analysis$idx_f[[k]],],
                                                     verbose       = FALSE ,
                                                     fit_indval    = FALSE)
 
@@ -1869,7 +1870,18 @@ update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95)
 #' @param filter.cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
 #' @export
 #' @keywords internal
-out_prep <- function(multfsusie.obj,Y,X,list_indx_lst,filter.cs, ...)
+out_prep <- function(multfsusie.obj,
+                     Y,
+                     X,
+                     list_indx_lst,
+                     filter.cs,
+                     outing_grid ,
+                     cov_lev ,
+                     filter.number ,
+                     family ,
+                     ind_analysis ,
+                     TI  ,
+                     HMM,...)
   UseMethod("out_prep")
 
 #' @rdname out_prep
@@ -1893,6 +1905,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                 cov_lev,
                                 filter.number = 10,
                                 family = "DaubLeAsymm",
+                                ind_analysis ,
                                 TI=FALSE,
                                 HMM=FALSE)
 {
@@ -1909,12 +1922,14 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                      Y              = interpolated_Y,
                                      X              = X,
                                      verbose        = TRUE,
+                                     ind_analysis   = ind_analysis,
                                      filter.number  = filter.number,
                                      family         = family)
     }
     if(HMM==TRUE) {
       multfsusie.obj <-  HMM_regression(multfsusie.obj = multfsusie.obj,
                                        Y               = interpolated_Y,
+                                       ind_analysis    = ind_analysis,
                                        X               = X,
                                        verbose         = TRUE )
     }
@@ -2215,7 +2230,9 @@ TI_regression <- function (multfsusie.obj,Y,X, verbose ,
 
 TI_regression.multfsusie<- function(multfsusie.obj,
                                     Y,
-                                    X, verbose=TRUE,
+                                    X,
+                                    ind_analysis ,
+                                    verbose=TRUE,
                                     filter.number = 10,
                                     family = "DaubLeAsymm"  ){
   if(is.null(multfsusie.obj$fitted_wc)){
@@ -2247,8 +2264,8 @@ TI_regression.multfsusie<- function(multfsusie.obj,
   for ( k in 1: length(Y$Y_f)){
 
     susiF.obj <- susiF.alpha::TI_regression.susiF( susiF.obj     = dummy_susiF.obj,
-                                                   Y             = Y$Y_f[[k]],
-                                                   X             = X,
+                                                   Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],
+                                                   X             = X[ind_analysis$idx_f[[k]],],
                                                    verbose       = FALSE,
                                                    filter.number = filter.number,
                                                    family        = family   )
