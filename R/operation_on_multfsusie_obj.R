@@ -420,9 +420,9 @@ HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,ind_analysis ,verbose=
   }
   multfsusie.obj$cred_band <- tp
   dummy_susiF.obj <- create_dummy_susiF(multfsusie.obj)
-
+  print(multfsusie.obj$fitted_wc)
   for ( k in 1: length(Y$Y_f)){
-
+print(k)
 
     susiF.obj <- susiF.alpha::HMM_regression.susiF( susiF.obj    = dummy_susiF.obj,
                                                     Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],

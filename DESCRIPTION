@@ -13,7 +13,7 @@ Depends:
   R (>= 3.1.0),
 Imports:
   wavethresh (>= 4.6.8),
-  susiF.alpha (>= 0.1.219),
+  susiF.alpha (>= 0.1.220),
   graphics,
   stats,
   ashr (>= 2.2-47),
