@@ -36,27 +36,26 @@ affected_reg_effect.multfsusie <- function( multfsusie.obj, l,k ){
     pos_low <- which(multfsusie.obj$cred_band[[l]][[k]][2,]>0)
 
 
-    print("ici1")
     reg_up <- split( pos_up,cumsum(c(1,diff( pos_up)!=1)))
 
     reg_low <- split( pos_low,cumsum(c(1,diff( pos_low)!=1)))
     for( o in 1:length(reg_up)){
       reg[[h]] <- c(l, outing_grid[reg_up[[o]][1]], outing_grid[reg_up[[o]][length(reg_up[[o]])]])
 
-      print("ici2")
+
       h <- h+1
     }
     for( k in 1:length(reg_low )){
       reg[[h]] <- c(l, outing_grid[reg_low [[o]][1]], outing_grid[reg_low [[o]][length(reg_low [[o]])]])
 
-      print("ici3")
+
       h <- h+1
     }
 
 
   }
 
-  print(reg)
+
   reg <-  do.call(rbind, reg)
   colnames(reg) <- c("CS", "Start","End")
   reg <- as.data.frame(reg)
@@ -420,9 +419,9 @@ HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,ind_analysis ,verbose=
   }
   multfsusie.obj$cred_band <- tp
   dummy_susiF.obj <- create_dummy_susiF(multfsusie.obj)
-  print(multfsusie.obj$fitted_wc)
+
   for ( k in 1: length(Y$Y_f)){
-print(k)
+
 
     susiF.obj <- susiF.alpha::HMM_regression.susiF( susiF.obj    = dummy_susiF.obj,
                                                     Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],
@@ -1933,7 +1932,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                        X               = X,
                                        verbose         = TRUE )
     }
-  print( "her out")
+
 
 
 

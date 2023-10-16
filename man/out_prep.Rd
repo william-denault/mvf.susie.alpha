@@ -18,7 +18,9 @@ out_prep(mvfsusie.obj, Y, X, indx_lst, filter.cs, lfsr_curve, ...)
   cov_lev,
   filter.number = 10,
   family = "DaubLeAsymm",
-  TI = FALSE
+  ind_analysis,
+  TI = FALSE,
+  HMM = FALSE
 )
 }
 \arguments{

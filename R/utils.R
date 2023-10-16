@@ -1,7 +1,38 @@
 
+
+#check if one of the modality leads to some constant varaible in X
+check_cst_X_sub_case <- function(X,ind_analysis){
+
+
+  if( !is.null(ind_analysis$idx_f)){
+  pb_f <-  do.call(c,lapply(1:length(ind_analysis$idx_f), function(k)
+                          which(apply(X[ind_analysis$idx_f[[k]],],2,var)==0)
+      )
+      )
+
+  }else{
+    pb_f<- integer(0)
+  }
+
+
+  if( !is.null(ind_analysis$idx_u)){
+    pb_u <-  do.call(c,lapply(1:length(ind_analysis$idx_u), function(k)
+      which(apply(X[ind_analysis$idx_u[[k]],],2,var)==0)
+    )
+    )
+
+  }else{
+    pb_u<- integer(0)
+  }
+  return( unique (c(pb_f,pb_u)))
+}
+
+
 #testing if x is a wholenumber
 #
 #@export
+
+
 
 is.wholenumber <- function (x, tol = .Machine$double.eps^0.5)
   abs(x - round(x)) < tol

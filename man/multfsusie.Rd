@@ -9,6 +9,7 @@ multfsusie(
   X,
   L = 2,
   pos = NULL,
+  post_processing = "TI",
   verbose = TRUE,
   maxit = 100,
   tol = 0.001,
@@ -30,8 +31,7 @@ multfsusie(
   max_step_EM = 1,
   cor_small = FALSE,
   filter.number = 10,
-  family = "DaubLeAsymm",
-  TI = TRUE
+  family = "DaubLeAsymm"
 )
 }
 \arguments{
@@ -43,7 +43,10 @@ in which element from univariate trait are stored in Y$Y_u, one column correspon
 
 \item{X}{matrix of size n by p contains the covariates}
 
-\item{L}{the number of effect to fit (if not specified set to =2)}
+\item{L}{the number of effect to fit (if not specified set to =2)
+#'@param  post_processing character, use "TI" for translation invariant wavelet estimates,
+"HMM" for hidden Markov model (useful for estimating non-zero regions),
+"none" for simple wavelet estimate (not recommended)}
 
 \item{pos}{vector of length J, corresponding to position/time pf
 the observed column in each entery of Y$Y_f, if missing suppose that the observation

@@ -11,12 +11,15 @@ TI_regression(multfsusie.obj, Y, X, verbose, filter.number, family, ...)
   multfsusie.obj,
   Y,
   X,
+  ind_analysis,
   verbose = TRUE,
   filter.number = 10,
   family = "DaubLeAsymm"
 )
 }
 \arguments{
+\item{multfsusie.obj}{a multfsusie.obj object}
+
 \item{Y}{multfsusie.obj data object}
 
 \item{X}{matrix containing the covariates}
@@ -26,10 +29,8 @@ TI_regression(multfsusie.obj, Y, X, verbose, filter.number, family, ...)
 \item{filter.number}{see wd description in wavethesh package description}
 
 \item{family}{see wd description in wavethresh package description}
-
-\item{susiF.obj}{a susiF object}
 }
 \description{
-e Compute refined estimate using translation invariant wavelet transform
+Compute refined estimate using translation invariant wavelet transform
 }
 \keyword{internal}

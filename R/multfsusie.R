@@ -199,9 +199,11 @@ multfsusie <- function(Y ,X,L=2,
     TI  <- FALSE
     HMM <- FALSE
   }
+  ind_analysis <- which_notNA_pos(Y)
+#remove column of X constant in some sub cases
+  tidx <- check_cst_X_sub_case(X,ind_analysis)
 
 
-  tidx <- which(apply(X,2,var)==0)
   if( length(tidx)>0){
     warning(paste("Some of the columns of X are constants, we removed" ,length(tidx), "columns"))
     X <- X[,-tidx]
@@ -212,7 +214,7 @@ multfsusie <- function(Y ,X,L=2,
       print("Data transform")
     }
 
-    ind_analysis <- which_notNA_pos(Y)
+
     h <- 1
     list_wdfs <- list()
     list_indx_lst  <-  list()
