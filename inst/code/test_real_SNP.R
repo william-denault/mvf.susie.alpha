@@ -2,14 +2,16 @@
 rm(list=ls())
 library(mvf.susie.alpha)
 library(susieR)
-#set.seed(1)
+set.seed(1)
 data(N3finemapping)
 attach(N3finemapping)
 res <- list()
-N <- 100
+N <- 30
 P=100
 for ( o in (length(res)+1):100){
   X <- N3finemapping$X[1:N,1:P]
+
+  X <- X[ ,-which( apply(X,2,var)==0)]
   L <-sample(1:10, size=1)#Number of effect
   print(L)
   list_lev_res <- list(5,6) # two functional phenotypes ,
@@ -60,12 +62,23 @@ for ( o in (length(res)+1):100){
                    data.format="list_df",
                    nullweight=10,
                    maxit=10)
-  tt <- do.call(c,m1$cs)
-  tt
+  m2 <- multfsusie(Y=Y,
+                   X=G,
+                   pos=pos,
+                   L=10 ,
+                   data.format="list_df",
+                   nullweight=10,
+                   maxit=10, cor_small = TRUE)
    res [[o]]  <-  c(length(m1$cs), #number of CS
                     length(which(true_pos%in% do.call(c, m1$cs))), #number of effect found
                     Reduce("+",sapply(1:length(m1$cs), function(k)
                       ifelse( length(which(true_pos%in%m1$cs[[k]] ))==0, 1,0)
+                    )
+                    ),
+                    length(m2$cs), #number of CS
+                    length(which(true_pos%in% do.call(c, m2$cs))), #number of effect found
+                    Reduce("+",sapply(1:length(m2$cs), function(k)
+                      ifelse( length(which(true_pos%in%m2$cs[[k]] ))==0, 1,0)
                     )
                     ))
 
@@ -73,7 +86,19 @@ for ( o in (length(res)+1):100){
 
   print(o)
 print(do.call(rbind, res))
+df_simu <- do.call(rbind, res)
+print(sum(df_simu[,2])/sum( df_simu[,3]+df_simu[,2]))
+print(sum(df_simu[,5])/sum( df_simu[,6]+df_simu[,5]))
 }
 
 df_simu <- do.call(rbind, res)
-sum(df_simu[,3])/sum(+df_simu[,3]+df_simu[,1])
+
+ sum(df_simu[,3])/sum( df_simu[,3]+df_simu[,2])
+lol <- df_simu[,3]/ ( df_simu[,3]+df_simu[,2])
+summary(lm(lol~1))
+
+sum(df_simu[,5])/sum( df_simu[,6]+df_simu[,5])
+
+lol <- df_simu[,6]/  (df_simu[,6]+df_simu[,5] )
+summary(lm(lol~1))
+
