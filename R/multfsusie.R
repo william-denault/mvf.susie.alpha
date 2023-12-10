@@ -4,9 +4,9 @@
 #'
 #' @details Implementation of the multfSuSiE method
 #'
-#' @param Y  a list of  of data frames
-#'   in which element from univariate trait are stored in Y$Y_u, one column corresponds to a univariate trait
-#'    (can be set to NULL if no univariate trait considered) and functional trait are stored in the sub list Y$Y_f
+#' @param Y  a list of   data frames
+#'   in which element from univariate traits are stored in Y$Y_u, one column corresponds to a univariate trait
+#'    (can be set to NULL if no univariate traits considered) and functional traits are stored in the sub list Y$Y_f
 #'    where each element of the sub list  Y$Y_f is a n by T data frame (T being the number of observation points)
 #'    (can be NULL if no functional trait considered)
 #' @param X matrix of size n by p contains the covariates
@@ -21,6 +21,10 @@
 #' @param pos vector of length J, corresponding to position/time pf
 #' the observed column in each entery of Y$Y_f, if missing suppose that the observation
 #' are evenly spaced
+#' @param prior specify the prior used in functional trait. The two available choices are
+#' available "mixture_normal_per_scale", "mixture_normal". Default "mixture_normal",
+#'  using  "mixture_normal" is up to 40% faster but may lead to slight power loss
+#'
 #' @param L_start number of effect initialized at the start of the algorithm
 
 #' @param control_mixsqp list of parameter for mixsqp function see  mixsqp package
@@ -157,6 +161,7 @@
 
 multfsusie <- function(Y ,X,L=2,
                        pos = NULL,
+                       prior = "mixture_normal",
                        post_processing="TI",
                        verbose=TRUE,
                        maxit = 100,
@@ -336,6 +341,7 @@ multfsusie <- function(Y ,X,L=2,
   temp  <- init_prior_multfsusie(Y              = Y_data ,
                                  X              = X,
                                  v1             = v1,
+                                 prior          = prior,
                                  list_indx_lst  = list_indx_lst,
                                  low_trait      = low_trait,
                                  control_mixsqp = control_mixsqp,

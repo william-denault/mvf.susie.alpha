@@ -37,8 +37,10 @@ parallel       = FALSE
 control_mixsqp = list(verbose=FALSE)
 cov_lev        = 0.95
 min.purity     = 0.5
-
-
+filter.number = 10
+family = "DaubLeAsymm"
+pos=NULL
+prior = "mixture_normal"
 
 noisy.data  <- list()
 rsnr <- 6
@@ -66,59 +68,86 @@ for ( k in 1:length(noisy.data[[1]]))
 }
 
 
+Y <- list( Y_u= cbind( list_dfs[[1]], list_dfs[[4]]),
+           Y_f= list_dfs[ c(2,3 ) ])
 
-
-plot(list_dfs[[2]][1,], type = "l", ylim = c(min(list_dfs[[2]]), max(list_dfs[[2]])))
+plot(Y$Y_f[[1]][1,], type = "l", ylim = c(min(Y$Y_f[[1]]), max(Y$Y_f[[1]])))
 for (i  in 2:N){
 
-  lines(list_dfs[[2]][i,] , col=(G[i, pos1]+1))
+  lines(Y$Y_f[[1]][i,] , col=(G[i, pos1]+1))
 }
-plot(list_dfs[[3]][1,], type = "l", ylim = c(min(list_dfs[[3]]), max(list_dfs[[3]])))
+plot(Y$Y_f[[2]][1,], type = "l", ylim = c(min(Y$Y_f[[2]]), max(Y$Y_f[[2]])))
 for (i  in 2:N){
 
-  lines(list_dfs[[3]][i,] , col=(G[i, pos1]+1))
+  lines(Y$Y_f[[2]][i,] , col=(G[i, pos1]+1))
 }
 
 
-type_mark <-  is.functional(list_dfs)
+type_mark <-  is.functional(Y )
 
 test_that("The inputs are of the following classes ",
           {
-            expect_equal( type_mark$mark_type, c( "univariate", "functional" ,"functional" ,"univariate"))
-            expect_equal( type_mark$dim_mark, c(  1 ,128 , 64  , 2))
+            expect_equal( type_mark$mark_type, c(  "functional" ,"functional" ,"univariate"))
+            expect_equal( type_mark$dim_mark, c(   128 , 64  , 3))
             expect_equal( type_mark$ncond, 5)
 
           }
 )
 
 
+h <- 1
 list_wdfs <- list()
 list_indx_lst  <-  list()
-if( "functional" %!in% type_mark$mark_type)
-{
-  Y_f <- NULL
-}else{
-  h <- 1
-  for ( k in which(type_mark$mark_type=="functional"))
+if( !is.null(Y$Y_f)){
+  outing_grid <- list()
+
+  if( is.null(pos)){
+    pos <- list()
+    for (i in 1:length(Y$Y_f))
+    {
+      pos[[i]] <- 1:ncol(Y$Y_f[[i]])
+    }
+  }
+  for (i in 1:length(Y$Y_f)){
+    if ( !(length(pos[[i]])==ncol(Y$Y_f[[i]]))) #miss matching positions and number of observations
+    {
+      stop(paste("Error: number of position provided different from the number of column of Y$Y_f, entry",i))
+    }
+  }
+
+
+  interpolated_Y <- Y
+
+
+  for ( k in 1:length(Y$Y_f))
   {
-    temp               <- DWT2(list_dfs[[k]])
+    map_data <-  susiF.alpha::remap_data(Y=Y$Y_f[[k]],
+                                         pos=pos[[k]],
+                                         verbose=verbose)
+    outing_grid[[k]] <- map_data$outing_grid
+    interpolated_Y$Y_f[[k]] <-  map_data$Y
+
+
+
+    temp               <- DWT2( map_data$Y,
+                                filter.number = filter.number,
+                                family        = family)
     list_wdfs[[h]]     <- cbind( temp$D,temp$C)
-    list_indx_lst[[h]] <- gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
+    list_indx_lst[[h]] <- susiF.alpha:::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
     h <- h+1
+    rm(map_data)
   }
   Y_f <- list_wdfs
   v1  <- nrow( Y_f [[1]])
-}
-if("univariate" %!in% type_mark$mark_type)
-{
-  Y_u <- NULL
 }else{
-  Y_u <- do.call( cbind, list_dfs [ which(type_mark$mark_type=="univariate") ])
-  v1  <- nrow(Y_u)
+  Y_f <- NULL
+  v1  <- nrow( Y_u)
 }
 
-Y_data   <- list(Y_u =Y_u,
+
+Y_data   <- list(Y_u =Y$Y_u,
                  Y_f =Y_f)
+
 
 
 X_old <- X
@@ -202,24 +231,30 @@ test_that("G_prior object should have the following classes ",
             expect_equal( class(G_prior),"multfsusie_prior")
             expect_equal( !is.null(G_prior$G_prior_u),TRUE)
             expect_equal( !is.null(G_prior$G_prior_f),TRUE)
-            expect_equal( class(G_prior$G_prior_f[[1]]),"mixture_normal_per_scale")
-            expect_equal( class(G_prior$G_prior_f[[2]]),"mixture_normal_per_scale")
+            expect_equal( class(G_prior$G_prior_f[[1]]),"mixture_normal")
+            expect_equal( class(G_prior$G_prior_f[[2]]),"mixture_normal")
           }
 )
 L=3
-multfsusie.obj <- init_multfsusie_obj(L_max = 10,
-                                      G_prior=G_prior,
-                                      Y=Y_data,
-                                      X =X,
-                                      type_mark=type_mark,
-                                      L_start =   3,
-                                      greedy = greedy, backfit=backfit,
+multfsusie.obj <- init_multfsusie_obj(L_max          = 10,
+                                      G_prior        = G_prior,
+                                      Y              = Y_data,
+                                      X              = X,
+                                      type_mark      = type_mark,
+                                      L_start        =   3,
+                                      greedy         = greedy,
+                                      backfit        = backfit,
                                       ind_analysis   = ind_analysis)
 test_that("multfsusie internal prior to be equal to ",
           {
-            multfsusie.obj <- init_multfsusie_obj(L_max = 10, G_prior, Y_data,X , type_mark,
-                                                  L_start =   3,
-                                                  greedy = greedy, backfit=backfit,
+            multfsusie.obj <- init_multfsusie_obj(L_max          = 10,
+                                                  G_prior        = G_prior,
+                                                  Y              = Y_data,
+                                                  X              = X ,
+                                                  type_mark      = type_mark,
+                                                  L_start        =   3,
+                                                  greedy         = greedy,
+                                                  backfit        = backfit,
                                                   ind_analysis   = ind_analysis)
             expect_equal(get_G_prior (multfsusie.obj ),  G_prior)
 
@@ -276,9 +311,9 @@ control_mixsqp =  list(
 
 EM_out  <- EM_pi_multsusie(G_prior         = G_prior,
                            effect_estimate = effect_estimate,
-                           list_indx_lst   =  list_indx_lst,
+                           list_indx_lst   = list_indx_lst,
                            init_pi0_w      = init_pi0_w,
-                           control_mixsqp  =  control_mixsqp,
+                           control_mixsqp  = control_mixsqp,
                            nullweight      = nullweight,
                            low_trait       = low_trait
 )
