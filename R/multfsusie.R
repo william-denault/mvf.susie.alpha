@@ -182,7 +182,6 @@ multfsusie <- function(Y ,X,L=2,
                        cal_obj=FALSE,
                        greedy=TRUE,
                        backfit=TRUE,
-                       parallel=FALSE,
                        max_SNP_EM=1000,
                        gridmult=sqrt(2),
                        max_scale=10,
@@ -347,7 +346,6 @@ multfsusie <- function(Y ,X,L=2,
                                  control_mixsqp = control_mixsqp,
                                  nullweight     = nullweight,
                                  ind_analysis   = ind_analysis,
-                                 parallel       = parallel,
                                  max_SNP_EM     = max_SNP_EM,
                                  gridmult       = gridmult,
                                  max_step_EM    = max_step_EM
@@ -381,8 +379,7 @@ multfsusie <- function(Y ,X,L=2,
 
     effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
                                                   low_trait=low_trait,
-                                                  ind_analysis   = ind_analysis,
-                                                  parallel       = parallel)
+                                                  ind_analysis   = ind_analysis )
     tpi               <- get_pi(multfsusie.obj,1)
     G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
 
@@ -459,8 +456,7 @@ multfsusie <- function(Y ,X,L=2,
 
           effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
                                                         low_trait      = low_trait,
-                                                        ind_analysis   = ind_analysis,
-                                                        parallel       = parallel
+                                                        ind_analysis   = ind_analysis
                                                         )
           tpi               <- get_pi(multfsusie.obj,1)
           G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)

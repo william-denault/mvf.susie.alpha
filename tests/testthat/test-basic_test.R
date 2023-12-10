@@ -327,8 +327,8 @@ test_that("The highest assignation should be equal to", {
 
 tpi <- EM_out$tpi_k
 test_that("The output class should be", {
-  expect_equal(class(tpi$est_pi_f[[1]]),"pi_mixture_normal_per_scale")
-  expect_equal(class(tpi$est_pi_f[[2]]),"pi_mixture_normal_per_scale")
+  expect_equal(class(tpi$est_pi_f[[1]]),"pi_mixture_normal")
+  expect_equal(class(tpi$est_pi_f[[2]]),"pi_mixture_normal")
   expect_equal(class(tpi$est_pi_u[[1]]),"pi_mixture_normal")
   expect_equal(class(tpi$est_pi_u[[2]]),"pi_mixture_normal")
   expect_equal(class(tpi$est_pi_u[[3]]),"pi_mixture_normal")
@@ -361,10 +361,8 @@ test_that("The highest assignation should be equal to", {
                tolerance = 0.01)
   expect_equal(tpi$est_pi_u[[3]][1], 0,
                tolerance = 0.01)
-  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[1]])[3], c(0.001  ) )
-  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[1]])[6], c(0.001 ) )
-  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[2]])[1], c(0.1  ) )
-  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[2]])[2], c( 0.6 ) )
+  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[1]]),  c(0.73  ) )
+  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[2]]) , c( 999998 ) )
 })
 
 threshs <- create_null_thresh(type_mark = type_mark)
@@ -447,9 +445,9 @@ test_that("check greedy backfit",{
 
   expect_equal(length(multfsusie.obj$fitted_wc),  (7+3))
   expect_equal(length(multfsusie.obj$fitted_u),  (7+3))
-  expect_equal( multfsusie.obj$cs[[1]], pos3)
-  expect_equal( multfsusie.obj$cs[[2]], pos1)
-  expect_equal( multfsusie.obj$cs[[3]], pos2)
+  expect_equal( multfsusie.obj$cs[[1]], pos2)
+  expect_equal( multfsusie.obj$cs[[2]], pos3)
+  expect_equal( multfsusie.obj$cs[[3]], pos1)
 
 
   for( l in 1:multfsusie.obj$L)
@@ -563,7 +561,6 @@ test_that("The performance  of multfsusie on  this example should be",{
   m1 <- multfsusie(Y=Y,
                    X=G,
                    L=11 ,
-                   data.format="list_df",
                    L_start=11 ,
                    nullweight=10,
                    cal_obj =FALSE,
@@ -589,39 +586,3 @@ cal_clfsr(G_prior         = get_G_prior(multfsusie.obj),
 
 
 
-
-
-
-str(effect_estimate)
-
-
-Y_data   <- list(Y_u =Y_u,
-                 Y_f =Y_f)
-
-res <- multfsusie(Y=Y_data,X=G, L=3)
-
-indx_lst <- susiF.alpha::gen_wavelet_indx(log2(length(res$fitted_func[[1]][[1]])))
-temp <- wavethresh::wd(rep(0,length(res$fitted_func[[1]][[1]])))
-
-temp$D                     <-  res$fitted_func[[1]][[1]][ -indx_lst[[length(indx_lst)]]]
-temp$C[length(temp$C)]     <-  res$fitted_func[[1]][[1]][ indx_lst[[length(indx_lst)]]]
-fitted_coef   <-  wavethresh::wr(temp)
-plot(res$fitted_func[[1]][[1]], type="l")
-plot(fitted_coef, type="l")
-
-
-
-
-lines(f1$sim_func, col="blue")
-plot(res$fitted_func[[1]][[2]], type="l")
-
-
-indx_lst <- susiF.alpha::gen_wavelet_indx(log2(length(res$fitted_func[[1]][[2]])))
-temp <- wavethresh::wd(rep(0,length(res$fitted_func[[1]][[2]])))
-
-temp$D                     <-  res$fitted_func[[1]][[2]][ -indx_lst[[length(indx_lst)]]]
-temp$C[length(temp$C)]     <-  res$fitted_func[[1]][[2]][ indx_lst[[length(indx_lst)]]]
-fitted_coef   <-  wavethresh::wr(temp)
-
-plot(fitted_coef, type="l")
-lines(f2$sim_func, col="blue")

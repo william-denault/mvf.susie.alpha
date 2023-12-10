@@ -328,7 +328,7 @@ cal_clfsr.multfsusie_prior <- function(G_prior ,
     clfsr_wc <- lapply(1: length(effect_estimate$res_f),
                        function(k){
 
-                         susiF.alpha:::cal_clfsr.mixture_normal_per_scale(
+                         susiF.alpha:::cal_clfsr (
                            G_prior  = G_prior$G_prior_f[[k]],
                            Bhat     = effect_estimate$res_f[[k]]$Bhat,
                            Shat     = effect_estimate$res_f[[k]]$Shat,
