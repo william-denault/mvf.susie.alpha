@@ -428,6 +428,9 @@ fit_mash_level <- function(tens_marg, s, indx_lst, data.driven=TRUE,verbose=FALS
 
 log_BFu <- function (G_prior, Bhat, Shat,low_u=FALSE,df=NULL, ...) {
 
+
+  Shat[ Shat<=0 ] <- 1e-32
+
   if( is.null(df)){
     if( low_u){
       out <- rep(0, length(Bhat))
