@@ -1696,13 +1696,9 @@ update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
 
     for (k  in 1:length(post_effect$res_f)) {
 
-      if( is.null(low_trait$low_wc[[k]])){
         multfsusie.obj$fitted_wc[[l]][[k]]  <- post_effect$res_f[[k]]$Bhat
         multfsusie.obj$fitted_wc2[[l]][[k]] <- post_effect$res_f[[k]]$Shat^2
-      }else{
-        multfsusie.obj$fitted_wc[[l]][[k]][,-low_trait$low_wc[[k]]]    <-  post_effect$res_f[[k]]$Bhat
-        multfsusie.obj$fitted_wc2[[l]][[k]][,-low_trait$low_wc[[k]]]   <- post_effect$res_f[[k]]$Shat^2
-      }
+
 
     # susiF.alpha::cal_clfsr(G_prior = multfsusie.obj$G_prior$G_prior_f[[k]],
     #                        Bhat = post_effect$res_f[[k]]$Bhat,
