@@ -1403,6 +1403,7 @@ name_cs.multfsusie <- function(multfsusie.obj,X,...){
 #
 #' @export
 #
+
 plot_effect_multfsusiF <- function(  multfsusie.obj,
                                      effect=1,
                                      title="",
@@ -1428,10 +1429,10 @@ plot_effect_multfsusiF <- function(  multfsusie.obj,
   L <-  multfsusie.obj$L
 
   n_wac <- multfsusie.obj$n_wac
-  n_uni <- ifelse(is.null(multfsusie.obj$fitted_u[[1]]), NULL,
+  n_uni <- ifelse(is.null(multfsusie.obj$fitted_u[[1]]), 0,
                   length(multfsusie.obj$fitted_u[[1]])
   )
-  print("yo")
+  print(n_uni)
 
 
 
@@ -1448,7 +1449,7 @@ plot_effect_multfsusiF <- function(  multfsusie.obj,
 
   if( !is.null(n_wac)){
 
-    if (cred.band& !is.null(m1$lfsr[[1]]$est_min_lfsr_functional)) {
+    if (cred.band& !is.null(multfsusie.obj$lfsr[[1]]$est_min_lfsr_functional)) {
 
       fun_effect <-  multfsusie.obj$fitted_func[[effect]]
 
@@ -1528,7 +1529,7 @@ plot_effect_multfsusiF <- function(  multfsusie.obj,
     }
   }
 
-  if (! is.null(n_uni)){
+  if (n_uni>0){
 
     df <- data.frame(beta= multfsusie.obj$fitted_u[[effect]],
                      lfsr = multfsusie.obj$lfsr[[effect]]$est_lfsr_univariate,
@@ -1543,20 +1544,24 @@ plot_effect_multfsusiF <- function(  multfsusie.obj,
       xlab("") + ylab("Estimated effect")
 
   }
-  if( !is.null(n_wac) & !is.null(n_uni)){
+
+  if( !is.null(n_wac) & n_uni>0){
     out <- gridExtra::grid.arrange(P_func,P_uni,ncol=2,top =title)
   }else{
     if(!is.null(n_wac)){
       out <- P_func
+      return(out)
     }
     if(!is.null(n_wac)){
       out <- P_uni
+      return(out)
     }
   }
+
   return(out)
 
-
 }
+
 
 
 
