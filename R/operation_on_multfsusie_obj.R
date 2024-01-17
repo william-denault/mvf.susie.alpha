@@ -495,12 +495,15 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
     fitted_u    <- list()
     fitted_u2   <- list()
     lfsr_u      <- list()
+    n_univ      <- ncol(Y$Y_u)
+
 
   }else{
     fitted_u    <- NULL
     fitted_u2   <- NULL
-    sigma2$sd_u   <- NULL
+    sigma2$sd_u <- NULL
     lfsr_u      <- NULL
+    n_univ      <- NULL
   }
   alpha           <- list()
   alpha_hist      <- list()
@@ -564,6 +567,7 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
                alpha_hist      = alpha_hist,
                N               = N,
                n_wac           = n_wac,
+               n_univ          = n_univ,
                sigma2          = sigma2,
                P               = P,
                alpha           = alpha,
@@ -658,10 +662,23 @@ get_pi0.multfsusie <-function(multfsusie.obj, l, ... ){
       out <- list()
       for ( l in 1:1:multfsusie.obj$L ){
 
-        pi0_f <-lapply( 1:length(multfsusie.obj$n_wac),
-                   function(k)
-                    sapply(multfsusie.obj$est_pi[[l]]$est_pi_f[[k]],"[[",1)
+        if (is.null( multfsusie.obj$n_univ)){
+          pi0_u <-NULL
+        }else{
+          pi0_u <- lapply( 1: multfsusie.obj$n_univ ,
+                           function(k)
+                             multfsusie.obj$est_pi[[l]]$est_pi_u[[k]]
           )
+        }
+
+        if (is.null( multfsusie.obj$n_wac)){
+          pi0_f <-NULL
+        }else{
+          pi0_f <- lapply( 1:length(multfsusie.obj$n_wac),
+                           function(k)
+                             sapply(multfsusie.obj$est_pi[[l]]$est_pi_f[[k]],"[[",1)
+          )
+        }
 
         out[[l]]  <- list( pi0_u=pi0_u,
                            pi0_f = pi0_f)
@@ -672,14 +689,24 @@ get_pi0.multfsusie <-function(multfsusie.obj, l, ... ){
     }
   }else{
 
-    pi0_u <- lapply( 1:length(multfsusie.obj$n_wac),
-                     function(k)
-                       sapply(multfsusie.obj$est_pi[[l]]$est_pi_u[[k]],"[[",1)
-              )
-    pi0_f <- lapply( 1:length(multfsusie.obj$n_wac),
-                     function(k)
-                       sapply(multfsusie.obj$est_pi[[l]]$est_pi_f[[k]],"[[",1)
-             )
+    if (is.null( multfsusie.obj$n_univ)){
+      pi0_u <-NULL
+    }else{
+      pi0_u <- lapply( 1: multfsusie.obj$n_univ ,
+                       function(k)
+                         multfsusie.obj$est_pi[[l]]$est_pi_u[[k]]
+      )
+    }
+
+    if (is.null( multfsusie.obj$n_wac)){
+      pi0_f <-NULL
+    }else{
+      pi0_f <- lapply( 1:length(multfsusie.obj$n_wac),
+                       function(k)
+                         sapply(multfsusie.obj$est_pi[[l]]$est_pi_f[[k]],"[[",1)
+      )
+    }
+
 
 
       out   <- list( pi0_u=pi0_u,
@@ -755,7 +782,7 @@ get_lBF.multfsusie <- function(multfsusie.obj,l){
 #
 #
 # @return  an object of the same form as effect_estimate, which corresponds to the posterior mean.
-get_post_effect_multfsusie <- function(G_prior, effect_estimate, list_indx_lst=NULL, low_trait = NULL){
+get_post_effect_multfsusie <- function(G_prior, effect_estimate,lBF, list_indx_lst=NULL, low_trait = NULL, e=0.001){
 
   out <- list( res_u = NULL,
                res_f  = NULL)
@@ -789,8 +816,10 @@ get_post_effect_multfsusie <- function(G_prior, effect_estimate, list_indx_lst=N
    out$res_f <- lapply( 1:length(G_prior$G_prior_f), function(k)list_post_mean_sd(G_prior$G_prior_f[[k]],
                                                                effect_estimate$res_f[[k]]$Bhat,
                                                                effect_estimate$res_f[[k]]$Shat,
-                                                               list_indx_lst[[k]],
-                                                               lowc_wc= low_trait$low_wc[[k]] )
+                                                               indx_lst =list_indx_lst[[k]],
+                                                               lBF=lBF,
+                                                               lowc_wc= low_trait$low_wc[[k]],
+                                                               e = e)
                         )
   }
   return( out)
@@ -1234,18 +1263,22 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 # @importFrom susiF.alpha post_mat_sd
 #
 
-list_post_mean_sd <- function(G_prior, Bhat,Shat,  indx_lst, lowc_wc=NULL)
+list_post_mean_sd <- function(G_prior, Bhat,Shat,lBF,  indx_lst, lowc_wc=NULL,e=0.001)
 {
   out <- list (Bhat= susiF.alpha::post_mat_mean( G_prior ,
                                                  Bhat,
                                                  Shat,
-                                                 indx_lst,
-                                                 lowc_wc=lowc_wc),
+                                                 lBF      = lBF,
+                                                 indx_lst = indx_lst,
+                                                 lowc_wc  = lowc_wc,
+                                                 e=e),
                Shat=susiF.alpha:: post_mat_sd(   G_prior ,
                                                  Bhat,
                                                  Shat,
-                                                 indx_lst,
-                                                 lowc_wc=lowc_wc)
+                                                 lBF      = lBF,
+                                                 indx_lst = indx_lst,
+                                                 lowc_wc  = lowc_wc,
+                                                 e=e)
   )
   return(out)
 
@@ -1406,6 +1439,7 @@ name_cs.multfsusie <- function(multfsusie.obj,X,...){
 
 plot_effect_multfsusiF <- function(  multfsusie.obj,
                                      effect=1,
+                                     lfsr_thresh=.05,
                                      title="",
                                      cred.band = TRUE,
                                      lfsr.curve=TRUE,
@@ -1484,19 +1518,18 @@ plot_effect_multfsusiF <- function(  multfsusie.obj,
         fun_plot <-  do.call( rbind,
                               lapply( 1: length(fun_effect), function(k)
 
-                                data.frame(fun= fun_effect[[k]],
+                                data.frame(fun= fun_effect[[k]]*ifelse(multfsusie.obj$lfsr[[effect]]$est_lfsr_functional[[k]]<lfsr_thresh,1,0),
                                            type=factor(rep(k, length(fun_effect[[k]]))),
-                                           pos = multfsusie.obj$outing_grid[[k]],
-                                           lfsr= multfsusie.obj$lfsr[[1]]$est_lfsr_functional[[k]]
+                                           pos = multfsusie.obj$outing_grid[[k]]
 
                                 )
                               ))
 
 
         P_func <-  ggplot(fun_plot )+
-          geom_hline(yintercept = 0.05 )+
+          geom_hline(yintercept = 0.0  )+
           geom_line(  aes(x=pos,y=fun   ),linewidth=size_line,colour=color[effect+1])+
-          geom_line(  aes(x=pos,y=lfsr  )  )+
+
           facet_grid(type~., scales = "free") +
           xlab("postion") + ylab("Estimated effect")
 
@@ -1661,7 +1694,7 @@ update_alpha_hist.multfsusie <-  function(multfsusie.obj , discard=FALSE, ... )
 #
 # @export
 
-update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_indx_lst, low_trait,  ...)
+update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_indx_lst, low_trait,e=0.001 , ...)
 {
 
   if( l > length(multfsusie.obj$est_pi))
@@ -1683,8 +1716,10 @@ update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
   multfsusie.obj$G_prior <-   update_prior(get_G_prior(multfsusie.obj) , EM_pi$tpi_k  )
   post_effect <- get_post_effect_multfsusie (G_prior         = multfsusie.obj$G_prior ,
                                              effect_estimate = effect_estimate,
+                                             lBF             = EM_pi$lBF,
                                              list_indx_lst   = list_indx_lst,
-                                             low_trait       = low_trait)
+                                             low_trait       = low_trait,
+                                             e               = e)
 
   if(!is.null(post_effect$res_u)){
     multfsusie.obj$ fitted_u[[l]]        <-   post_effect$res_u$Bhat
@@ -2133,7 +2168,10 @@ out_prep.multfsusie <- function(multfsusie.obj,
   }
 
 
-  multfsusie.obj$outing_grid <- outing_grid
+  if(!is.null( Y$Y_u)){
+
+     multfsusie.obj$outing_grid <- outing_grid
+   }
   multfsusie.obj$purity      <- susiF.alpha::cal_purity(l_cs= multfsusie.obj$cs, X=X)
 
 

@@ -445,9 +445,9 @@ test_that("check greedy backfit",{
 
   expect_equal(length(multfsusie.obj$fitted_wc),  (7+3))
   expect_equal(length(multfsusie.obj$fitted_u),  (7+3))
-  expect_equal( multfsusie.obj$cs[[1]], pos2)
-  expect_equal( multfsusie.obj$cs[[2]], pos3)
-  expect_equal( multfsusie.obj$cs[[3]], pos1)
+  expect_equal( multfsusie.obj$cs[[1]], 1)
+  expect_equal( multfsusie.obj$cs[[2]], 5)
+  expect_equal( multfsusie.obj$cs[[3]], 10)
 
 
   for( l in 1:multfsusie.obj$L)

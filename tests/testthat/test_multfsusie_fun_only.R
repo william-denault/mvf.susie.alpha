@@ -1,4 +1,5 @@
 
+
 library(susiF.alpha)
 library(mvf.susie.alpha)
 library(sim1000G)
@@ -23,7 +24,7 @@ for(l in 1:L){
 Y_f1 <-  matrix(rnorm((2^list_lev_res[[1]])*N ,sd=4), nrow = N)
 Y_f2 <-  matrix(rnorm((2^list_lev_res[[2]])*N ,sd=4), nrow = N)
 
-Y_u <- matrix(rnorm((n_univ)*N ,sd=4), nrow = N)
+Y_u <- matrix(rnorm((n_univ)*N ,sd=1), nrow = N)
 
 
 tt <- sample(1:7,1)
@@ -47,19 +48,22 @@ for ( i in 1:N){
 Y_f <- list()
 Y_f[[1]] <- Y_f1
 Y_f[[2]] <- Y_f2
-Y <- list( Y_f = NULL, Y_u=Y_u)
+Y <- list( Y_f = list( Y_f1, Y_f2), Y_u=NULL)
 
-m1 <- multfsusie(Y=Y,
-                 X=G,
-                 L=11 ,
-                 L_start=11 ,
-                 nullweight=10,
-                 cal_obj =FALSE,
-                 maxit=10)
 
-t(m1$alpha[[1]])%*%m1$fitted_uni[[1]]
-t(m1$alpha[[2]])%*%m1$fitted_uni[[2]]
-t(m1$alpha[[3]])%*%m1$fitted_uni[[3]]
-eff[[1]]$univ_effect
-eff[[2]]$univ_effect
-eff[[3]]$univ_effect
+test_that("check if it work on  functional pheno and it is sign consistent",{
+
+  m1 <- multfsusie(Y=Y,
+                   X=G,
+                   L=11 ,
+                   L_start=11 ,
+                   nullweight=10,
+                   cal_obj =FALSE,
+                   maxit=10)
+
+
+  expect_equal (sum ( unlist( m1$cs)%in% true_pos), length( true_pos)) # 3 one -SNP CS
+
+
+
+})

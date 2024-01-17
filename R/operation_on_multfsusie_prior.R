@@ -60,7 +60,7 @@ init_prior_multfsusie <- function(Y,X, v1 ,
   }
 
   if(is.null(Y$Y_f)){
-    G_prior_f < NULL
+    G_prior_f <- NULL
     res_f <- NULL
   }else{
     if(missing(ind_analysis)){

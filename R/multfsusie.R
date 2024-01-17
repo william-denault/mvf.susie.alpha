@@ -70,6 +70,7 @@
 #' (usefull in small sample size)
 #' @param init_pi0_w starting value of weight on null compoenent in mixsqp
 #'  (between 0 and 1)
+#' @param e threshold value to avoid computing posterior that have low alpha value. Set it to 0 to compute the entire posterior. default value is 0.001
 #' @export
 #' @examples
 #'
@@ -188,8 +189,8 @@ multfsusie <- function(Y ,X,L=2,
                        max_step_EM=1,
                        cor_small=FALSE,
                        filter.number = 10,
-                       family = "DaubLeAsymm"
-
+                       family = "DaubLeAsymm",
+                       e = 0.001
                       )
 
 
@@ -279,7 +280,8 @@ multfsusie <- function(Y ,X,L=2,
       v1  <- nrow( Y_f [[1]])
     }else{
       Y_f <- NULL
-      v1  <- nrow( Y_u)
+      v1  <- nrow( Y$Y_u)
+      outing_grid <- NULL
     }
 
 
@@ -403,7 +405,8 @@ multfsusie <- function(Y ,X,L=2,
                                         EM_pi           = EM_out,
                                         effect_estimate = effect_estimate,
                                         list_indx_lst   = list_indx_lst,
-                                        low_trait       = low_trait )
+                                        low_trait       = low_trait ,
+                                        e               = e)
 
 
     multfsusie.obj <- update_ELBO(multfsusie.obj,
@@ -480,7 +483,8 @@ multfsusie <- function(Y ,X,L=2,
                                             EM_pi           = EM_out,
                                             effect_estimate = effect_estimate,
                                             list_indx_lst   = list_indx_lst,
-                                            low_trait       = low_trait )
+                                            low_trait       = low_trait,
+                                            e               = e)
 
 
       }#end for l in 1:L  -----
