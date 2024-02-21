@@ -31,9 +31,9 @@ init_prior_multfsusie <- function(Y,X, v1 ,
     res_u   <- NULL
   }else{
     if(missing(ind_analysis )){
-      res_u   <- susiF.alpha:::cal_Bhat_Shat(Y$Y_u,X,v1)
+      res_u   <- fsusieR:::cal_Bhat_Shat(Y$Y_u,X,v1)
     }else{
-      res_u   <- susiF.alpha:::cal_Bhat_Shat(Y$Y_u,X,v1,lowc_wc=NULL,ind_analysis =ind_analysis$idx_u)
+      res_u   <- fsusieR:::cal_Bhat_Shat(Y$Y_u,X,v1,lowc_wc=NULL,ind_analysis =ind_analysis$idx_u)
     }
 
     if (is.null(low_trait$low_u)){
@@ -67,7 +67,7 @@ init_prior_multfsusie <- function(Y,X, v1 ,
 
 
         t_G_prior_f <-lapply(1:length(Y$Y_f),
-                             function(k) susiF.alpha:::init_prior.default( Y              = Y$Y_f[[k]],
+                             function(k) fsusieR:::init_prior.default( Y              = Y$Y_f[[k]],
                                                                            X              = X,
                                                                            v1             = v1,
                                                                            prior          = prior,
@@ -86,7 +86,7 @@ init_prior_multfsusie <- function(Y,X, v1 ,
     }else{
 
         t_G_prior_f <-lapply(1:length(Y$Y_f),
-                             function(k) susiF.alpha:::init_prior.default( Y              = Y$Y_f[[k]],
+                             function(k) fsusieR:::init_prior.default( Y              = Y$Y_f[[k]],
                                                                            X              = X,
                                                                            v1             = v1,
                                                                            prior          = prior,
@@ -158,7 +158,7 @@ get_pi_G_prior.multfsusie_prior <- function(G_prior)
   }else{
     est_pi_f <- lapply(1:length(G_prior$G_prior_f),
                        function(j)
-                         susiF.alpha::get_pi_G_prior(G_prior$G_prior_f[[j]])
+                         fsusieR::get_pi_G_prior(G_prior$G_prior_f[[j]])
                        )
   }
 
@@ -222,7 +222,7 @@ update_prior.multfsusie_prior <- function(G_prior, tpi, ... ){
 
   if (!is.null(G_prior$G_prior_f)){
 
-    G_prior$G_prior_f <- lapply( 1:length(G_prior$G_prior_f), function(k) susiF.alpha::update_prior(
+    G_prior$G_prior_f <- lapply( 1:length(G_prior$G_prior_f), function(k) fsusieR::update_prior(
                                                                                  G_prior$G_prior_f[[k]],
                                                                                  tpi$est_pi_f[[k]])
     )

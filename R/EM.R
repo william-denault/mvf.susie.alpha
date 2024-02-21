@@ -300,8 +300,8 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
   while( k <max_step &  abs(newloglik-oldloglik)>=espsilon)
   {
     # E step----
-    oldloglik <- susiF.alpha::cal_lik(lBF,zeta)
-    zeta      <- susiF.alpha::cal_zeta(lBF)
+    oldloglik <- fsusieR::cal_lik(lBF,zeta)
+    zeta      <- fsusieR::cal_zeta(lBF)
 
     # M step ----
     tpi_k   <- m_step_multsusie(L_mat          = L_mat,
@@ -318,7 +318,7 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
                   low_trait       = low_trait ,
                   df              = df)
     lBF <- ifelse(lBF==-Inf,0,lBF)
-    newloglik <- susiF.alpha::cal_lik(lBF,zeta)
+    newloglik <- fsusieR::cal_lik(lBF,zeta)
     k <- k+1
 
   }
@@ -349,7 +349,7 @@ L_mixsq_multsusie <- function(G_prior, effect_estimate, list_indx_lst,idx ) {
     L_mat_f <- NULL
   }else{
     L_mat_f <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
-      susiF.alpha::L_mixsq(G_prior$G_prior_f[[k]],
+      fsusieR::L_mixsq(G_prior$G_prior_f[[k]],
                            Bhat     = effect_estimate$res_f[[k]]$Bhat[idx,],
                            Shat     = effect_estimate$res_f[[k]]$Shat[idx,],
                            indx_lst = list_indx_lst[[k]]
@@ -430,7 +430,7 @@ m_step_multsusie <- function(L_mat, zeta, list_indx_lst, init_pi0_w,  control_mi
     est_pi_f <- NULL
   }else{
     est_pi_f <- lapply(1:length(L_mat$L_mat_f) ,
-                       function(k)susiF.alpha::m_step(L_mat$L_mat_f[[k]],
+                       function(k)fsusieR::m_step(L_mat$L_mat_f[[k]],
                                                       zeta=zeta ,
                                                       indx_lst=list_indx_lst[[k]],
                                                       init_pi0_w= init_pi0_w,

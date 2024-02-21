@@ -129,13 +129,13 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
     res_u <- NULL
   }else{
     if(missing(ind_analysis)){
-      res_u   <- susiF.alpha:::cal_Bhat_Shat(Y=Y$Y_u,
+      res_u   <- fsusieR:::cal_Bhat_Shat(Y=Y$Y_u,
                                                X=X,
                                                v1=v1,
                                                lowc_wc=low_trait$low_u)
     #  res_u$Shat <- res_u$Shat%*%diag(sqrt(multfsusie.obj$sigma2$sd_u))
     }else{
-      res_u   <- susiF.alpha:::cal_Bhat_Shat(Y=Y$Y_u,
+      res_u   <- fsusieR:::cal_Bhat_Shat(Y=Y$Y_u,
                                                X=X,
                                                v1=v1,
                                                lowc_wc=low_trait$low_u,
@@ -154,7 +154,7 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
 
       if(parallel){
         res_f <- parallel::mclapply(1:length(Y$Y_f),
-                                    function(k) susiF.alpha:::cal_Bhat_Shat(Y$Y_f[[k]],
+                                    function(k) fsusieR:::cal_Bhat_Shat(Y$Y_f[[k]],
                                                                 X       = X,
                                                                 v1      = v1,
                                                                 resid_var = multfsusie.obj$sigma2$sd_f[k],
@@ -164,7 +164,7 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
                                    )
       }else{
         res_f <- lapply(1:length(Y$Y_f),
-                        function(k) susiF.alpha:::cal_Bhat_Shat(Y$Y_f[[k]],
+                        function(k) fsusieR:::cal_Bhat_Shat(Y$Y_f[[k]],
                                                                 X       = X,
                                                                 v1      = v1,
                                                                 resid_var = multfsusie.obj$sigma2$sd_f[k],
@@ -178,7 +178,7 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
 
       if(parallel){
         res_f <-  parallel::mclapply( 1:length(Y$Y_f),
-                        function(k) susiF.alpha:::cal_Bhat_Shat(Y$Y_f[[k]],
+                        function(k) fsusieR:::cal_Bhat_Shat(Y$Y_f[[k]],
                                                                 X       = X,
                                                                 v1      = v1,
                                                                 lowc_wc = low_trait$low_wc[[k]],
@@ -189,7 +189,7 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
                                     )
       }else{
         res_f <- lapply(1:length(Y$Y_f),
-                        function(k) susiF.alpha:::cal_Bhat_Shat(Y$Y_f[[k]],
+                        function(k) fsusieR:::cal_Bhat_Shat(Y$Y_f[[k]],
                                                                 X       = X,
                                                                 v1      = v1,
                                                                 lowc_wc = low_trait$low_wc[[k]],
@@ -315,7 +315,7 @@ cal_clfsr <- function (G_prior, effect_estimate, list_indx_lst,...)
 #
 #' @importFrom ashr set_data
 #' @importFrom ashr get_fitted_g
-#' @importFrom susiF.alpha cal_clfsr.mixture_normal_per_scale
+#' @importFrom fsusieR cal_clfsr.mixture_normal_per_scale
 #  @importFrom ashr calc_lfsr
 #' @export
 #
@@ -328,7 +328,7 @@ cal_clfsr.multfsusie_prior <- function(G_prior ,
     clfsr_wc <- lapply(1: length(effect_estimate$res_f),
                        function(k){
 
-                         susiF.alpha:::cal_clfsr (
+                         fsusieR:::cal_clfsr (
                            G_prior  = G_prior$G_prior_f[[k]],
                            Bhat     = effect_estimate$res_f[[k]]$Bhat,
                            Shat     = effect_estimate$res_f[[k]]$Shat,
@@ -507,7 +507,7 @@ log_BF.multfsusie_prior <- function( G_prior,
       f_logBF <- rep(0,nrow(effect_estimate$res_u[[1]] ))
     }else{
       f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
-        susiF.alpha::log_BF(G_prior  = G_prior$G_prior_f[[k]],
+        fsusieR::log_BF(G_prior  = G_prior$G_prior_f[[k]],
                             Bhat     = effect_estimate$res_f[[k]]$Bhat,
                             Shat     = effect_estimate$res_f[[k]]$Shat,
                             indx_lst = list_indx_lst[[k]],
@@ -539,7 +539,7 @@ log_BF.multfsusie_prior <- function( G_prior,
     }else{
       #print( "moderated BF f ")
       f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
-        susiF.alpha::log_BF(G_prior  = G_prior$G_prior_f[[k]],
+        fsusieR::log_BF(G_prior  = G_prior$G_prior_f[[k]],
                             Bhat     = effect_estimate$res_f[[k]]$Bhat,
                             Shat     = effect_estimate$res_f[[k]]$Shat,
                             indx_lst = list_indx_lst[[k]],

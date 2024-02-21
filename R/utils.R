@@ -198,10 +198,10 @@ multi_array_colScale <- function(Y, scale=FALSE){
 
   if( !is.null(Y$Y_u))
   {
-    Y$Y_u <- susiF.alpha:::colScale   (Y$Y_u,scale=FALSE)
+    Y$Y_u <- fsusieR:::colScale   (Y$Y_u,scale=FALSE)
   }
   if(!is.null(Y$Y_f)){
-    Y$Y_f <- lapply( 1:length(Y$Y_f), function(k)  susiF.alpha:::colScale(Y$Y_f[[k]],scale=FALSE) )
+    Y$Y_f <- lapply( 1:length(Y$Y_f), function(k)  fsusieR:::colScale(Y$Y_f[[k]],scale=FALSE) )
   }
 
  return( Y)
@@ -250,7 +250,7 @@ check_low_count <- function(Y, thresh_lowcount, ind_analysis ){
 if(missing(ind_analysis )){
   if( !is.null(Y$Y_f)){
     temp_f <-  lapply( 1:length(Y$Y_f), function(d)
-      susiF.alpha:::which_lowcount(Y_f=Y$Y_f[[d]] ,
+      fsusieR:::which_lowcount(Y_f=Y$Y_f[[d]] ,
                                    thresh_lowcount= thresh_lowcount$thresh_f[d]
       )
     )
@@ -279,7 +279,7 @@ if(missing(ind_analysis )){
   if( !is.null(Y$Y_f)){
 
    temp_f <-  lapply( 1:length(Y$Y_f), function(d)
-                                     susiF.alpha:::which_lowcount(Y_f=Y$Y_f[[d]][ind_analysis$idx_f[[d]],],
+                                     fsusieR:::which_lowcount(Y_f=Y$Y_f[[d]][ind_analysis$idx_f[[d]],],
                                                            thresh_lowcount= thresh_lowcount$thresh_f[d]
                                                            )
                   )

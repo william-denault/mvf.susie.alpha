@@ -130,7 +130,7 @@ mvfsusie <- function(Y, X, L = 2,
   DW_tens <- rearrange( W, lev_res = lev_res, n_curve=nrow(Y[[1]]))
 
   ### Definition of some static parameters ---
-  indx_lst <-  susiF.alpha::gen_wavelet_indx(log2(length( outing_grid)))
+  indx_lst <-  fsusieR::gen_wavelet_indx(log2(length( outing_grid)))
   v1       <-  rep(1, dim(X)[1])### used in fit_lm to add a column of 1 in the design matrix
 
 

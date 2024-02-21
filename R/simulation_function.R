@@ -5,7 +5,7 @@
 #'@param n_univ number of univariate trait to be analysed
 #'@param effect_univ possible effect size of the SNP on the univariate phenotype (if missing the effect size are sample at random as -1 or 1)
 #'@param output_level if equal to 1 (default) provide simplified output for functional effect, setting it to 2 provide more detailled output see
-#'simu_IBSS_per_level in susiF.alpha for additional details
+#'simu_IBSS_per_level in fsusieR for additional details
 #'@export
 #'@examples
 #'
@@ -29,7 +29,7 @@ simu_effect_multfsusie <- function(list_lev_res=NULL, n_univ=NULL, effect_univ,
     if (!is.null(list_lev_res)){
       func_effect <- list()
       for ( k in 1:length(list_lev_res)){
-        func_effect[[k]] <- susiF.alpha::simu_IBSS_per_level  ( lev_res=list_lev_res[[k]])$sim_func
+        func_effect[[k]] <- fsusieR::simu_IBSS_per_level  ( lev_res=list_lev_res[[k]])$sim_func
       }
     }
   }
@@ -38,7 +38,7 @@ simu_effect_multfsusie <- function(list_lev_res=NULL, n_univ=NULL, effect_univ,
     if (!is.null(list_lev_res)){
       func_effect <- list()
       for ( k in 1:length(list_lev_res)){
-        func_effect[[k]] <- susiF.alpha::simu_IBSS_per_level  ( lev_res=list_lev_res[[k]])
+        func_effect[[k]] <- fsusieR::simu_IBSS_per_level  ( lev_res=list_lev_res[[k]])
       }
     }
   }

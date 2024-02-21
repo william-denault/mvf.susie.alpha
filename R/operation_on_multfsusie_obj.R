@@ -423,7 +423,7 @@ HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,ind_analysis ,verbose=
   for ( k in 1: length(Y$Y_f)){
 
 
-    susiF.obj <- susiF.alpha::HMM_regression.susiF( susiF.obj    = dummy_susiF.obj,
+    susiF.obj <- fsusieR::HMM_regression.susiF( susiF.obj    = dummy_susiF.obj,
                                                     Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],
                                                     X             = X[ind_analysis$idx_f[[k]],],
                                                     verbose       = FALSE ,
@@ -1045,7 +1045,7 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X,ind_analysis ) {
 #
 #' @return multfsusie.obj object
 #
-#' @importFrom susiF.alpha cal_cor_cs
+#' @importFrom fsusieR cal_cor_cs
 #' @export get_pi0.multfsusie
 #' @keywords internal
 #
@@ -1097,7 +1097,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
       )
 
       if( length(multfsusie.obj$cs)>1){
-        A <- susiF.alpha::cal_cor_cs(multfsusie.obj, X)$cs_cor
+        A <- fsusieR::cal_cor_cs(multfsusie.obj, X)$cs_cor
         tl <- which(A>0.99, arr.ind = TRUE)
         tl <-  tl[- which( tl[,1]==tl[,2]),]
 
@@ -1135,7 +1135,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 
 
     if( length(multfsusie.obj$cs)>1){
-      A <- susiF.alpha::cal_cor_cs(multfsusie.obj, X)$cs_cor
+      A <- fsusieR::cal_cor_cs(multfsusie.obj, X)$cs_cor
       tl <- which(A>0.99, arr.ind = TRUE)
       tl <-  tl[- which( tl[,1]==tl[,2]),]
 
@@ -1165,7 +1165,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
   if(!(multfsusie.obj$greedy )&!(multfsusie.obj$backfit ) ){
 
     if( length(multfsusie.obj$cs)>1){
-      A <- susiF.alpha::cal_cor_cs(multfsusie.obj, X)$cs_cor
+      A <- fsusieR::cal_cor_cs(multfsusie.obj, X)$cs_cor
       tl <- which(A>0.99, arr.ind = TRUE)
       tl <-  tl[- which( tl[,1]==tl[,2]),]
 
@@ -1196,7 +1196,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 
     if(temp==0){
       if( length(multfsusie.obj$cs)>1){
-        A <- susiF.alpha::cal_cor_cs(multfsusie.obj, X)$cs_cor
+        A <- fsusieR::cal_cor_cs(multfsusie.obj, X)$cs_cor
         tl <- which(A>0.99, arr.ind = TRUE)
         tl <-  tl[- which( tl[,1]==tl[,2]),]
 
@@ -1230,7 +1230,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 
 
     if( length(multfsusie.obj$cs)>1){
-      A <- susiF.alpha::cal_cor_cs(multfsusie.obj, X)$cs_cor
+      A <- fsusieR::cal_cor_cs(multfsusie.obj, X)$cs_cor
       tl <- which(A>0.99, arr.ind = TRUE)
       tl <-  tl[- which( tl[,1]==tl[,2]),]
 
@@ -1259,20 +1259,20 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min.puri
 # @param G_prior a mixutre_per_scale prior
 # @param  Bhat matrix of estimated mean
 # @param Shat matrix of estimated sd
-# @importFrom susiF.alpha post_mat_mean
-# @importFrom susiF.alpha post_mat_sd
+# @importFrom fsusieR post_mat_mean
+# @importFrom fsusieR post_mat_sd
 #
 
 list_post_mean_sd <- function(G_prior, Bhat,Shat,lBF,  indx_lst, lowc_wc=NULL,e=0.001)
 {
-  out <- list (Bhat= susiF.alpha::post_mat_mean( G_prior ,
+  out <- list (Bhat= fsusieR::post_mat_mean( G_prior ,
                                                  Bhat,
                                                  Shat,
                                                  lBF      = lBF,
                                                  indx_lst = indx_lst,
                                                  lowc_wc  = lowc_wc,
                                                  e=e),
-               Shat=susiF.alpha:: post_mat_sd(   G_prior ,
+               Shat=fsusieR:: post_mat_sd(   G_prior ,
                                                  Bhat,
                                                  Shat,
                                                  lBF      = lBF,
@@ -1725,7 +1725,7 @@ update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
     multfsusie.obj$ fitted_u[[l]]        <-   post_effect$res_u$Bhat
     multfsusie.obj$ fitted_u2[[l]]       <-   post_effect$res_u$Shat^2
 
-    #susiF.alpha::cal_clfsr(G_prior = multfsusie.obj$G_prior$G_prior_[[k]],
+    #fsusieR::cal_clfsr(G_prior = multfsusie.obj$G_prior$G_prior_[[k]],
     #                       Bhat = post_effect$res_u$Bhat,
     #                       Shat=post_effect$res_u$Shat,
     #                       indx_lst=list_indx_lst[[k]])
@@ -1740,7 +1740,7 @@ update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
         multfsusie.obj$fitted_wc2[[l]][[k]] <- post_effect$res_f[[k]]$Shat^2
 
 
-    # susiF.alpha::cal_clfsr(G_prior = multfsusie.obj$G_prior$G_prior_f[[k]],
+    # fsusieR::cal_clfsr(G_prior = multfsusie.obj$G_prior$G_prior_f[[k]],
     #                        Bhat = post_effect$res_f[[k]]$Bhat,
     #                        Shat=post_effect$res_f[[k]]$Shat,
     #                       indx_lst=list_indx_lst[[k]])
@@ -1748,7 +1748,7 @@ update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
     }
   }
 
-  new_alpha      <- susiF.alpha::cal_zeta (  EM_pi$lBF)
+  new_alpha      <- fsusieR::cal_zeta (  EM_pi$lBF)
   multfsusie.obj <- update_alpha(multfsusie.obj, l, new_alpha)
   multfsusie.obj <- update_lBF(multfsusie.obj  = multfsusie.obj,
                                l               = l,
@@ -1876,7 +1876,7 @@ update_lfsr.multfsusie <- function(multfsusie.obj, l, effect_estimate, list_indx
 
       multfsusie.obj$lfsr_wc[[l]] <- lapply(1: length(effect_estimate$res_f),
                                             function(k){
-                                              susiF.alpha:::cal_lfsr ( clfsr_mult$clfsr_wc [[k]],
+                                              fsusieR:::cal_lfsr ( clfsr_mult$clfsr_wc [[k]],
                                                                        multfsusie.obj$alpha[[l]])
                                               }
                                             )
@@ -1890,7 +1890,7 @@ update_lfsr.multfsusie <- function(multfsusie.obj, l, effect_estimate, list_indx
 
     multfsusie.obj$lfsr_u[[l]]  <- do.call( c,lapply(1: ncol(effect_estimate$res_u$Bhat),
                                                      function(k){
-                                                       susiF.alpha:::cal_lfsr ( clfsr_mult$clfsr_u [k,],
+                                                       fsusieR:::cal_lfsr ( clfsr_mult$clfsr_u [k,],
                                                                                 multfsusie.obj$alpha[[l]])
                                                      }
       )
@@ -2172,7 +2172,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
 
      multfsusie.obj$outing_grid <- outing_grid
    }
-  multfsusie.obj$purity      <- susiF.alpha::cal_purity(l_cs= multfsusie.obj$cs, X=X)
+  multfsusie.obj$purity      <- fsusieR::cal_purity(l_cs= multfsusie.obj$cs, X=X)
 
 
   return( multfsusie.obj)
@@ -2446,7 +2446,7 @@ TI_regression <- function (multfsusie.obj,Y,X, verbose ,
 #'
 #'
 #' @importFrom ashr ash
-#' @importFrom susiF.alpha TI_regression.susiF
+#' @importFrom fsusieR TI_regression.susiF
 #' @importFrom wavethresh wd
 #' @export
 #' @keywords internal
@@ -2486,7 +2486,7 @@ TI_regression.multfsusie<- function(multfsusie.obj,
 
   for ( k in 1: length(Y$Y_f)){
 
-    susiF.obj <- susiF.alpha::TI_regression.susiF( susiF.obj     = dummy_susiF.obj,
+    susiF.obj <- fsusieR::TI_regression.susiF( susiF.obj     = dummy_susiF.obj,
                                                    Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],
                                                    X             = X[ind_analysis$idx_f[[k]],],
                                                    verbose       = FALSE,

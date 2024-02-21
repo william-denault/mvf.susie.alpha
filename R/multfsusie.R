@@ -260,7 +260,7 @@ multfsusie <- function(Y ,X,L=2,
 
       for ( k in 1:length(Y$Y_f))
       {
-        map_data <-  susiF.alpha::remap_data(Y=Y$Y_f[[k]],
+        map_data <-  fsusieR::remap_data(Y=Y$Y_f[[k]],
                                              pos=pos[[k]],
                                              verbose=verbose)
         outing_grid[[k]] <- map_data$outing_grid
@@ -272,7 +272,7 @@ multfsusie <- function(Y ,X,L=2,
                                     filter.number = filter.number,
                                     family        = family)
         list_wdfs[[h]]     <- cbind( temp$D,temp$C)
-        list_indx_lst[[h]] <- susiF.alpha:::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
+        list_indx_lst[[h]] <- fsusieR:::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
         h <- h+1
         rm(map_data)
       }
@@ -293,7 +293,7 @@ multfsusie <- function(Y ,X,L=2,
 
 
   #### centering and scaling covariate ----
-  X <- susiF.alpha:::colScale(X)
+  X <- fsusieR:::colScale(X)
 
   # centering input
   Y_data <- multi_array_colScale(Y_data, scale=FALSE)
@@ -447,7 +447,7 @@ multfsusie <- function(Y ,X,L=2,
         }
         if(init){#recycle operation used to fit the prior
 
-          EM_out <- susiF.alpha:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
+          EM_out <- fsusieR:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
                                               lBF  = log_BF(G_prior,
                                                             effect_estimate,
                                                             list_indx_lst,
