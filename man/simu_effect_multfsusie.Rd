@@ -19,7 +19,7 @@ simu_effect_multfsusie(
 \item{effect_univ}{possible effect size of the SNP on the univariate phenotype (if missing the effect size are sample at random as -1 or 1)}
 
 \item{output_level}{if equal to 1 (default) provide simplified output for functional effect, setting it to 2 provide more detailled output see
-simu_IBSS_per_level in susiF.alpha for additional details}
+simu_IBSS_per_level in fsusieR for additional details}
 }
 \description{
 Simulate effect under the multfsusie model

@@ -9,6 +9,7 @@ multfsusie(
   X,
   L = 2,
   pos = NULL,
+  prior = "mixture_normal",
   post_processing = "TI",
   verbose = TRUE,
   maxit = 100,
@@ -24,20 +25,20 @@ multfsusie(
   cal_obj = FALSE,
   greedy = TRUE,
   backfit = TRUE,
-  parallel = FALSE,
   max_SNP_EM = 1000,
   gridmult = sqrt(2),
   max_scale = 10,
   max_step_EM = 1,
   cor_small = FALSE,
   filter.number = 10,
-  family = "DaubLeAsymm"
+  family = "DaubLeAsymm",
+  e = 0.001
 )
 }
 \arguments{
-\item{Y}{a list of  of data frames
-in which element from univariate trait are stored in Y$Y_u, one column corresponds to a univariate trait
- (can be set to NULL if no univariate trait considered) and functional trait are stored in the sub list Y$Y_f
+\item{Y}{a list of   data frames
+in which element from univariate traits are stored in Y$Y_u, one column corresponds to a univariate trait
+ (can be set to NULL if no univariate traits considered) and functional traits are stored in the sub list Y$Y_f
  where each element of the sub list  Y$Y_f is a n by T data frame (T being the number of observation points)
  (can be NULL if no functional trait considered)}
 
@@ -51,6 +52,10 @@ in which element from univariate trait are stored in Y$Y_u, one column correspon
 \item{pos}{vector of length J, corresponding to position/time pf
 the observed column in each entery of Y$Y_f, if missing suppose that the observation
 are evenly spaced}
+
+\item{prior}{specify the prior used in functional trait. The two available choices are
+available "mixture_normal_per_scale", "mixture_normal". Default "mixture_normal",
+ using  "mixture_normal" is up to 40% faster but may lead to slight power loss}
 
 \item{verbose}{If \code{verbose = TRUE}, the algorithm's progress,
 and a summary of the optimization settings, are printed to the
@@ -97,6 +102,8 @@ Basically check if the median of the absolute value of the distribution of
 
 \item{backfit}{logical, if true allow discarding effect via backfitting.
 Set as true by default as TRUE. We advise to keep it as TRUE}
+
+\item{e}{threshold value to avoid computing posterior that have low alpha value. Set it to 0 to compute the entire posterior. default value is 0.001}
 }
 \description{
 Implementation of the multfSuSiE method
@@ -106,14 +113,12 @@ Implementation of the multfSuSiE method
 }
 \examples{
 
-
 library(mvf.susie.alpha)
 set.seed(1)
 
 N <- 100 #Sample size
 P= 100 # number of SNP
-L <- sample(1:10, size=1) #Number of effect
-print(L)
+L <-2 #Number of effect
 list_lev_res <- list(5,6) # two functional phenotypes ,
 #one of length 2^5, and one of length 2^6)
 n_univ <- 3 #3 univariate phenotypes
@@ -158,23 +163,39 @@ pos = list(pos1= 1: ncol(Y$Y_f[[1]]),
 m1 <- multfsusie(Y=Y,
                 X=G,
                 pos=pos,
-                L=11 ,
-                nullweight=10,
-                maxit=10)
+                L=3  )
 m1$cs# credible sets
 
+true_pos
 
-##thresholding some trait
+par(mfrow=c(2,1))
 
-#create object for trhesholding some trait for a user specified value thresholding
 
-threshs <- threshold_set_up( thresh_u= rep(1e-3,3), thresh_f = c(1e-3, 1e-3))
 
+plot( m1$fitted_func[[1]][[1]], type="l", col="green", main="estimated function for the first mark",ylab="y" )
+lines( eff[[2]]$func_effect[[1]]$sim_func)
+lines( m1$cred_band[[1]][[1]][1,], lty=2, col="darkgreen"  )
+lines( m1$cred_band[[1]][[1]][2,],  lty=2,  col="darkgreen" )
+
+plot( m1$fitted_func[[1]][[2]], type="l", col="green" , main="estimated function for second mark",ylab="y" )
+lines( eff[[2]]$func_effect[[2]]$sim_func)
+lines( m1$cred_band[[1]][[2]][1,], lty=2, col="darkgreen" )
+lines( m1$cred_band[[1]][[2]][2,],  lty=2,  col="darkgreen" )
+
+#a bit slower but usefull for properly estimating the support of the effectr
 m1 <- multfsusie(Y=Y,
                 X=G,
-                L=11 ,
-                data.format="list_df",
-                L_start=11,
-                thresh_lowcount=threshs,
-                maxit=10)
+                pos=pos,
+                L=3 ,
+                post_processing = "HMM")
+
+
+plot( m1$fitted_func[[1]][[1]], type="l", col="green", main="estimated function for the first mark",ylab="y" )
+lines( eff[[2]]$func_effect[[1]]$sim_func)
+abline(h=0)
+lines( m1$lfsr[[1]]$est_lfsr_functional[[1]], lty=2, col="darkgreen"  )
+plot( m1$fitted_func[[1]][[2]], type="l", col="green", main="estimated function for the first mark",ylab="y" )
+lines( eff[[2]]$func_effect[[2]]$sim_func)
+abline(h=0)
+lines( m1$lfsr[[1]]$est_lfsr_functional[[2]], lty=2, col="darkgreen"  )
 }
