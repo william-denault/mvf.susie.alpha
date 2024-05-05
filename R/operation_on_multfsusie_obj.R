@@ -423,7 +423,7 @@ HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,ind_analysis ,verbose=
   for ( k in 1: length(Y$Y_f)){
 
 
-    susiF.obj <- fsusieR::HMM_regression.susiF( susiF.obj    = dummy_susiF.obj,
+    susiF.obj <- fsusieR::HMM_regression.susiF(    obj            = dummy_susiF.obj,
                                                     Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],
                                                     X             = X[ind_analysis$idx_f[[k]],],
                                                     verbose       = FALSE ,
@@ -2486,7 +2486,7 @@ TI_regression.multfsusie<- function(multfsusie.obj,
 
   for ( k in 1: length(Y$Y_f)){
 
-    susiF.obj <- fsusieR::TI_regression.susiF( susiF.obj     = dummy_susiF.obj,
+    susiF.obj <- fsusieR::TI_regression.susiF(     obj           = dummy_susiF.obj,
                                                    Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],
                                                    X             = X[ind_analysis$idx_f[[k]],],
                                                    verbose       = FALSE,
