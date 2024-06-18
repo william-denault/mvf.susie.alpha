@@ -5,7 +5,7 @@
 \alias{get_G_prior.multfsusie}
 \title{Acces prior object for multfsusie.obj}
 \usage{
-get_G_prior(mvfsusie.obj.obj, ...)
+get_G_prior(multfsusie.obj, ...)
 
 \method{get_G_prior}{multfsusie}(multfsusie.obj)
 }

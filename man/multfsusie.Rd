@@ -151,12 +151,12 @@ print(true_pos)
 
 par(mfrow=c(2,1))
 plot(m1$fitted_func[[1]][[1]], type="l", col="green", main="Estimated function for the first marker", ylab="y")
-lines(eff[[2]]$func_effect[[1]]$sim_func)
+lines(eff[[1]]$func_effect[[1]]$sim_func)
 lines(m1$cred_band[[1]][[1]][1,], lty=2, col="darkgreen")
 lines(m1$cred_band[[1]][[1]][2,], lty=2, col="darkgreen")
 
 plot(m1$fitted_func[[1]][[2]], type="l", col="green", main="Estimated function for the second marker", ylab="y")
-lines(eff[[2]]$func_effect[[2]]$sim_func)
+lines(eff[[1]]$func_effect[[2]]$sim_func)
 lines(m1$cred_band[[1]][[2]][1,], lty=2, col="darkgreen")
 lines(m1$cred_band[[1]][[2]][2,], lty=2, col="darkgreen")
 
@@ -169,11 +169,11 @@ m1 <- multfsusie(Y=Y,
 
 
 plot( m1$fitted_func[[1]][[1]], type="l", col="green", main="estimated function for the first mark",ylab="y" )
-lines( eff[[2]]$func_effect[[1]]$sim_func)
+lines( eff[[1]]$func_effect[[1]]$sim_func)
 abline(h=0)
 lines( m1$lfsr[[1]]$est_lfsr_functional[[1]], lty=2, col="darkgreen"  )
 plot( m1$fitted_func[[1]][[2]], type="l", col="green", main="estimated function for the first mark",ylab="y" )
-lines( eff[[2]]$func_effect[[2]]$sim_func)
+lines( eff[[1]]$func_effect[[2]]$sim_func)
 abline(h=0)
 lines( m1$lfsr[[1]]$est_lfsr_functional[[2]], lty=2, col="darkgreen"  )
 

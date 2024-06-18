@@ -5,14 +5,14 @@
 \alias{get_pi.multfsusie}
 \title{Acces mixture proportion  for multfsusie.obj}
 \usage{
-get_pi(mvfsusie, l, ...)
+get_pi(multfsusie.obj, l, ...)
 
 \method{get_pi}{multfsusie}(multfsusie.obj, l, ...)
 }
 \arguments{
-\item{l}{effect to be accesed}
-
 \item{multfsusie.obj}{a multfsusie object}
+
+\item{l}{effect to be accesed}
 }
 \description{
 see title

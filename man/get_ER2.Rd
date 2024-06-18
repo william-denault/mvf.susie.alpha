@@ -5,16 +5,16 @@
 \alias{get_ER2.multfsusie}
 \title{Compute expected sum of squares}
 \usage{
-get_ER2(mvfsusie.obj, update_DW_tens, X, ...)
+get_ER2(multfsusie.obj, Y, X, ...)
 
 \method{get_ER2}{multfsusie}(multfsusie.obj, Y, X, ind_analysis)
 }
 \arguments{
-\item{X}{matri of covaraites}
-
 \item{multfsusie.obj}{a multfsusie object}
 
 \item{Y}{matrix of observation}
+
+\item{X}{matri of covaraites}
 }
 \description{
 See title

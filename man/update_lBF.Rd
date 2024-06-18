@@ -5,7 +5,7 @@
 \alias{update_lBF.multfsusie}
 \title{Update multfsusie log Bayes factor}
 \usage{
-update_lBF(mvfsusie.obj, l, lBF, ...)
+update_lBF(susiF.obj, l, lBF, ...)
 
 \method{update_lBF}{multfsusie}(multfsusie.obj, l, lBF, ...)
 }
