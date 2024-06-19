@@ -17,6 +17,7 @@
 
 simu_effect_multfsusie <- function(list_lev_res=NULL, n_univ=NULL, effect_univ,
                                    output_level=1){
+  '%!in%' <- function(x,y)!('%in%'(x,y))
       if (output_level %!in% c(1,2))
           {
             stop("output_level should be between 1 and 2")

@@ -11,18 +11,18 @@ BugReports: https://github.com/stephenslab/mvf.susie.alpha
 Description: Implementation of the Multivariate Sum of Single Functions ("MVFSuSiE") method.
 Depends:
   R (>= 3.1.0),
+  stats,
+  utils (>= 4.3.2),
   ggplot2
 Imports:
   wavethresh (>= 4.6.8),
   fsusieR (>= 0.1.235),
-  stats,
   ashr (>= 2.2-47),
   mixsqp (>= 0.3-43),
   mashr (>= 0.2.57),
   abind (>= 1.4-5),
   matrixStats (>= 0.62.0),
   Rfast (>= 2.1.0),
-  utils (>= 4.3.2),
   mvtnorm
 Suggests:
   susieR,

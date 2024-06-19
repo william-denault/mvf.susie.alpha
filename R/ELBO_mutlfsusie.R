@@ -104,7 +104,7 @@ loglik_SFR.multfsusie <- function(multfsusie.obj, l, Y ,X,ind_analysis , ... )
   sum_over_effect <-  0
   if(!is.null(Y$Y_u)){
     sum_over_effect <- sum_over_effect+Reduce("+", lapply( 1:ncol(Y$Y_u),
-                                                           function(k)  sum(dnorm(Y$Y_u[  ind_analysis$idx_u[[k]],k],
+                                                           function(k)  sum(stats::dnorm(Y$Y_u[  ind_analysis$idx_u[[k]],k],
                                                                                   0,
                                                                                   sqrt(multfsusie.obj$sigma2$sd_u[k]),
                                                                                   log = TRUE)
@@ -115,7 +115,7 @@ loglik_SFR.multfsusie <- function(multfsusie.obj, l, Y ,X,ind_analysis , ... )
   }
   if(!is.null(Y$Y_f)){
     sum_over_effect <- sum_over_effect+Reduce("+", lapply( 1:length(Y$Y_f),
-                                                           function(k)  sum(dnorm(Y$Y_f[[k]][  ind_analysis$idx_f[[k]],],
+                                                           function(k)  sum(stats::dnorm(Y$Y_f[[k]][  ind_analysis$idx_f[[k]],],
                                                                                   0,
                                                                                   sqrt(multfsusie.obj$sigma2$sd_f[k]),
                                                                                   log = TRUE)

@@ -2625,14 +2625,14 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj, min.purity =0.5, X,median
       if(length(multfsusie.obj$cs[[l]]) <5){
         is.dummy.cs <- FALSE
       }else{
-        tt <-  cor( X[,multfsusie.obj$cs[[l]]])
+        tt <-  stats::cor( X[,multfsusie.obj$cs[[l]]])
 
-        is.dummy.cs <-   median(abs( tt[lower.tri(tt, diag =FALSE)]))  <  min.purity
+        is.dummy.cs <-   stats::median(abs( tt[lower.tri(tt, diag =FALSE)]))  <  min.purity
       }
 
 
     }else{
-      is.dummy.cs <-   min(abs(cor( X[,multfsusie.obj$cs[[l]]]))) <  min.purity
+      is.dummy.cs <-   min(abs(stats::cor( X[,multfsusie.obj$cs[[l]]]))) <  min.purity
     }
 
     return( is.dummy.cs)

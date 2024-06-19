@@ -157,15 +157,15 @@ L_mixsq_u <- function(G_prior, Bhat, Shat){
   m     <-  (G_prior )
   sdmat <- outer(c(Shat ^2), m$fitted_g$sd^2,"+")
   L     <- (
-    dnorm(
-      outer(
-        c(Bhat),
-        rep(0,length(m$fitted_g$sd)),
-        FUN="-"
-      )/sdmat,
-      log=TRUE
-    ) -log(sdmat )
-  )
+    stats:: dnorm(
+                 outer(
+                        c(Bhat),
+                        rep(0,length(m$fitted_g$sd)),
+                         FUN="-"
+                       )/sdmat,
+                log=TRUE
+              ) -log(sdmat )
+          )
   L <- rbind(c(0, rep( -100,(ncol(L)-1)  )),#adding penalty line
              L)
   class(L) <- "lik_mixture_normal"

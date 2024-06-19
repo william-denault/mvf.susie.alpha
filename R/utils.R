@@ -285,7 +285,7 @@ if(missing(ind_analysis )){
   if( !is.null(Y$Y_u)){
     temp_u <-  do.call(c,
                        lapply( 1:ncol(Y$Y_u), function(d)
-                                             (  median(abs(Y$Y_u[ind_analysis$idx_u[[d]],d]))<= thresh_lowcount$thresh_u[d])
+                                             (  stats::median(abs(Y$Y_u[ind_analysis$idx_u[[d]],d]))<= thresh_lowcount$thresh_u[d])
 
                               )
                       )
@@ -354,7 +354,7 @@ init_var_multf <- function(Y){
     sigma2$sd_f   <- NULL
   }
   if(!is.null(Y$Y_u)){
-    sigma2$sd_u     <-   apply( Y$Y_u , 2,function(x) var(x,na.rm=TRUE) )
+    sigma2$sd_u     <-   apply( Y$Y_u , 2,function(x) stats::var(x,na.rm=TRUE) )
 
 
   }else{
