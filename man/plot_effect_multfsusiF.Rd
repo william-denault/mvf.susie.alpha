@@ -26,17 +26,24 @@ plot_effect_multfsusiF(
 
 \item{title}{character}
 
-\item{cred.band}{logical, if TRUE, plot credible bands if susiF.obj fitted with wavelets regression. Set as TRUE by default}
+\item{cred.band}{logical, if TRUE, plot credible bands if
+susiF.obj fitted with wavelets regression. Set as TRUE by default.}
 
-\item{lfsr.curve}{logical, if TRUE, plot estimated lfsr of the effect at each base pair  if susiF.obj fitted with HMM regression. Set as TRUE by default}
+\item{lfsr.curve}{logical, if TRUE, plot estimated lfsr of
+the effect at each base pair  if susiF.obj fitted with HMM regression.
+ Set as TRUE by default.
 
-\item{size_line}{numeric, width of the plotted lines}
+ @param lfsr_thresh numeric, threshold for the lfsr curve, set to 0.0 by default.}
 
-\item{size_point}{numeric, size of the point}
+\item{size_line}{numeric, width of the plotted lines.}
 
-\item{pos_SNP}{vector, containing the base pair of the SNPs}
+\item{size_point}{numeric, size of the point.}
 
-\item{point_shape}{vector, containing the shape of dots}
+\item{pos_SNP}{vector, containing the base pair of the SNPs.}
+
+\item{pip_only}{logical, if TRUE, plot only the pip values. Set as FALSE by default.}
+
+\item{point_shape}{vector, containing the shape of dots.}
 
 \item{\dots}{Other arguments..}
 }

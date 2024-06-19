@@ -1,6 +1,4 @@
 rm(list=ls())
-
-devtools::load_all(".")
 library(susiF.alpha)
 library(mvf.susie.alpha)
 library(sim1000G)

@@ -19,11 +19,12 @@
 #
 # @importFrom wavethresh accessC
 # @importFrom wavethresh wd
+# @importFrom stats complete.cases
 # @export
 DWT2 <- function (data, filter.number = 10, family = "DaubLeAsymm")
 {
 
-  NA_pos <- which(!complete.cases(data))
+  NA_pos <- which(!stats::complete.cases(data))
   if (length(NA_pos )>0){
     data [is.na(data)]<-0
   }

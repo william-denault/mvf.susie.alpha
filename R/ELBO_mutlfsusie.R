@@ -257,7 +257,7 @@ Eloglik.multfsusie <-  function (multfsusie.obj,Y ,X,ind_analysis, ... ) {
 #
 #' @export
 #' @keywords internal
-get_objective <- function    (multfsusie.obj,  Y, X,  indx_lst,  ...)
+get_objective <- function    (multfsusie.obj,  Y, X,  list_indx_lst,  ...)
   UseMethod("get_objective")
 
 

@@ -1,105 +1,4 @@
 
-# @title Method to fit mash
-#
-# @description Method to fit mash
-#
-# @param Bhat  matrix of the regression coefficient (MLE)
-# @param Shat  matrix of standard error
-# @param data.driven logical, if TRUE use data driven covariance matrix procedure for fitting mash otherwise uses  cov_canonical method mashr. Set as TRUE by default
-#
-# @return a mash object
-#
-# @importFrom mashr mash_set_data
-# @importFrom mashr mash_1by1
-# @importFrom mashr get_significant_results
-# @importFrom mashr cov_pca
-# @importFrom mashr cov_ed
-# @importFrom mashr cov_canonical
-# @importFrom mashr mash
-#
-# @export
-#
-
-
-basic_mash_fit <- function (Bhat, Shat, data.driven=TRUE, verbose=FALSE)
-{
-  data   = mash_set_data( Bhat,  Shat)
-
-  if( data.driven)
-  {
-    m.1by1 = mash_1by1(data)
-    strong = get_significant_results(m.1by1,0.05)
-    if( !(length(strong)==0))
-    {
-      U.pca  = cov_pca(data,
-                       npc=length(strong),
-                       subset=strong
-      )
-      #Problem with TPCa being NAN
-      U.ed   = cov_ed(data, U.pca, subset=strong)
-      U.c    = cov_canonical(data)
-      m      = mash(data, c(U.c,U.ed),verbose = verbose)
-    }else{
-      U.c    = cov_canonical(data)
-      m      = mash(data, c(U.c),verbose = verbose)
-    }
-  }else{
-    U.c    = cov_canonical(data)
-    m      = mash(data, c(U.c),verbose = verbose)
-  }
-
-
-  return(m)
-}
-
-
-
-
-# @title Regress column l and condition of Y on column j of X
-#
-# @description Add description here.
-#
-# @param Y  tensor phenotype, matrix of size N by size J by xi. The underlying algorithm uses wavelets that assume that J is of the form J^2. If J is not a power of 2, susiF internally remaps the data into a grid of length 2^J
-#
-# @param X matrix of size n by p in
-#
-# @param v1 vector of 1 of length n
-#
-# @return list of two tensor of size pxTx xi of 2 containing the regression coefficient and standard error
-#
-# @importFrom stats var
-#
-# @export
-#
-
-
-cal_Bhat_Shat_tensor  <- function(Y, X, v1)
-{
-  Bhat  <- list()
-  Shat  <- list()
-  h <- 1 # looping index
-  #need to parse by variable  (most inside loop) then by wave coef then by condition
-  for (xi in 1:dim(Y)[3])
-  {
-    for ( l in 1:dim(Y)[2])
-    {
-      out <-  do.call( cbind,lapply( 1:dim(X)[2], function(j) parse_lm_fit( j=j,l=l,xi=xi,v1=v1, Y=Y, X=X ) ) )
-      Bhat[[h]]  <- out[1,]
-      Shat[[h]]  <- out[2,]
-      h <- h+1
-    }
-  }
-
-  tens_Bhat <- array( do.call(c, Bhat), dim = c( ncol(X),dim(Y)[2], dim(Y)[3]) )
-  tens_Shat <- array( do.call(c, Shat), dim = c( ncol(X),dim(Y)[2], dim(Y)[3]) )
-
-  out <- list( tens_Bhat = tens_Bhat,
-               tens_Shat = tens_Shat)
-  return(out)
-}
-
-
-
 
 # @title Regress different marks of Y   on X nxp
 #
@@ -122,7 +21,7 @@ cal_Bhat_Shat_tensor  <- function(Y, X, v1)
 cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
                                       list_indx_lst=NULL,
                                       low_trait=NULL,
-                                      ind_analysis, parallel =FALSE  )
+                                      ind_analysis   )
 {
 
   if(is.null(Y$Y_u)){
@@ -152,17 +51,6 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
 
 
 
-      if(parallel){
-        res_f <- parallel::mclapply(1:length(Y$Y_f),
-                                    function(k) fsusieR:::cal_Bhat_Shat(Y$Y_f[[k]],
-                                                                X       = X,
-                                                                v1      = v1,
-                                                                resid_var = multfsusie.obj$sigma2$sd_f[k],
-                                                                lowc_wc = low_trait$low_wc[[k]]),
-                                   mc.cores=numCores,
-                                   mc.preschedule=FALSE
-                                   )
-      }else{
         res_f <- lapply(1:length(Y$Y_f),
                         function(k) fsusieR:::cal_Bhat_Shat(Y$Y_f[[k]],
                                                                 X       = X,
@@ -172,22 +60,11 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
 
 
                       )
-      }
+
     }else{
 
 
-      if(parallel){
-        res_f <-  parallel::mclapply( 1:length(Y$Y_f),
-                        function(k) fsusieR:::cal_Bhat_Shat(Y$Y_f[[k]],
-                                                                X       = X,
-                                                                v1      = v1,
-                                                                lowc_wc = low_trait$low_wc[[k]],
-                                                                resid_var = multfsusie.obj$sigma2$sd_f[k],
-                                                                ind_analysis=ind_analysis$idx_f[[k]]),
-                                    mc.cores=numCores,
-                                    mc.preschedule=FALSE
-                                    )
-      }else{
+
         res_f <- lapply(1:length(Y$Y_f),
                         function(k) fsusieR:::cal_Bhat_Shat(Y$Y_f[[k]],
                                                                 X       = X,
@@ -196,7 +73,7 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
                                                                 resid_var = multfsusie.obj$sigma2$sd_f[k],
                                                                 ind_analysis=ind_analysis$idx_f[[k]])
         )
-      }
+
 
     }
 
@@ -248,43 +125,6 @@ cal_lbf_cov_mvsusie <- function(G_prior,tens_marg,s,j,indx_lst)
 }
 
 
-# @title Compute Log-Bayes Factor of given scale and covariate for multivariate wavelet regression
-#
-# @description   Compute Log-Bayes Factor of given scale and covariate for multivariate wavelet regression
-#
-# @param G_prior a scale specific mash prior
-#
-# @param tens_marg a list of tensor of marginal association generated by \code{cal_Bhat_Shat_tensor}
-#
-# @param s scale of interest
-#
-# @param j  covariate of interest
-#
-# @param indx_list List generated by \code{\link{gen_wavelet_indx}}
-#   for the given level of resolution
-#
-# @return The log-Bayes factor of the given scale and covariate
-#
-# @export
-#
-
-cal_lbf_mvfsusie_level <-  function(G_prior, tens_marg,s ,j , indx_lst)
-{
-
-
-  Bhat   <-   matrix(tens_marg$tens_Bhat[j,indx_lst[[s]],],ncol = dim(tens_marg$tens_Bhat)[3])
-  Shat   <-   matrix(tens_marg$tens_Shat[j,indx_lst[[s]],],ncol = dim(tens_marg$tens_Bhat)[3])
-  data   <-   mash_set_data( Bhat,  Shat)
-  m      <-   G_prior[[s]]
-
-  loglik      <-  sum (mash_compute_vloglik(m,data))
-  null_loglik <-  mvfsusie_compute_null_loglik(Bhat,Shat)
-  lbf         <-   loglik -null_loglik
-
-  return(lbf)
-}
-
-
 
 
 
@@ -292,10 +132,15 @@ cal_lbf_mvfsusie_level <-  function(G_prior, tens_marg,s ,j , indx_lst)
 #' @title Compute conditional local false sign rate
 #
 #' @description Compute conditional local false sign rate
+#'
 #' @param G_prior multfsusie_prior
 #
 #' @param effect_estimate output of cal_Bhat_Shat_multfsusie
+#'
 #' @param list_indx_lst list of list generated by \code{\link{gen_wavelet_indx}} for the given level of resolution
+#'
+#' @param \ldots other arguments
+#'
 #' @return esitmated conditional lfsr
 #
 #' @export

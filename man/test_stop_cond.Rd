@@ -5,14 +5,14 @@
 \alias{test_stop_cond.multfsusie}
 \title{Check tolerance for stopping criterion}
 \usage{
-test_stop_cond(multfsusie.obj, check, cal_obj, Y, x, list_indx_lst, ...)
+test_stop_cond(multfsusie.obj, check, cal_obj, Y, X, list_indx_lst, ...)
 
 \method{test_stop_cond}{multfsusie}(
   multfsusie.obj,
   check,
   cal_obj,
   Y,
-  x,
+  X,
   list_indx_lst,
   ind_analysis,
   ...

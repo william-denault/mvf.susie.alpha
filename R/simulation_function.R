@@ -105,7 +105,7 @@ mvf_susie_per_level  <-function( lev_res=7,
 
     simdata = simple_sims(50,3,1)
 
-    data = mash_set_data(simdata$Bhat, simdata$Shat)
+    data = mashr::mash_set_data(simdata$Bhat, simdata$Shat)
     U.c = cov_canonical(data)
 
     m = mash(data, U.c, algorithm.version = 'R', posterior_samples = 100)

@@ -5,7 +5,7 @@
 \alias{affected_reg_effect.multfsusie}
 \title{Find affected region for effect l omics k}
 \usage{
-affected_reg_effect(affected_reg_effect, ...)
+affected_reg_effect(multfsusie.obj, l, k, ...)
 
 \method{affected_reg_effect}{multfsusie}(multfsusie.obj, l, k, ...)
 }

@@ -7,7 +7,7 @@
 #' @export
 #' @keywords internal
 
-affected_reg_effect <- function(affected_reg_effect, ...)
+affected_reg_effect <- function(multfsusie.obj,l,k , ...)
   UseMethod("affected_reg_effect")
 
 
@@ -19,6 +19,7 @@ affected_reg_effect <- function(affected_reg_effect, ...)
 #
 #' @export
 #' @keywords internal
+#' @importFrom stats complete.cases
 
 
 affected_reg_effect.multfsusie <- function( multfsusie.obj, l,k , ... ){
@@ -60,7 +61,7 @@ affected_reg_effect.multfsusie <- function( multfsusie.obj, l,k , ... ){
   colnames(reg) <- c("CS", "Start","End")
   reg <- as.data.frame(reg)
   reg <- reg[order(reg$CS, reg$Start),]
-  reg <- reg[complete.cases(reg),]
+  reg <- reg[stats::complete.cases(reg),]
   return(reg)
 }
 
@@ -1418,15 +1419,32 @@ name_cs.multfsusie <- function(multfsusie.obj,X,...){
 
 
 #' @title Plot specific effect from susiF object
+#'
 #' @description  Plot specific effect from susiF object
+#'
 #' @param multfsusie.obj output of the susiF function
+#'
 #' @param effect  the index of the effect to be plotted
-#' @param cred.band logical, if TRUE, plot credible bands if susiF.obj fitted with wavelets regression. Set as TRUE by default
-#' @param  lfsr.curve logical, if TRUE, plot estimated lfsr of the effect at each base pair  if susiF.obj fitted with HMM regression. Set as TRUE by default
-#' @param size_line numeric, width of the plotted lines
-#' @param size_point numeric, size of the point
-#' @param pos_SNP vector, containing the base pair of the SNPs
-#' @param point_shape vector, containing the shape of dots
+#'
+#' @param cred.band logical, if TRUE, plot credible bands if
+#'  susiF.obj fitted with wavelets regression. Set as TRUE by default.
+#'
+#' @param  lfsr.curve logical, if TRUE, plot estimated lfsr of
+#' the effect at each base pair  if susiF.obj fitted with HMM regression.
+#'  Set as TRUE by default.
+#'
+#'  @param lfsr_thresh numeric, threshold for the lfsr curve, set to 0.0 by default.
+#'
+#' @param pip_only logical, if TRUE, plot only the pip values. Set as FALSE by default.
+#'
+#' @param size_line numeric, width of the plotted lines.
+#'
+#' @param size_point numeric, size of the point.
+#'
+#' @param pos_SNP vector, containing the base pair of the SNPs.
+#'
+#' @param point_shape vector, containing the shape of dots.
+#'
 #' @param title character
 #' @param \dots Other arguments..
 #'

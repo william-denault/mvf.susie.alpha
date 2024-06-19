@@ -6,7 +6,7 @@ check_cst_X_sub_case <- function(X,ind_analysis){
 
   if( !is.null(ind_analysis$idx_f)){
   pb_f <-  do.call(c,lapply(1:length(ind_analysis$idx_f), function(k)
-                          which(apply(X[ind_analysis$idx_f[[k]],],2,var)==0)
+                          which(apply(X[ind_analysis$idx_f[[k]],],2,Rfast::colVars)==0)
       )
       )
 
@@ -17,7 +17,7 @@ check_cst_X_sub_case <- function(X,ind_analysis){
 
   if( !is.null(ind_analysis$idx_u)){
     pb_u <-  do.call(c,lapply(1:length(ind_analysis$idx_u), function(k)
-      which(apply(X[ind_analysis$idx_u[[k]],],2,var)==0)
+      which(apply(X[ind_analysis$idx_u[[k]],],2,Rfast::colVars)==0)
     )
     )
 
@@ -256,7 +256,7 @@ if(missing(ind_analysis )){
   if( !is.null(Y$Y_u)){
     temp_u <-  do.call(c,
                        lapply( 1:ncol(Y$Y_u), function(d)
-                         (  median(abs(Y$Y_u[ ,d]))<= thresh_lowcount$thresh_u[d])
+                         (  stats::median(abs(Y$Y_u[ ,d]))<= thresh_lowcount$thresh_u[d])
 
                        )
     )

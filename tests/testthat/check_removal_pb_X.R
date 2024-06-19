@@ -1,7 +1,7 @@
 rm(list=ls()
 )
-devtools::load_all(".")
 library(mvf.susie.alpha)
+library(testthat)
 set.seed(1)
 N <- 100  #Sample size
 P= 10 # number of SNP
@@ -79,6 +79,6 @@ m1 <- multfsusie(Y=Y,
                  nullweight=10,
                  maxit=10 ,
                  post_processing = "HMM")
+test_that("check if dummy colum actually removed", { expect_equal(length(m1$pip), ncol(X)-1)})
 
 
-expect_equal(length(m1$pip), ncol(X)-1)
