@@ -322,7 +322,7 @@ cal_clfsr <- function (G_prior, effect_estimate, list_indx_lst,...)
 
 cal_clfsr.multfsusie_prior <- function(G_prior ,
                                        effect_estimate,
-                                       list_indx_lst){
+                                       list_indx_lst,...){
 
   if( ! is.null(effect_estimate$res_f)){
     clfsr_wc <- lapply(1: length(effect_estimate$res_f),
@@ -482,7 +482,8 @@ log_BF <- function( G_prior,effect_estimate ,list_indx_lst,low_trait , df=NULL )
 #   for the given level of resolution
 # @return  The log-Bayes factor for each covariate.
 #
-# @export
+#' @export
+#' @keywords internal
 log_BF.multfsusie_prior <- function( G_prior,
                                      effect_estimate ,
                                      list_indx_lst,
@@ -918,7 +919,7 @@ parse_lm_fit <- function(j,l,xi, v1,Y,X)
   out <- fast_lm(cbind(v1,X[,j]),Y[,l,xi])
   return(c(out$be[2,1],
            sqrt(
-             var(out$residuals)/sum(
+             Rfast::cova(out$residuals)/sum(
                (X[,j]-mean(X[,j]))^2)
            )
   )

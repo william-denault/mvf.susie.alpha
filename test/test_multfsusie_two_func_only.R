@@ -43,7 +43,7 @@ Y <- list( Y_f = Y_f, Y_u=NULL)
 m1 <- multfsusie(Y=Y,
                  X=G,
                  L=11 ,
-                 data.format="list_df",
+
                  L_start=11 ,
                  nullweight=10,
                  cal_obj =FALSE,
@@ -68,9 +68,9 @@ Y <- list( Y_f = Y_f, Y_u=NULL)
 m2 <- multfsusie(Y=Y,
                  X=G,
                  L=6 ,
-                 data.format="list_df",
+
                  L_start=6 ,
-                 nullweight=1,
+                 nullweight=10,
                  cal_obj =TRUE,
                  maxit=10)
 plot(m2$fitted_func[[1]][[1]], type="l", col="red")

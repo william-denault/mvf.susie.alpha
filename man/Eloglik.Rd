@@ -5,9 +5,9 @@
 \alias{Eloglik.multfsusie}
 \title{Expected log likelihood for a   multfsusie   object}
 \usage{
-Eloglik(multfsusie.obj, Y, X, ...)
+Eloglik(multfsusie.obj, Y, X, ind_analysis, ...)
 
-\method{Eloglik}{multfsusie}(multfsusie.obj, Y, X, ind_analysis)
+\method{Eloglik}{multfsusie}(multfsusie.obj, Y, X, ind_analysis, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}
@@ -15,6 +15,8 @@ Eloglik(multfsusie.obj, Y, X, ...)
 \item{Y}{Matrix of outcomes}
 
 \item{X}{Matrix of covariates}
+
+\item{ind_analysis}{list of indices for the analysis}
 }
 \value{
 Expected log likelihood

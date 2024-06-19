@@ -8,6 +8,7 @@
 out_prep(
   multfsusie.obj,
   Y,
+  interpolated_Y,
   X,
   list_indx_lst,
   filter.cs,
@@ -34,13 +35,16 @@ out_prep(
   family = "DaubLeAsymm",
   ind_analysis,
   TI = FALSE,
-  HMM = FALSE
+  HMM = FALSE,
+  ...
 )
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}
 
 \item{Y}{data}
+
+\item{interpolated_Y}{interpolated functional data}
 
 \item{X}{matrix of size N by p}
 

@@ -7,7 +7,7 @@
 \usage{
 get_ER2(multfsusie.obj, Y, X, ...)
 
-\method{get_ER2}{multfsusie}(multfsusie.obj, Y, X, ind_analysis)
+\method{get_ER2}{multfsusie}(multfsusie.obj, Y, X, ind_analysis, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object}

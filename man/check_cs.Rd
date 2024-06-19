@@ -7,7 +7,7 @@
 \usage{
 check_cs(multfsusie.obj, min.purity = 0.5, X, ...)
 
-\method{check_cs}{multfsusie}(multfsusie.obj, min.purity = 0.5, X)
+\method{check_cs}{multfsusie}(multfsusie.obj, min.purity = 0.5, X, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}

@@ -12,7 +12,8 @@ cal_partial_resid(multfsusie.obj, ...)
   l = l,
   X = X,
   Y = Y,
-  list_indx_lst = list_indx_lst
+  list_indx_lst = list_indx_lst,
+  ...
 )
 }
 \arguments{

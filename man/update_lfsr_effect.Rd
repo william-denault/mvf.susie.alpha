@@ -7,7 +7,7 @@
 \usage{
 update_lfsr_effect(multfsusie.obj, ...)
 
-\method{update_lfsr_effect}{multfsusie}(multfsusie.obj)
+\method{update_lfsr_effect}{multfsusie}(multfsusie.obj, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie.obj object defined by init_multfsusie_obj function}

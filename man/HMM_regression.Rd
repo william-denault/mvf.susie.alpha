@@ -7,7 +7,15 @@
 \usage{
 HMM_regression(multfsusie.obj, Y, X, verbose, maxit, ...)
 
-\method{HMM_regression}{multfsusie}(multfsusie.obj, Y, X, ind_analysis, verbose = TRUE, maxit = 5)
+\method{HMM_regression}{multfsusie}(
+  multfsusie.obj,
+  Y,
+  X,
+  verbose = TRUE,
+  maxit = 5,
+  ind_analysis,
+  ...
+)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie.obj object}
@@ -16,8 +24,13 @@ HMM_regression(multfsusie.obj, Y, X, verbose, maxit, ...)
 
 \item{X}{matrix containing the covariates}
 
-\item{verbose}{logical
-@param maxit max number of iteration}
+\item{verbose}{logical}
+
+\item{maxit}{maximum number of iterations}
+
+\item{...}{Additional arguments passed to other functions.}
+
+\item{ind_analysis}{output of which_notNA_pos}
 }
 \description{
 Compute refined estimate using HMM regression

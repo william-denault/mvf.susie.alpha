@@ -5,9 +5,9 @@
 \alias{loglik_SFR.multfsusie}
 \title{Compute log likelihood of single function regression of effect l}
 \usage{
-loglik_SFR(multfsusie.obj, l, ...)
+loglik_SFR(multfsusie.obj, l, Y, X, ...)
 
-\method{loglik_SFR}{multfsusie}(multfsusie.obj, l, Y, X, ind_analysis = ind_analysis)
+\method{loglik_SFR}{multfsusie}(multfsusie.obj, l, Y, X, ind_analysis, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}
@@ -17,6 +17,10 @@ loglik_SFR(multfsusie.obj, l, ...)
 \item{Y}{wavelet transformed phenotype}
 
 \item{X}{Matrix of covariates}
+
+\item{...}{Additional arguments passed to other functions.}
+
+\item{ind_analysis}{output of which_notNA_pos}
 }
 \value{
 The log-likelihood, \eqn{\log p(Y | X, V)}, where V is the prior parameters

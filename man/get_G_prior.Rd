@@ -7,10 +7,11 @@
 \usage{
 get_G_prior(multfsusie.obj, ...)
 
-\method{get_G_prior}{multfsusie}(multfsusie.obj)
+\method{get_G_prior}{multfsusie}(multfsusie.obj, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a multfsusie object}
+\item{multfsusie.obj}{a multfsusie object
+@param ... Additional arguments passed to other functions.}
 }
 \description{
 see title

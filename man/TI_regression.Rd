@@ -5,7 +5,16 @@
 \alias{TI_regression.multfsusie}
 \title{Compute refined estimate using translation invariant wavelet transform}
 \usage{
-TI_regression(multfsusie.obj, Y, X, verbose, filter.number, family, ...)
+TI_regression(
+  multfsusie.obj,
+  Y,
+  X,
+  ind_analysis,
+  verbose,
+  filter.number,
+  family,
+  ...
+)
 
 \method{TI_regression}{multfsusie}(
   multfsusie.obj,
@@ -14,7 +23,8 @@ TI_regression(multfsusie.obj, Y, X, verbose, filter.number, family, ...)
   ind_analysis,
   verbose = TRUE,
   filter.number = 10,
-  family = "DaubLeAsymm"
+  family = "DaubLeAsymm",
+  ...
 )
 }
 \arguments{
@@ -24,11 +34,15 @@ TI_regression(multfsusie.obj, Y, X, verbose, filter.number, family, ...)
 
 \item{X}{matrix containing the covariates}
 
+\item{ind_analysis}{output of which_notNA_pos}
+
 \item{verbose}{logical}
 
 \item{filter.number}{see wd description in wavethesh package description}
 
 \item{family}{see wd description in wavethresh package description}
+
+\item{...}{Additional arguments passed to other functions.}
 }
 \description{
 Compute refined estimate using translation invariant wavelet transform

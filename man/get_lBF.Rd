@@ -7,7 +7,7 @@
 \usage{
 get_lBF(multfsusie.obj, l, ...)
 
-\method{get_lBF}{multfsusie}(multfsusie.obj, l)
+\method{get_lBF}{multfsusie}(multfsusie.obj, l, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object}

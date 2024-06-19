@@ -31,9 +31,9 @@ init_prior_multfsusie <- function(Y,X, v1 ,
     res_u   <- NULL
   }else{
     if(missing(ind_analysis )){
-      res_u   <- fsusieR:::cal_Bhat_Shat(Y$Y_u,X,v1)
+      res_u   <- fsusieR:::cal_Bhat_Shat(Y$Y_u,X,v1=v1)
     }else{
-      res_u   <- fsusieR:::cal_Bhat_Shat(Y$Y_u,X,v1,lowc_wc=NULL,ind_analysis =ind_analysis$idx_u)
+      res_u   <- fsusieR:::cal_Bhat_Shat(Y$Y_u,X,v1=v1,lowc_wc=NULL,ind_analysis =ind_analysis$idx_u)
     }
 
     if (is.null(low_trait$low_u)){
@@ -125,7 +125,13 @@ init_prior_multfsusie <- function(Y,X, v1 ,
 
 }
 
-
+#' @title Extract mixture component from a multfsusie_prior
+#
+#' @param G_prior an object of class "multfsusie_prior"
+#' @return an object of class "pi_multfsusie" which is a list of two elements. The first one
+#' est_pi_u  corresponding of the k ash prior for each of the univariate traits
+#' The second element est_pi_f corresponding of the k  "mixture_normal_per_scale" prior for each of the functional trait
+#' @param ... Additional arguments passed to other functions.
 #' @export
 #' @keywords internal
 
@@ -133,16 +139,18 @@ get_pi_G_prior <- function(G_prior, ...)
   UseMethod("get_pi_G_prior")
 
 
-#' @title Extract mixture component from a multfsusie_prior
+
+
+#' @rdname get_pi_G_prior
 #
-#' @param G_prior an object of class "multfsusie_prior"
-#' @return an object of class "pi_multfsusie" which is a list of two
-#\item {est_pi_u} corresponding of the k ash prior for each of the univariate traits
-#\item {est_pi_f} corresponding of the k  "mixture_normal_per_scale" prior for each of the functional trait
+#' @method get_pi_G_prior multfsusie_prior
+#
+#' @export get_pi_G_prior.multfsusie_prior
+#
 #' @export
 #' @keywords internal
 
-get_pi_G_prior.multfsusie_prior <- function(G_prior)
+get_pi_G_prior.multfsusie_prior <- function(G_prior, ...)
 {
 
   if(is.null(G_prior$G_prior_u))

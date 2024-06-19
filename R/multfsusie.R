@@ -1,79 +1,28 @@
-#' @title Sum of multiple Single Functions
-#'
-#' @description Implementation of the multfSuSiE method
-#'
-#' @details Implementation of the multfSuSiE method
-#'
-#' @param Y  a list of   data frames
-#'   in which element from univariate traits are stored in Y$Y_u, one column corresponds to a univariate trait
-#'    (can be set to NULL if no univariate traits considered) and functional traits are stored in the sub list Y$Y_f
-#'    where each element of the sub list  Y$Y_f is a n by T data frame (T being the number of observation points)
-#'    (can be NULL if no functional trait considered)
-#' @param X matrix of size n by p contains the covariates
-#'@param pos  list of sampling position for Y$Y_f entries, if not provided the alogirthm will consider that the column are venly spaced
-#'if only one of the entry (say entry 2 out of 3 entries) has some non evenly spaced data then you can defined pos as follow,
-#'pos =list(pos1=NULL,pos2=pos_uneven, pos3=NULL), where pos_uneven  is a vector containning the sampling position (assumed to be increasing)
-#')
-#' @param L the number of effect to fit (if not specified set to =2)
-#'#'@param  post_processing character, use "TI" for translation invariant wavelet estimates,
-#'"HMM" for hidden Markov model (useful for estimating non-zero regions),
-#' "none" for simple wavelet estimate (not recommended)
-#' @param pos vector of length J, corresponding to position/time pf
-#' the observed column in each entery of Y$Y_f, if missing suppose that the observation
-#' are evenly spaced
-#' @param prior specify the prior used in functional trait. The two available choices are
-#' available "mixture_normal_per_scale", "mixture_normal". Default "mixture_normal",
-#'  using  "mixture_normal" is up to 40% faster but may lead to slight power loss
-#'
-#' @param L_start number of effect initialized at the start of the algorithm
-
-#' @param control_mixsqp list of parameter for mixsqp function see  mixsqp package
-#'
-#' @param verbose If \code{verbose = TRUE}, the algorithm's progress,
-#' and a summary of the optimization settings, are printed to the
-#' console.
-#'
-#' @param thresh_lowcount numeric, use to check the wavelet coefficients have
-#'  problematic distribution (very low dispersion even after standardization).
-#'  Basically check if the median of the absolute value of the distribution of
-#'   a wavelet coefficient is below this threshold, if yes the algorithm discard
-#'   this wavelet coefficient (setting its estimate effect to 0 and estimate sd to 1).
-#'   Set to 0 by default. Can be useful when analyzing sparse data from sequence
-#'    based assay or small samples.
-#' @param greedy logical, if true allow greedy search for extra effect
-#'  (up to L specify by the user). Set as TRUE by default
-#' @param backfit logical, if true allow discarding effect via backfitting.
-#'  Set as true by default as TRUE. We advise to keep it as TRUE
-#'
-#' @param tol A small, non-negative number specifying the convergence
-#' tolerance for the IBSS fitting procedure. The fitting procedure
-#' will halt when the difference in the variational lower bound, or
-#' \dQuote{ELBO} (the objective function to be maximized), is less
-#' than \code{tol}.
-#'
+#' @title Multi-modal fSuSiE
+#' @description Implementation of the Multi-modal fSuSiE method.
+#' @details Implementation of the multfSuSiE method.
+#' @param Y A list of data frames. Univariate traits are stored in Y$Y_u, with one column per univariate trait (can be set to NULL if no univariate traits are considered). Functional traits are stored in the sublist Y$Y_f, where each element of Y$Y_f is an n by T data frame (T being the number of observation points) (can be NULL if no functional trait is considered).
+#' @param X A matrix of size n by p containing the covariates.
+#' @param pos A list of sampling positions for Y$Y_f entries. If not provided, the algorithm will assume the columns are evenly spaced. If only one entry (e.g., entry 2 out of 3) has non-evenly spaced data, you can define pos as follows: pos = list(pos1=NULL, pos2=pos_uneven, pos3=NULL), where pos_uneven is a vector containing the sampling positions (assumed to be increasing).
+#' @param L The number of effects to fit (default is 2).
+#' @param post_processing Character, use "TI" for translation-invariant wavelet estimates, "HMM" for hidden Markov model (useful for estimating non-zero regions), or "none" for simple wavelet estimate (not recommended).
+#' @param prior Specifies the prior used in functional trait analysis. The two available choices are "mixture_normal_per_scale" and "mixture_normal" (default). Using "mixture_normal" is up to 40\% faster but may lead to slight power loss.
+#' @param L_start Number of effects initialized at the start of the algorithm.
+#' @param control_mixsqp A list of parameters for the mixsqp function (see mixsqp package).
+#' @param verbose If TRUE, the algorithm's progress and a summary of the optimization settings are printed to the console.
+#' @param thresh_lowcount Numeric, used to check if wavelet coefficients have problematic distribution (very low dispersion even after standardization). If the median of the absolute value of the distribution of a wavelet coefficient is below this threshold, the algorithm discards this wavelet coefficient (setting its estimated effect to 0 and its estimated sd to 1). Set to 0 by default. Useful when analyzing sparse data from sequence-based assays or small samples.
+#' @param greedy Logical, if TRUE allows greedy search for extra effects (up to L specified by the user). Set to TRUE by default.
+#' @param backfit Logical, if TRUE allows discarding effects via backfitting. Set to TRUE by default. It is advised to keep this as TRUE.
+#' @param tol A small, non-negative number specifying the convergence tolerance for the IBSS fitting procedure. The fitting procedure will halt when the difference in the variational lower bound, or ELBO (the objective function to be maximized), is less than tol.
 #' @param maxit Maximum number of IBSS iterations to perform.
-#'
-#' @param cov_lev numeric between 0 and 1, corresponding to the
-#' expected level of coverage of the cs if not specified set to 0.95
-#' @param  cal_obj logical if set as true compute ELBO for convergence monitoring
-#' @param min.purity minimum purity for estimated credible sets
-#' @param filter.cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
-#'@param thresh_lowcount list  of numeric (check example), use to check the
-#'   wavelet coefficients/univariate trait have with
-#'  problematic distribution (very low dispersion even after standardization).
-#'  Basically check if the median of the absolute value of the distribution of
-#'   a wavelet coefficient/univariate trait is below a given threshold, if yes the algorithm discard
-#'   this wavelet coefficient (setting its estimate effect to 0 and estimate sd to 1).
-#'   Set to 0 by default. Can be useful when analyzing sparse data from sequence
-#'    based assay or small samples.
-#' @param nullweight numeric value for penalizing likelihood at point mass 0 (should be between 0 and 1)
-#' (usefull in small sample size)
-#' @param init_pi0_w starting value of weight on null compoenent in mixsqp
-#'  (between 0 and 1)
-#' @param e threshold value to avoid computing posterior that have low alpha value. Set it to 0 to compute the entire posterior. default value is 0.001
+#' @param cov_lev Numeric between 0 and 1, corresponding to the expected level of coverage of the credible sets. Default is 0.95.
+#' @param cal_obj Logical, if TRUE computes ELBO for convergence monitoring.
+#' @param min_purity Minimum purity for estimated credible sets.
+#' @param filter_cs Logical, if TRUE filters the credible sets (removing low purity credible sets and those with estimated prior equal to 0).
+#' @param nullweight Numeric value for penalizing likelihood at point mass 0 (should be between 0 and 1). Useful in small sample sizes.
+#' @param init_pi0_w Starting value of weight on null component in mixsqp (between 0 and 1).
+#' @param e Threshold value to avoid computing posterior probabilities that have low alpha values. Set to 0 to compute the entire posterior. Default value is 0.001.
 #' @export
-#'
-#' @examples
 #' @examples
 #' library(mvf.susie.alpha)
 #' set.seed(1)
@@ -114,64 +63,56 @@
 #'
 #' par(mfrow=c(2,1))
 #' plot(m1$fitted_func[[1]][[1]], type="l", col="green", main="Estimated function for the first marker", ylab="y")
-#' lines(eff[[1]]$func_effect[[1]]$sim_func)
+#' lines(eff[[2]]$func_effect[[1]]$sim_func)
 #' lines(m1$cred_band[[1]][[1]][1,], lty=2, col="darkgreen")
 #' lines(m1$cred_band[[1]][[1]][2,], lty=2, col="darkgreen")
 #'
 #' plot(m1$fitted_func[[1]][[2]], type="l", col="green", main="Estimated function for the second marker", ylab="y")
-#' lines(eff[[1]]$func_effect[[2]]$sim_func)
+#' lines(eff[[2]]$func_effect[[2]]$sim_func)
 #' lines(m1$cred_band[[1]][[2]][1,], lty=2, col="darkgreen")
 #' lines(m1$cred_band[[1]][[2]][2,], lty=2, col="darkgreen")
 #'
-#'#a bit slower but usefull for properly estimating the support of the effectr
-#'m1 <- multfsusie(Y=Y,
-#'                 X=G,
-#'                 pos=pos,
-#'                 L=3 ,
-#'                 post_processing = "HMM")
+#' # A bit slower but useful for properly estimating the support of the effect
+#' m1 <- multfsusie(Y=Y, X=G, pos=pos, L=3, post_processing = "HMM")
 #'
-#'
-#'plot( m1$fitted_func[[1]][[1]], type="l", col="green", main="estimated function for the first mark",ylab="y" )
-#'lines( eff[[1]]$func_effect[[1]]$sim_func)
-#'abline(h=0)
-#'lines( m1$lfsr[[1]]$est_lfsr_functional[[1]], lty=2, col="darkgreen"  )
-#'plot( m1$fitted_func[[1]][[2]], type="l", col="green", main="estimated function for the first mark",ylab="y" )
-#'lines( eff[[1]]$func_effect[[2]]$sim_func)
-#'abline(h=0)
-#'lines( m1$lfsr[[1]]$est_lfsr_functional[[2]], lty=2, col="darkgreen"  )
-#'
-multfsusie <- function(Y ,X,L=2,
+#' plot(m1$fitted_func[[1]][[1]], type="l", col="green", main="Estimated function for the first marker", ylab="y")
+#' lines(eff[[2]]$func_effect[[1]]$sim_func)
+#' abline(h=0)
+#' lines(m1$lfsr[[1]]$est_lfsr_functional[[1]], lty=2, col="darkgreen")
+#' plot(m1$fitted_func[[1]][[2]], type="l", col="green", main="Estimated function for the first marker", ylab="y")
+#' lines(eff[[2]]$func_effect[[2]]$sim_func)
+#' abline(h=0)
+#' lines(m1$lfsr[[1]]$est_lfsr_functional[[2]], lty=2, col="darkgreen")
+multfsusie <- function(Y, X, L = 2,
                        pos = NULL,
                        prior = "mixture_normal",
-                       post_processing="TI",
-                       verbose=TRUE,
+                       post_processing = "TI",
+                       verbose = TRUE,
                        maxit = 100,
                        tol = 1e-3,
                        cov_lev = 0.95,
-                       min.purity=0.5,
-                       L_start=3,
-                       #all = FALSE,
-                       filter.cs =TRUE,
-                       init_pi0_w=1,
-                       nullweight=10 ,
-                       control_mixsqp =  list(
-                                              eps = 1e-6,
-                                              numiter.em = 40,
-                                              verbose = FALSE
-                                             ),
+                       min.purity = 0.5,
+                       L_start = 3,
+                       filter.cs = TRUE,
+                       init_pi0_w = 1,
+                       nullweight = 10,
+                       control_mixsqp = list(
+                         eps = 1e-6,
+                         numiter.em = 40,
+                         verbose = FALSE
+                       ),
                        thresh_lowcount,
-                       cal_obj=FALSE,
-                       greedy=TRUE,
-                       backfit=TRUE,
-                       max_SNP_EM=1000,
-                       gridmult=sqrt(2),
-                       max_scale=10,
-                       max_step_EM=1,
-                       cor_small=FALSE,
+                       cal_obj = FALSE,
+                       greedy = TRUE,
+                       backfit = TRUE,
+                       max_SNP_EM = 1000,
+                       gridmult = sqrt(2),
+                       max_scale = 10,
+                       max_step_EM = 1,
+                       cor_small = FALSE,
                        filter.number = 10,
                        family = "DaubLeAsymm",
-                       e = 0.001
-                      )
+                       e = 0.001)
 
 
 {
@@ -318,6 +259,7 @@ multfsusie <- function(Y ,X,L=2,
   }else{
     df= NULL
   }
+
 
   temp  <- init_prior_multfsusie(Y              = Y_data ,
                                  X              = X,
@@ -482,6 +424,8 @@ multfsusie <- function(Y ,X,L=2,
                                               ind_analysis = ind_analysis)
       multfsusie.obj <- update_residual_variance(multfsusie.obj,
                                                  sigma2 = sigma2 )
+
+
 
       multfsusie.obj <- test_stop_cond(multfsusie.obj      = multfsusie.obj,
                                        check               = check,

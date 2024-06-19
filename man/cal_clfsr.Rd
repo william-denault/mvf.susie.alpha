@@ -7,7 +7,7 @@
 \usage{
 cal_clfsr(G_prior, effect_estimate, list_indx_lst, ...)
 
-\method{cal_clfsr}{multfsusie_prior}(G_prior, effect_estimate, list_indx_lst)
+\method{cal_clfsr}{multfsusie_prior}(G_prior, effect_estimate, list_indx_lst, ...)
 }
 \arguments{
 \item{G_prior}{multfsusie_prior}

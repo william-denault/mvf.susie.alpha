@@ -7,7 +7,7 @@
 #' @export
 #' @keywords internal
 
-affected_reg_effect <- function(affected_reg_effect,...)
+affected_reg_effect <- function(affected_reg_effect, ...)
   UseMethod("affected_reg_effect")
 
 
@@ -21,7 +21,7 @@ affected_reg_effect <- function(affected_reg_effect,...)
 #' @keywords internal
 
 
-affected_reg_effect.multfsusie <- function( multfsusie.obj, l,k ){
+affected_reg_effect.multfsusie <- function( multfsusie.obj, l,k , ... ){
   if(is.null(multfsusie.obj$fitted_wc)){
     return(multfsusie.obj)
   }
@@ -89,7 +89,7 @@ cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,
                                          l = l,
                                          X = X,
                                          Y = Y,
-                                         list_indx_lst  = list_indx_lst){
+                                         list_indx_lst  = list_indx_lst,...){
 
   L <- multfsusie.obj$L
 
@@ -132,6 +132,7 @@ cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,
 
 cal_partial_resid_sub <- function( multfsusie.obj, l, X, D, C, indx_lst,cord){
   L <- multfsusie.obj$L
+
   if(L>1){
     id_L <- (1:L)[ - ( (l%%L)+1) ]#Computing residuals R_{l+1} by removing all the effect except effect l+1
 
@@ -179,7 +180,7 @@ check_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
 #' @keywords internal
 
 
-check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X )
+check_cs.multfsusie <- function(multfsusie.obj, min.purity=0.5,X, ... )
 {
 
 
@@ -231,6 +232,7 @@ create_dummy_susiF <- function( multfsusie.obj   ){
 #' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
 #
 #' @param cs vector of integer containing the credible sets to discard
+#' @param ... Additional arguments passed to other functions.
 #
 #' @return a multfsusie.obj without "dummy" credible sets
 #
@@ -254,7 +256,7 @@ discard_cs <- function(multfsusie.obj, cs,...)
 #' @export
 #
 
-discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE)
+discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE, ...)
 {
 
   if( length(cs)==multfsusie.obj$L){
@@ -366,8 +368,15 @@ expand_multfsusie_obj <- function(multfsusie.obj,L_extra)
 #' @param Y  multfsusie.obj data object
 #'
 #' @param X matrix containing the covariates
+#'
 #' @param verbose logical
-#'  @param maxit max number of iteration
+#'
+#' @param maxit maximum number of iterations
+#'
+#' @param ind_analysis output of which_notNA_pos
+#'
+#' @param ... Additional arguments passed to other functions.
+#'
 #' @export
 
 
@@ -385,7 +394,7 @@ HMM_regression<- function (multfsusie.obj,Y,X,verbose, maxit,...)
 #'
 
 
-HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,ind_analysis ,verbose=TRUE, maxit=5   ){
+HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,verbose=TRUE,maxit=5, ind_analysis ,...   ){
 
   if(is.null(multfsusie.obj$fitted_wc)){
     return(multfsusie.obj)
@@ -722,6 +731,7 @@ get_pi0.multfsusie <-function(multfsusie.obj, l, ... ){
 #' @title Acces prior object for multfsusie.obj
 #' @description see title
 #' @param multfsusie.obj a multfsusie object
+#'  @param ... Additional arguments passed to other functions.
 #' @export
 #' @keywords internal
 
@@ -738,7 +748,7 @@ get_G_prior<- function(multfsusie.obj, ...)
 #
 #' @export
 #' @keywords internal
-get_G_prior.multfsusie <- function(multfsusie.obj){
+get_G_prior.multfsusie <- function(multfsusie.obj, ...){
   out <- multfsusie.obj$G_prior
   return(out)
 }
@@ -764,7 +774,7 @@ get_lBF<- function(multfsusie.obj,l, ...)
 #
 #' @export
 #' @keywords internal
-get_lBF.multfsusie <- function(multfsusie.obj,l){
+get_lBF.multfsusie <- function(multfsusie.obj,l, ...){
   out <- multfsusie.obj$lBF[[l]]
   return(out)
 }
@@ -840,9 +850,9 @@ get_post_F  <- function(multfsusie.obj,l, ...)
 #
 # @export get_post_F.multfsusie
 #
-# @export
-#
-get_post_F.multfsusie <- function (multfsusie.obj,l){
+#' @export
+#' @keywords internal
+get_post_F.multfsusie <- function (multfsusie.obj,l, ... ){
 
   if(missing(l))
   {
@@ -911,8 +921,9 @@ get_post_F2  <- function(multfsusie.obj,l, ...)
 # @export get_post_F2.multfsusie
 #
 # @export
-#
-get_post_F2.multfsusie <- function (multfsusie.obj,l){
+#' @export
+#' @keywords internal
+get_post_F2.multfsusie <- function (multfsusie.obj,l, ...){
 
   if(missing(l))
   {
@@ -984,7 +995,7 @@ get_ER2  <- function(multfsusie.obj,Y,X, ...)
 #' @export
 #' @keywords internal
 
-get_ER2.multfsusie = function (  multfsusie.obj,Y, X,ind_analysis ) {
+get_ER2.multfsusie = function (  multfsusie.obj,Y, X,ind_analysis, ... ) {
   postF <- get_post_F(multfsusie.obj )# J by N matrix
   #Xr_L = t(X%*% postF)
   postF2 <- get_post_F2(multfsusie.obj ) # Posterior second moment.
@@ -1309,7 +1320,7 @@ merge_effect <- function( multfsusie.obj, tl, ...)
 #' @export
 #' @keywords internal
 
-merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=FALSE){
+merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=FALSE, ...){
 
 
   if(is.vector( tl)){
@@ -1388,8 +1399,8 @@ name_cs <- function(multfsusie.obj,X,...)
 #
 # @export name_cs.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 
 name_cs.multfsusie <- function(multfsusie.obj,X,...){
 
@@ -1775,8 +1786,8 @@ update_pi  <- function    (multfsusie.obj, l, tpi, ...)
 #
 # @export update_pi.multfsusie
 #
-# @export
-#
+#' @export
+#' @keywords internal
 update_pi.multfsusie <- function( multfsusie.obj, l, tpi, ...)
 {
 
@@ -1826,7 +1837,10 @@ update_KL.multfsusie <- function(multfsusie.obj, Y, X , list_indx_lst,ind_analys
 {
   multfsusie.obj$KL <-  do.call(c,lapply(1:multfsusie.obj$L,
                                          FUN=function(l)
-                                           cal_KL_l(multfsusie.obj, l, Y, X,
+                                           cal_KL_l(multfsusie.obj,
+                                                    l=l,
+                                                    Y=Y,
+                                                    X=X,
                                                     list_indx_lst = list_indx_lst,
                                                     ind_analysis=ind_analysis)))
   return( multfsusie.obj)
@@ -1864,6 +1878,31 @@ update_ELBO.multfsusie <- function    (multfsusie.obj,ELBO, ...)
   return(multfsusie.obj)
 }
 
+
+
+
+#'@title Update lfsr multfsusie l
+#
+#'@param multfsusie.obj a multfsusie
+#'@param  l the effect to be updated new ELBO value
+#'@return multfsusie object
+#' @export
+#' @keywords internal
+
+
+update_lfsr   <- function    (multfsusie.obj, l, ...)
+  UseMethod("update_lfsr")
+
+
+
+#' @rdname update_lfsr
+#'
+#' @method update_lfsr multfsusie
+#'
+#' @export update_lfsr.multfsusie
+#'
+#' @export
+#' @keywords internal
 
 
 update_lfsr.multfsusie <- function(multfsusie.obj, l, effect_estimate, list_indx_lst,...)
@@ -1931,7 +1970,7 @@ update_lfsr_effect  <- function    (multfsusie.obj ,...)
 
 
 
-update_lfsr_effect.multfsusie  <- function(multfsusie.obj){
+update_lfsr_effect.multfsusie  <- function(multfsusie.obj,...){
   multfsusie.obj$lfsr <- list()
 
   for ( l in 1:length(multfsusie.obj$cs)) {
@@ -1974,9 +2013,15 @@ update_lfsr_effect.multfsusie  <- function(multfsusie.obj){
 
 
 #' @title Update residual variance
+#'
 #' @description  See title
+#'
 #' @param multfsusie.obj a multfsusie object
+#'
 #' @param sigma2 the new values for residual variance
+#'
+#' @param ... Additional arguments passed to other functions.
+#'
 update_residual_variance  <- function(multfsusie.obj,sigma2, ...)
   UseMethod("update_residual_variance")
 
@@ -1991,7 +2036,7 @@ update_residual_variance  <- function(multfsusie.obj,sigma2, ...)
 #' @export
 #' @keywords internal
 
-update_residual_variance.multfsusie <- function(multfsusie.obj,sigma2)
+update_residual_variance.multfsusie <- function(multfsusie.obj,sigma2, ...)
 {
   multfsusie.obj$sigma2 <- sigma2
   return(multfsusie.obj)
@@ -2059,7 +2104,7 @@ update_cal_cs  <- function(multfsusie.obj, cov_lev=0.95, ...)
 #' @export
 #' @keywords internal
 
-update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95)
+update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95, ...)
 {
   if(sum( is.na(unlist(multfsusie.obj$alpha))))
   {
@@ -2083,6 +2128,7 @@ update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95)
 #' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
 #
 #' @param Y  data
+#' @param interpolated_Y interpolated functional data
 #' @param X matrix of size N by p
 #
 #' @param list_indx_lst list generated by gen_wavelet_indx for the given level of resolution
@@ -2092,6 +2138,7 @@ update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95)
 #' @keywords internal
 out_prep <- function(multfsusie.obj,
                      Y,
+                     interpolated_Y,
                      X,
                      list_indx_lst,
                      filter.cs,
@@ -2127,7 +2174,8 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                 family = "DaubLeAsymm",
                                 ind_analysis ,
                                 TI=FALSE,
-                                HMM=FALSE)
+                                HMM=FALSE,
+                                ... )
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   multfsusie.obj <-  update_cal_fit_u(multfsusie.obj )
@@ -2288,7 +2336,7 @@ update_cal_fit_u.multfsusie <- function(multfsusie.obj, ... ){
 #' @export
 #' @keywords internal
 
-update_lBF  <- function    (susiF.obj, l, lBF,...)
+update_lBF  <- function    (multfsusie.obj, l, lBF,...)
   UseMethod("update_lBF")
 
 
@@ -2314,29 +2362,19 @@ update_lBF.multfsusie <- function    (multfsusie.obj,l, lBF, ...)
   return(multfsusie.obj)
 }
 
-#
 #' @title Check tolerance for stopping criterion
-#
-#' @export
+#' @description Checks whether the stopping criterion for the multfSuSiE algorithm is met.
 #' @keywords internal
-#
-test_stop_cond <- function(multfsusie.obj, check, cal_obj, Y_data, X, list_indx_lst  ,...)
+#' @export
+test_stop_cond <- function(multfsusie.obj, check, cal_obj, Y , X, list_indx_lst, ...) {
   UseMethod("test_stop_cond")
-
-
+}
 
 #' @rdname test_stop_cond
-#
 #' @method test_stop_cond multfsusie
-#
-#' @export test_stop_cond.multfsusie
-#
 #' @export
-#
+test_stop_cond.multfsusie <- function(multfsusie.obj, check, cal_obj, Y, X, list_indx_lst, ind_analysis, ...) {
 
-
-test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y, X, list_indx_lst, ind_analysis  ,...)
-{
 
   if( multfsusie.obj$L==1)
   {
@@ -2430,11 +2468,19 @@ test_stop_cond.multfsusie<- function(multfsusie.obj, check, cal_obj, Y, X, list_
 #' @param verbose logical
 #' @param filter.number see wd description in wavethesh package description
 #' @param family  see wd description in wavethresh package description
+#' @param ind_analysis output of which_notNA_pos
+#'
+#' @param ... Additional arguments passed to other functions.
 #' @export
 #' @keywords internal
 
-TI_regression <- function (multfsusie.obj,Y,X, verbose ,
-                           filter.number , family   ,...)
+TI_regression <- function (multfsusie.obj,
+                           Y,
+                           X,
+                           ind_analysis ,
+                           verbose ,
+                           filter.number ,
+                           family   ,...)
   UseMethod("TI_regression")
 
 
@@ -2457,7 +2503,7 @@ TI_regression.multfsusie<- function(multfsusie.obj,
                                     ind_analysis ,
                                     verbose=TRUE,
                                     filter.number = 10,
-                                    family = "DaubLeAsymm"  ){
+                                    family = "DaubLeAsymm", ...  ){
   if(is.null(multfsusie.obj$fitted_wc)){
     return(multfsusie.obj)
   }
@@ -2539,7 +2585,7 @@ which_dummy_cs <- function(multfsusie.obj, min.purity=0.5,X,...)
 #' @keywords internal
 #
 
-which_dummy_cs.multfsusie  <- function(multfsusie.obj, min.purity =0.5, X,median_crit=FALSE){
+which_dummy_cs.multfsusie  <- function(multfsusie.obj, min.purity =0.5, X,median_crit=FALSE, ... ){
   dummy.cs<- c()
   if(  multfsusie.obj$L==1){
     return(dummy.cs)

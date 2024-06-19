@@ -121,16 +121,12 @@ fast_lm <- function(x,y)
 {
 
   be <- solve(crossprod(x),crossprod(x,y))
-  sd <-  sqrt(fast_var(y - x %*% be)/(length(x)-1))
+  sd <-  sqrt(Rfast::cova(y - x %*% be)/(length(x)-1))
 
   return(c(be,sd))
 }
 
 
-fast_var <- function (x)
-{
-  .Call(stats:::C_cov, x, x, 5, FALSE)
-}
 
 # @title transform 3d array into a matrix
 #

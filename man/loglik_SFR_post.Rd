@@ -5,9 +5,9 @@
 \alias{loglik_SFR_post.multfsusie}
 \title{Compute posterior expected loglikelihood for  single function regression of effect l}
 \usage{
-loglik_SFR_post(multfsusie.obj, l, ...)
+loglik_SFR_post(multfsusie.obj, l, Y, X, ...)
 
-\method{loglik_SFR_post}{multfsusie}(multfsusie.obj, l, Y, X, ind_analysis)
+\method{loglik_SFR_post}{multfsusie}(multfsusie.obj, l, Y, X, ind_analysis, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}
@@ -17,6 +17,10 @@ loglik_SFR_post(multfsusie.obj, l, ...)
 \item{Y}{wavelet transformed phenotype}
 
 \item{X}{Matrix of covariates}
+
+\item{...}{Additional arguments passed to other functions.}
+
+\item{ind_analysis}{output of which_notNA_pos}
 }
 \value{
 posterior expected loglikelihood for  single function regression of effect l
