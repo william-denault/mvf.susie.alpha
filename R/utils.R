@@ -58,7 +58,7 @@ fast_lm <- function(x,y)
 
 shifter <- function(x, n = 1) {
   # if (n == 0) x else c(tail(x, -n), head(x, n))
-  if (n == 0) x else c(tail(x, n), head(x, -n))
+  if (n == 0) x else c(utils::tail(x, n), utils::head(x, -n))
 }
 
 #shifter(c(1:10), n=-1)
@@ -342,8 +342,13 @@ init_var_multf <- function(Y){
   if(!is.null(Y$Y_f)){
 
     sigma2$sd_f     <- sapply(1:length(Y$Y_f) ,
-                        function( k) mean(apply( Y$Y_f[[k]], 2,function(x) var(x,na.rm=TRUE)))
-                )
+                        function( k) mean(apply( Y$Y_f[[k]],
+                                                 2,
+                                                 function(x) stats::var(x,
+                                                                        na.rm=TRUE)
+                                                 )
+                                          )
+                             )
   }else {
 
     sigma2$sd_f   <- NULL

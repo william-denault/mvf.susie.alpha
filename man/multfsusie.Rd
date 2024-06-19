@@ -100,6 +100,9 @@ If the median of the absolute value of the distribution of a wavelet coefficient
 \item{backfit}{Logical, if TRUE allows discarding effects via backfitting.
 Set to TRUE by default. It is advised to keep this as TRUE.}
 
+\item{max_SNP_EM}{maximum number of SNP used for learning the prior. By default, set to 1000. Reducing this may help reduce
+the computational time. We advise to keep it at least larger than 50}
+
 \item{gridmult}{numeric used to control the number of components used in the mixture prior (see ashr package
 for more details). From the ash function:  multiplier by which the default grid values for mixed differ from one another.
  (Smaller values produce finer grids.). Increasing this value may reduce computational time.}

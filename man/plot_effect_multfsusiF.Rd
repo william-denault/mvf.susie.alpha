@@ -24,6 +24,8 @@ plot_effect_multfsusiF(
 
 \item{effect}{the index of the effect to be plotted}
 
+\item{lfsr_thresh}{numeric, threshold for the lfsr curve, set to 0.0 by default.}
+
 \item{title}{character}
 
 \item{cred.band}{logical, if TRUE, plot credible bands if
@@ -31,9 +33,7 @@ susiF.obj fitted with wavelets regression. Set as TRUE by default.}
 
 \item{lfsr.curve}{logical, if TRUE, plot estimated lfsr of
 the effect at each base pair  if susiF.obj fitted with HMM regression.
- Set as TRUE by default.
-
- @param lfsr_thresh numeric, threshold for the lfsr curve, set to 0.0 by default.}
+ Set as TRUE by default.}
 
 \item{size_line}{numeric, width of the plotted lines.}
 

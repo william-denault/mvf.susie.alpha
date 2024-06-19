@@ -543,9 +543,17 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
   {
 
     if(!is.null(Y$Y_f)){
-      fitted_wc [[l]]       <-    lapply( 1:length(n_wac), function(j) matrix( 0,ncol= n_wac[[j]],  nrow = ncol(X)))
-      fitted_wc2[[l]]       <-    lapply( 1:length(n_wac), function(j) matrix(  1,ncol= n_wac[[j]],  nrow = ncol(X)))
-      lfsr_wc   [[l]]       <-    lapply(lapply(Y$Y_f,ncol) , function(i) rep(1,i))
+      fitted_wc [[l]]       <-    lapply( 1:length(n_wac),
+                                          function(j) matrix( 0,ncol= n_wac[[j]],
+                                                              nrow = ncol(X))
+                                          )
+      fitted_wc2[[l]]       <-    lapply( 1:length(n_wac),
+                                          function(j) matrix(  1,ncol= n_wac[[j]],
+                                                               nrow = ncol(X))
+                                          )
+      lfsr_wc   [[l]]       <-    lapply(lapply(Y$Y_f,ncol) ,
+                                         function(i) rep(1,i)
+                                         )
 
     }
     if(!is.null(Y$Y_u)){
@@ -1433,7 +1441,7 @@ name_cs.multfsusie <- function(multfsusie.obj,X,...){
 #' the effect at each base pair  if susiF.obj fitted with HMM regression.
 #'  Set as TRUE by default.
 #'
-#'  @param lfsr_thresh numeric, threshold for the lfsr curve, set to 0.0 by default.
+#' @param lfsr_thresh numeric, threshold for the lfsr curve, set to 0.0 by default.
 #'
 #' @param pip_only logical, if TRUE, plot only the pip values. Set as FALSE by default.
 #'

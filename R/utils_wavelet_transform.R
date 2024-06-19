@@ -161,7 +161,7 @@ get_mvf_wr <- function( xi,tens, temp_wd.obj,  indx_lst)
 
 wr_tens <- function(tens, temp_wd.obj, indx_lst, out_dim)
 {
-  out <-  abind(
+  out <-  abind::abind(
     lapply( 1:dim(tens)[3],
             function(xi)get_mvf_wr(xi,
                                    tens=tens,

@@ -22,6 +22,7 @@ Imports:
   abind (>= 1.4-5),
   matrixStats (>= 0.62.0),
   Rfast (>= 2.1.0),
+  utils (>= 4.3.2),
   mvtnorm
 Suggests:
   susieR,

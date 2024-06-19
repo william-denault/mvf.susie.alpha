@@ -103,12 +103,12 @@ mvf_susie_per_level  <-function( lev_res=7,
   for ( i in 1:lev_res)
   {
 
-    simdata = simple_sims(50,3,1)
+    simdata = mashr::simple_sims(50,3,1)
 
     data = mashr::mash_set_data(simdata$Bhat, simdata$Shat)
-    U.c = cov_canonical(data)
+    U.c = mashr::cov_canonical(data)
 
-    m = mash(data, U.c, algorithm.version = 'R', posterior_samples = 100)
+    m = mashr::mash(data, U.c, algorithm.version = 'R', posterior_samples = 100)
     G_level[[i]] <- m
     for ( k in unlist(indx_lst[i]))
     {
@@ -127,7 +127,7 @@ mvf_susie_per_level  <-function( lev_res=7,
   for( j in 1:n_curve)
   {
     twav$D <-  tem_wt_func[,j]
-    sim_func[,j] <- wr(twav)
+    sim_func[,j] <- wavethresh::wr(twav)
   }
 
   #plot(accessD(twav,level=6), rev( tt$D[unlist(indx_lst[7])]) )
@@ -138,7 +138,7 @@ mvf_susie_per_level  <-function( lev_res=7,
     plot( sim_func[,1], type="l", ylim = c(min(sim_func),max(sim_func)))
     for( i in 1:n_curve)
     {
-      lines(sim_func[,i], col=i)
+      graphics::lines(sim_func[,i], col=i)
     }
   }
 
