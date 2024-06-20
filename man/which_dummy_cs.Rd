@@ -5,14 +5,14 @@
 \alias{which_dummy_cs.multfsusie}
 \title{Return which credible sets are  dummy}
 \usage{
-which_dummy_cs(multfsusie.obj, min.purity = 0.5, X, ...)
+which_dummy_cs(multfsusie.obj, min_purity = 0.5, X, ...)
 
-\method{which_dummy_cs}{multfsusie}(multfsusie.obj, min.purity = 0.5, X, median_crit = FALSE, ...)
+\method{which_dummy_cs}{multfsusie}(multfsusie.obj, min_purity = 0.5, X, median_crit = FALSE, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a susif object defined by \code{\link{init_susiF_obj}} function}
 
-\item{min.purity}{minimal purity within a CS}
+\item{min_purity}{minimal purity within a CS}
 
 \item{X}{matrix of covariate}
 }

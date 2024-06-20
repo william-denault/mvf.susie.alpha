@@ -55,7 +55,6 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
                         function(k) fsusieR:::cal_Bhat_Shat(Y$Y_f[[k]],
                                                                 X       = X,
                                                                 v1      = v1,
-                                                                resid_var = multfsusie.obj$sigma2$sd_f[k],
                                                                 lowc_wc = low_trait$low_wc[[k]])
 
 
@@ -70,7 +69,6 @@ cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
                                                                 X       = X,
                                                                 v1      = v1,
                                                                 lowc_wc = low_trait$low_wc[[k]],
-                                                                resid_var = multfsusie.obj$sigma2$sd_f[k],
                                                                 ind_analysis=ind_analysis$idx_f[[k]])
         )
 

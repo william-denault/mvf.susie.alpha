@@ -5,9 +5,9 @@
 \alias{greedy_backfit.multfsusie}
 \title{Update  susiF via greedy search or backfit}
 \usage{
-greedy_backfit(multfsusie.obj, verbose, cov_lev, X, min.purity, ...)
+greedy_backfit(multfsusie.obj, verbose, cov_lev, X, min_purity, ...)
 
-\method{greedy_backfit}{multfsusie}(multfsusie.obj, verbose, cov_lev, X, min.purity, ...)
+\method{greedy_backfit}{multfsusie}(multfsusie.obj, verbose, cov_lev, X, min_purity, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a susiF object defined by \code{\link{init_multfsusie.obj_obj}} function}

@@ -5,14 +5,14 @@
 \alias{check_cs.multfsusie}
 \title{Check purity credible sets}
 \usage{
-check_cs(multfsusie.obj, min.purity = 0.5, X, ...)
+check_cs(multfsusie.obj, min_purity = 0.5, X, ...)
 
-\method{check_cs}{multfsusie}(multfsusie.obj, min.purity = 0.5, X, ...)
+\method{check_cs}{multfsusie}(multfsusie.obj, min_purity = 0.5, X, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}
 
-\item{min.purity}{minimal purity within a CS}
+\item{min_purity}{minimal purity within a CS}
 
 \item{X}{matrix of covariate}
 }

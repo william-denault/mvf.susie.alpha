@@ -15,9 +15,9 @@ multfsusie(
   maxit = 100,
   tol = 0.001,
   cov_lev = 0.95,
-  min.purity = 0.5,
+  min_purity = 0.5,
   L_start = 3,
-  filter.cs = TRUE,
+  filter_cs = TRUE,
   init_pi0_w = 1,
   nullweight = 10,
   control_mixsqp = list(eps = 1e-06, numiter.em = 40, verbose = FALSE),
@@ -69,11 +69,11 @@ for the IBSS fitting procedure. The fitting procedure will halt when
 \item{cov_lev}{Numeric between 0 and 1, corresponding to the expected
 level of coverage of the credible sets. Default is 0.95.}
 
-\item{min.purity}{minimum purity for estimated credible sets}
+\item{min_purity}{minimum purity for estimated credible sets}
 
 \item{L_start}{Number of effects initialized at the start of the algorithm.}
 
-\item{filter.cs}{logical, if TRUE filters the credible set (removing low-purity)
+\item{filter_cs}{logical, if TRUE filters the credible set (removing low-purity)
 cs and cs with estimated prior equal to 0). Set as TRUE by default.}
 
 \item{init_pi0_w}{Starting value of weight on null
@@ -122,11 +122,6 @@ The Bayes factor from Valen E Johnson JRSSB 2005 tends to have better coverage i
 \item{e}{Threshold value to avoid computing posterior probabilities
 that have low alpha values. Set to 0 to compute the entire posterior.
 Default value is 0.001.}
-
-\item{min_purity}{Minimum purity for estimated credible sets.}
-
-\item{filter_cs}{Logical, if TRUE filters the credible sets
-(removing low purity credible sets and those with estimated prior equal to 0).}
 }
 \description{
 Implementation of the Multi-modal fSuSiE method.

@@ -64,9 +64,9 @@
 #' @param nullweight Numeric value for penalizing likelihood at point mass 0
 #' (should be between 0 and 1). Useful in small sample sizes.
 #'
-#' @param min.purity minimum purity for estimated credible sets
+#' @param min_purity minimum purity for estimated credible sets
 #'
-#' @param filter.cs logical, if TRUE filters the credible set (removing low-purity)
+#' @param filter_cs logical, if TRUE filters the credible set (removing low-purity)
 #' cs and cs with estimated prior equal to 0). Set as TRUE by default.
 #'
 #' @param gridmult numeric used to control the number of components used in the mixture prior (see ashr package
@@ -172,9 +172,9 @@ multfsusie <- function(Y, X, L = 2,
                        maxit = 100,
                        tol = 1e-3,
                        cov_lev = 0.95,
-                       min.purity = 0.5,
+                       min_purity = 0.5,
                        L_start = 3,
-                       filter.cs = TRUE,
+                       filter_cs = TRUE,
                        init_pi0_w = 1,
                        nullweight = 10,
                        control_mixsqp = list(
@@ -496,7 +496,7 @@ multfsusie <- function(Y, X, L = 2,
                                         verbose        = verbose,
                                         cov_lev        = cov_lev,
                                         X              = X,
-                                        min.purity     = min.purity
+                                        min_purity     = min_purity
       )
 
       sigma2    <- estimate_residual_variance(multfsusie.obj,
@@ -535,7 +535,7 @@ multfsusie <- function(Y, X, L = 2,
                               interpolated_Y  = interpolated_Y,
                               X               = X,
                               list_indx_lst   = list_indx_lst,
-                              filter.cs       = filter.cs,
+                              filter_cs       = filter_cs,
                               outing_grid     = outing_grid,
                               cov_lev         = cov_lev,
                               filter.number   = filter.number,
