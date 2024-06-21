@@ -6,7 +6,7 @@
 
 #' @title Compute KL divergence effect l
 #
-#' @param multfsusie.obj a susisF object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a susisF object defined by init_multfsusie_obj function
 #
 #' @param l integer larger or equal to 1. Corresponds to the effect to be accessed
 #
@@ -59,7 +59,7 @@ cal_KL_l.multfsusie <- function(multfsusie.obj, l, Y, X, list_indx_lst,ind_analy
 
 #' @title Compute log likelihood of single function regression of effect l
 #
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #'
 #' @param l effect to update
 #'
@@ -132,7 +132,7 @@ loglik_SFR.multfsusie <- function(multfsusie.obj, l, Y ,X,ind_analysis , ... )
 
 #' @title Compute posterior expected loglikelihood for  single function regression of effect l
 #'
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #'
 #' @param l effect to update
 #'
@@ -196,7 +196,7 @@ loglik_SFR_post.multfsusie <- function(multfsusie.obj, l,Y,X, ind_analysis,  ...
 
 #' @title Expected log likelihood for a   multfsusie   object
 #'
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #'
 #' @param Y Matrix of outcomes
 #'
@@ -241,7 +241,7 @@ Eloglik.multfsusie <-  function (multfsusie.obj,Y ,X,ind_analysis, ... ) {
 
 #' @title Get objective function from data and multfsusie object
 #'
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #'
 #' @param Y Matrix of outcomes
 #

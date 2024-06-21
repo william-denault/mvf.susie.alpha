@@ -13,7 +13,7 @@ update_alpha(multfsusie.obj, l, alpha, ...)
 \method{update_alpha_hist}{multfsusie}(multfsusie.obj, discard = FALSE, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a multfsusie  object defined by \code{\link{init_multfsusie_obj}} function}
+\item{multfsusie.obj}{a multfsusie  object defined by init_multfsusie_obj function}
 
 \item{l}{integer larger or equal to 1. Corresponds to the effect to be accessed}
 

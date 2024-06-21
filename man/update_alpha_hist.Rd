@@ -7,7 +7,7 @@
 update_alpha_hist(multfsusie.obj, discard, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}
+\item{multfsusie.obj}{a multfsusie object defined by init_multfsusie_obj function}
 
 \item{discard}{logical set to FALSE by default, if true remove element of history longer than L}
 }

@@ -1,7 +1,7 @@
 Encoding: UTF-8
 Type: Package
 Package: mvf.susie.alpha
-Version: 0.1.032
+Version: 0.1.033
 Date: 2022-02-16
 Title: Mutlivariate Sum of Single Functions
 Authors@R: person("William R. P.","Denault",role = c("aut","cre"),
@@ -12,8 +12,7 @@ Description: Implementation of the Multivariate Sum of Single Functions ("MVFSuS
 Depends:
   R (>= 3.1.0),
   stats,
-  utils (>= 4.3.2),
-  ggplot2
+  utils (>= 4.3.2)
 Imports:
   wavethresh (>= 4.6.8),
   fsusieR (>= 0.1.235),
@@ -23,6 +22,8 @@ Imports:
   abind (>= 1.4-5),
   matrixStats (>= 0.62.0),
   Rfast (>= 2.1.0),
+  ggplot2 (>= 3.5.0),
+  LaplacesDemon (>= 16.1.0),
   mvtnorm
 Suggests:
   susieR,

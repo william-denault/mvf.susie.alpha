@@ -158,7 +158,7 @@ cal_partial_resid_sub <- function( multfsusie.obj, l, X, D, C, indx_lst,cord){
 #
 #' @title Check purity credible sets
 #
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #' @param min_purity minimal purity within a CS
 #' @param X matrix of covariate
 #' @return a multfsusie.obj without "dummy" credible s
@@ -230,7 +230,7 @@ create_dummy_susiF <- function( multfsusie.obj   ){
 
 #' @title Discard credible sets
 #
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #
 #' @param cs vector of integer containing the credible sets to discard
 #' @param ... Additional arguments passed to other functions.
@@ -1061,7 +1061,7 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X,ind_analysis, ... ) {
 
 #' @title Update  susiF via greedy search or backfit
 #
-#' @param multfsusie.obj a susiF object defined by \code{\link{init_multfsusie.obj_obj}} function
+#' @param multfsusie.obj a susiF object defined by init_multfsusie_obj function
 #
 #' @return multfsusie.obj object
 #
@@ -1308,7 +1308,7 @@ list_post_mean_sd <- function(G_prior, Bhat,Shat,lBF,  indx_lst, lowc_wc=NULL,e=
 
 #' @title Merging effect function
 #
-#' @param multfsusie.obj a susiF object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a susiF object defined by init_multfsusie_obj function
 #
 #' @param tl see  \code{\link{greedy_backfit}}
 #
@@ -1395,7 +1395,7 @@ merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=FALSE, ...){
 
 # @title Updates CS names for output
 #
-# @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+# @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #
 # @param X matrix of size N by p
 
@@ -1644,7 +1644,7 @@ pred_partial_u <- function( multfsusie.obj, l, X )
 
 #' @title Update alpha   susiF mixture proportion of effect l
 #
-#' @param multfsusie.obj a multfsusie  object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie  object defined by init_multfsusie_obj function
 #
 #' @param l integer larger or equal to 1. Corresponds to the effect to be accessed
 #
@@ -1677,7 +1677,7 @@ update_alpha.multfsusie <-  function(multfsusie.obj, l, alpha, ... )
 
 #' @title Update alpha_hist   multfsusie object
 #
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #
 #' @param  discard logical set to FALSE by default, if true remove element of history longer than L
 #
@@ -1876,7 +1876,7 @@ update_KL.multfsusie <- function(multfsusie.obj, Y, X , list_indx_lst,ind_analys
 
 #'@title Update multfsusie log Bayes factor
 #
-#'@param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#'@param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #'@param  ELBO new ELBO value
 #'@return multfsusie object
 #' @export
@@ -1907,12 +1907,16 @@ update_ELBO.multfsusie <- function    (multfsusie.obj,ELBO, ...)
 
 
 
-#'@title Update lfsr multfsusie l
+#' @title Update lfsr multfsusie l
 #
-#'@param multfsusie.obj a multfsusie
-#'@param  l the effect to be updated new ELBO value
-#'@return multfsusie object
+#' @param multfsusie.obj a multfsusie
+#'
+#' @param  l the effect to be updated new ELBO value
+#'
+#' @return multfsusie object
+#'
 #' @export
+#'
 #' @keywords internal
 
 
@@ -2073,7 +2077,7 @@ update_residual_variance.multfsusie <- function(multfsusie.obj,sigma2, ...)
 
 #' @title Update multfsusie by computing PiP
 #
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #' @return multfsusie object
 #' @export
 #' @keywords internal
@@ -2110,7 +2114,7 @@ update_cal_pip.multfsusie <- function (multfsusie.obj, ...)
 
 #' @title Update multfsusie by computing credible sets
 #
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #
 #' @param cov_lev numeric between 0 and 1, corresponding to the expected level of coverage of the cs if not specified set to 0.95
 #
@@ -2151,7 +2155,7 @@ update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95, ...)
 
 #' @title Preparing output of main multfsusie function
 #
-#' @param multfsusie.obj a multfsusie object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #
 #' @param Y  data
 #' @param interpolated_Y interpolated functional data
@@ -2255,7 +2259,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
 
 #' @title Update multfsusie by computing posterior curves
 #
-#' @param multfsusie.obj a susiF object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a susiF object defined by init_multfsusie_obj function
 #
 #
 #' @param list_indx_lst list generated by gen_wavelet_indx for the given level of resolution
@@ -2308,7 +2312,7 @@ update_cal_fit_func.multfsusie <- function(multfsusie.obj,list_indx_lst,... ){
 
 #' @title Update multfsusie by computing univariate estimates
 #
-#' @param multfsusie.obj a susiF object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a susiF object defined by init_multfsusie_obj function
 #
 
 #' @return multfsusie object
@@ -2355,7 +2359,7 @@ update_cal_fit_u.multfsusie <- function(multfsusie.obj, ... ){
 
 #' @title Update multfsusie log Bayes factor
 #
-#' @param multfsusie.obj a susiF object defined by \code{\link{init_multfsusie_obj}} function
+#' @param multfsusie.obj a susiF object defined by init_multfsusie_obj function
 #' @param l effect to update
 #' @param lBF vector of length p, containing the updated log Bayes factors
 #' @return multfsusie object

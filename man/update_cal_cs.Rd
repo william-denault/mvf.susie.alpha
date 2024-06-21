@@ -10,7 +10,7 @@ update_cal_cs(multfsusie.obj, cov_lev = 0.95, ...)
 \method{update_cal_cs}{multfsusie}(multfsusie.obj, cov_lev = 0.95, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}
+\item{multfsusie.obj}{a multfsusie object defined by init_multfsusie_obj function}
 
 \item{cov_lev}{numeric between 0 and 1, corresponding to the expected level of coverage of the cs if not specified set to 0.95}
 }

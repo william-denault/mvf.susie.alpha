@@ -10,7 +10,7 @@ update_ELBO(multfsusie.obj, ELBO, ...)
 \method{update_ELBO}{multfsusie}(multfsusie.obj, ELBO, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}
+\item{multfsusie.obj}{a multfsusie object defined by init_multfsusie_obj function}
 
 \item{ELBO}{new ELBO value}
 }

@@ -10,7 +10,7 @@ Eloglik(multfsusie.obj, Y, X, ind_analysis, ...)
 \method{Eloglik}{multfsusie}(multfsusie.obj, Y, X, ind_analysis, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}
+\item{multfsusie.obj}{a multfsusie object defined by init_multfsusie_obj function}
 
 \item{Y}{Matrix of outcomes}
 

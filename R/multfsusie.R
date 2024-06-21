@@ -295,7 +295,7 @@ multfsusie <- function(Y, X, L = 2,
 
 
   #### centering and scaling covariate ----
-  X <- fsusieR:::colScale(X)
+  X <- fsusieR::colScale(X)
 
   # centering input
   Y_data <- multi_array_colScale(Y_data, scale=FALSE)

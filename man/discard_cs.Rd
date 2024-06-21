@@ -10,7 +10,7 @@ discard_cs(multfsusie.obj, cs, ...)
 \method{discard_cs}{multfsusie}(multfsusie.obj, cs, out_prep = FALSE, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}
+\item{multfsusie.obj}{a multfsusie object defined by init_multfsusie_obj function}
 
 \item{cs}{vector of integer containing the credible sets to discard}
 

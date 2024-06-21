@@ -10,7 +10,7 @@ update_cal_fit_u(multfsusie.obj, ...)
 \method{update_cal_fit_u}{multfsusie}(multfsusie.obj, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a susiF object defined by \code{\link{init_multfsusie_obj}} function}
+\item{multfsusie.obj}{a susiF object defined by init_multfsusie_obj function}
 }
 \value{
 multfsusie object

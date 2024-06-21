@@ -6,7 +6,7 @@ check_cst_X_sub_case <- function(X,ind_analysis){
 
   if( !is.null(ind_analysis$idx_f)){
   pb_f <-  do.call(c,lapply(1:length(ind_analysis$idx_f), function(k)
-                          which(apply(X[ind_analysis$idx_f[[k]],],2,var)==0)
+                          which(apply(X[ind_analysis$idx_f[[k]],],2,stats::var)==0)
       )
       )
 
@@ -17,7 +17,7 @@ check_cst_X_sub_case <- function(X,ind_analysis){
 
   if( !is.null(ind_analysis$idx_u)){
     pb_u <-  do.call(c,lapply(1:length(ind_analysis$idx_u), function(k)
-      which(apply(X[ind_analysis$idx_u[[k]],],2,var)==0)
+      which(apply(X[ind_analysis$idx_u[[k]],],2,stats::var)==0)
     )
     )
 
@@ -194,10 +194,10 @@ multi_array_colScale <- function(Y, scale=FALSE){
 
   if( !is.null(Y$Y_u))
   {
-    Y$Y_u <- fsusieR:::colScale   (Y$Y_u,scale=FALSE)
+    Y$Y_u <- fsusieR::colScale   (Y$Y_u,scale=FALSE)
   }
   if(!is.null(Y$Y_f)){
-    Y$Y_f <- lapply( 1:length(Y$Y_f), function(k)  fsusieR:::colScale(Y$Y_f[[k]],scale=FALSE) )
+    Y$Y_f <- lapply( 1:length(Y$Y_f), function(k)  fsusieR::colScale(Y$Y_f[[k]],scale=FALSE) )
   }
 
  return( Y)
@@ -246,7 +246,7 @@ check_low_count <- function(Y, thresh_lowcount, ind_analysis ){
 if(missing(ind_analysis )){
   if( !is.null(Y$Y_f)){
     temp_f <-  lapply( 1:length(Y$Y_f), function(d)
-      fsusieR:::which_lowcount(Y_f=Y$Y_f[[d]] ,
+      fsusieR::which_lowcount(Y_f=Y$Y_f[[d]] ,
                                    thresh_lowcount= thresh_lowcount$thresh_f[d]
       )
     )
@@ -275,7 +275,7 @@ if(missing(ind_analysis )){
   if( !is.null(Y$Y_f)){
 
    temp_f <-  lapply( 1:length(Y$Y_f), function(d)
-                                     fsusieR:::which_lowcount(Y_f=Y$Y_f[[d]][ind_analysis$idx_f[[d]],],
+                                     fsusieR::which_lowcount(Y_f=Y$Y_f[[d]][ind_analysis$idx_f[[d]],],
                                                            thresh_lowcount= thresh_lowcount$thresh_f[d]
                                                            )
                   )

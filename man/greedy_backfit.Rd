@@ -10,7 +10,7 @@ greedy_backfit(multfsusie.obj, verbose, cov_lev, X, min_purity, ...)
 \method{greedy_backfit}{multfsusie}(multfsusie.obj, verbose, cov_lev, X, min_purity, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a susiF object defined by \code{\link{init_multfsusie.obj_obj}} function}
+\item{multfsusie.obj}{a susiF object defined by init_multfsusie_obj function}
 }
 \value{
 multfsusie.obj object

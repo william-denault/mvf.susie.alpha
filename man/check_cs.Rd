@@ -10,7 +10,7 @@ check_cs(multfsusie.obj, min_purity = 0.5, X, ...)
 \method{check_cs}{multfsusie}(multfsusie.obj, min_purity = 0.5, X, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a multfsusie object defined by \code{\link{init_multfsusie_obj}} function}
+\item{multfsusie.obj}{a multfsusie object defined by init_multfsusie_obj function}
 
 \item{min_purity}{minimal purity within a CS}
 

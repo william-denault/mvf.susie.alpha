@@ -10,7 +10,7 @@ cal_KL_l(multfsusie.obj, l, Y, X, list_indx_lst, ind_analysis, ...)
 \method{cal_KL_l}{multfsusie}(multfsusie.obj, l, Y, X, list_indx_lst, ind_analysis, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a susisF object defined by \code{\link{init_multfsusie_obj}} function}
+\item{multfsusie.obj}{a susisF object defined by init_multfsusie_obj function}
 
 \item{l}{integer larger or equal to 1. Corresponds to the effect to be accessed}
 

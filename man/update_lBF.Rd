@@ -10,7 +10,7 @@ update_lBF(multfsusie.obj, l, lBF, ...)
 \method{update_lBF}{multfsusie}(multfsusie.obj, l, lBF, ...)
 }
 \arguments{
-\item{multfsusie.obj}{a susiF object defined by \code{\link{init_multfsusie_obj}} function}
+\item{multfsusie.obj}{a susiF object defined by init_multfsusie_obj function}
 
 \item{l}{effect to update}
 
