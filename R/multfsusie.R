@@ -274,7 +274,7 @@ multfsusie <- function(Y, X, L = 2,
                                     filter.number = filter.number,
                                     family        = family)
         list_wdfs[[h]]     <- cbind( temp$D,temp$C)
-        list_indx_lst[[h]] <- fsusieR:::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
+        list_indx_lst[[h]] <- fsusieR::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
         h <- h+1
         rm(map_data)
       }
@@ -416,7 +416,6 @@ multfsusie <- function(Y, X, L = 2,
                                   get_objective( multfsusie.obj = multfsusie.obj,
                                                  Y         = Y_data ,
                                                  X         = X,
-                                                 list_indx_lst  = indx_lst,
                                                  ind_analysis = ind_analysis
                                   )
     )
