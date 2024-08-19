@@ -15,7 +15,7 @@ Depends:
   utils (>= 4.1.0)
 Imports:
   wavethresh (>= 4.6.8),
-  fsusieR (>= 0.1.235),
+  fsusieR (>= 0.2.78),
   ashr (>= 2.2-47),
   mixsqp (>= 0.3-43),
   mashr (>= 0.2.57),
