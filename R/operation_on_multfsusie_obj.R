@@ -138,8 +138,14 @@ cal_partial_resid_sub <- function( multfsusie.obj, l, X, D, C, indx_lst,cord){
     id_L <- (1:L)[ - ( (l%%L)+1) ]#Computing residuals R_{l+1} by removing all the effect except effect l+1
 
 
-    update_D  <-  D - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% (multfsusie.obj$fitted_wc[[l]][[cord]][,-indx_lst[[length(indx_lst)]]])   ) )
-    update_C  <-  C - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% multfsusie.obj$fitted_wc[[l]][[cord]][,indx_lst[[length(indx_lst)]]] ) )
+    update_D  <-  D - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]],
+                                                                     rep.int(dim(X)[1],dim(X)[2]))) %*% (multfsusie.obj$fitted_wc[[l]][[cord]][,-indx_lst[[length(indx_lst)]]])
+                                            )
+                             )
+    update_C  <-  C - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]],
+                                                                     rep.int(dim(X)[1],dim(X)[2]))) %*% multfsusie.obj$fitted_wc[[l]][[cord]][,indx_lst[[length(indx_lst)]]]
+                                            )
+                             )
     update_Y  <- cbind(  update_D, update_C)
   }else{
     id_L <- 1

@@ -376,6 +376,7 @@ multfsusie <- function(Y, X, L = 2,
 
   check <- 3*tol
 
+ # browser()
   update_Y    <-  Y_data
 
   if(verbose){
