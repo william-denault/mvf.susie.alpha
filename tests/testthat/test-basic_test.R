@@ -3,7 +3,7 @@ library(testthat)
 library(ashr)
 library(wavethresh)
 library(mixsqp)
-library(susiF.alpha)
+library(fsusieR)
 set.seed(1)
 f1 <- simu_IBSS_per_level(lev_res=7, alpha=1, prop_decay =1.5)
 # f1$true_coef effect is on wavelet coeff at scale 1 and 50 of coeff scale 2
@@ -122,7 +122,7 @@ if( !is.null(Y$Y_f)){
 
   for ( k in 1:length(Y$Y_f))
   {
-    map_data <-  susiF.alpha::remap_data(Y=Y$Y_f[[k]],
+    map_data <-  fsusieR::remap_data(Y=Y$Y_f[[k]],
                                          pos=pos[[k]],
                                          verbose=verbose)
     outing_grid[[k]] <- map_data$outing_grid
@@ -134,7 +134,7 @@ if( !is.null(Y$Y_f)){
                                 filter.number = filter.number,
                                 family        = family)
     list_wdfs[[h]]     <- cbind( temp$D,temp$C)
-    list_indx_lst[[h]] <- susiF.alpha:::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
+    list_indx_lst[[h]] <- fsusieR:::gen_wavelet_indx( log2(ncol(  list_wdfs[[h]]) ))
     h <- h+1
     rm(map_data)
   }
@@ -153,7 +153,7 @@ Y_data   <- list(Y_u =Y$Y_u,
 
 X_old <- X
 Y_old <-Y_data
-X <- susiF.alpha:::colScale(X)
+X <- fsusieR:::colScale(X)
 
 # centering input
 Y_data <- multi_array_colScale(Y_data, scale=FALSE)
@@ -362,8 +362,8 @@ test_that("The highest assignation should be equal to", {
                tolerance = 0.01)
   expect_equal(tpi$est_pi_u[[3]][1], 0,
                tolerance = 0.01)
-  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[1]]),  c(0.73  ) )
-  expect_lt( susiF.alpha::get_pi0(tpi = tpi$est_pi_f[[2]]) , c( 999998 ) )
+  expect_lt( fsusieR::get_pi0(tpi = tpi$est_pi_f[[1]]),  c(0.73  ) )
+  expect_lt( fsusieR::get_pi0(tpi = tpi$est_pi_f[[2]]) , c( 999998 ) )
 })
 
 threshs <- create_null_thresh(type_mark = type_mark)
@@ -391,7 +391,7 @@ test_that("check greedy backfit",{
     }
     if(init){#recycle operation used to fit the prior
 
-      EM_out <- susiF.alpha:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
+      EM_out <- fsusieR:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
                                           lBF  = log_BF(G_prior,
                                                         effect_estimate,
                                                         list_indx_lst,
@@ -467,7 +467,7 @@ test_that("check greedy backfit",{
     }
     if(init){#recycle operation used to fit the prior
 
-      EM_out <- susiF.alpha:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
+      EM_out <- fsusieR:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
                                           lBF  = log_BF(G_prior,
                                                         effect_estimate,
                                                         list_indx_lst,
@@ -525,7 +525,7 @@ test_that("check greedy backfit",{
 ##### la -----
 
 test_that("The performance  of multfsusie on  this example should be",{
-  library(susiF.alpha)
+  library(fsusieR)
   library(mvf.susie.alpha)
   set.seed(1)
   N=100

@@ -22,7 +22,8 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                   nullweight,ind_analysis,
                                   max_SNP_EM,
                                   gridmult=sqrt(2),
-                                  max_step_EM=100
+                                  max_step_EM=100,
+                                  tol_null_prior=0.001
                                   )
 {
 
@@ -77,7 +78,8 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                                                            nullweight     =  nullweight,
                                                                            max_SNP_EM     = max_SNP_EM,
                                                                            gridmult       = gridmult,
-                                                                           max_step_EM    = max_step_EM
+                                                                           max_step_EM    = max_step_EM,
+                                                                           tol_null_prior =  tol_null_prior
                                                                            #TODO make it different depending on marks
                              )
         )
@@ -97,7 +99,8 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                                                            ind_analysis   = ind_analysis$idx_f[[k]],
                                                                            max_SNP_EM     = max_SNP_EM,
                                                                            gridmult       = gridmult,
-                                                                           max_step_EM    = max_step_EM
+                                                                           max_step_EM    = max_step_EM,
+                                                                           tol_null_prior =  tol_null_prior
                                                                            #TODO make it different depending on marks
                              )
         )

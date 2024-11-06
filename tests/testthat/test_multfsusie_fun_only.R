@@ -1,5 +1,5 @@
 rm(list=ls())
-library(susiF.alpha)
+library(fsusieR)
 library(mvf.susie.alpha)
 library(sim1000G)
 set.seed(1)

@@ -36,7 +36,8 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
                             nullweight,
                             low_trait,
                             max_SNP_EM=1000,
-                            df=NULL)
+                            df=NULL,
+                            tol_null_prior=0.001)
 {
 
   ### Work here ------
@@ -87,7 +88,8 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
                                 list_indx_lst  = list_indx_lst,
                                 init_pi0_w     = init_pi0_w,
                                 control_mixsqp = control_mixsqp,
-                                nullweight     = nullweight)
+                                nullweight     = nullweight,
+                                tol_null_prior = tol_null_prior)
     G_prior <- update_prior(G_prior,tpi_k)
 
     lBF <- log_BF(G_prior,
@@ -190,7 +192,14 @@ L_mixsq_u <- function(G_prior, Bhat, Shat){
 #
 # @export
 
-m_step_multsusie <- function(L_mat, zeta, list_indx_lst, init_pi0_w,  control_mixsqp,nullweight,...)
+m_step_multsusie <- function(L_mat,
+                             zeta,
+                             list_indx_lst,
+                             init_pi0_w,
+                             control_mixsqp,
+                             nullweight,
+                             tol_null_prior =0.001,
+                             ...)
 {
   #setting the weight to fit the weighted ash problem
   if (is.null(L_mat$L_mat_u)){
@@ -213,7 +222,8 @@ m_step_multsusie <- function(L_mat, zeta, list_indx_lst, init_pi0_w,  control_mi
                                                       indx_lst=list_indx_lst[[k]],
                                                       init_pi0_w= init_pi0_w,
                                                       control_mixsqp = control_mixsqp,
-                                                      nullweight     = nullweight
+                                                      nullweight     = nullweight,
+                                                      tol_null_prior = tol_null_prior
                        )
     )
   }

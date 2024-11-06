@@ -193,7 +193,8 @@ multfsusie <- function(Y, X, L = 2,
                        cor_small = FALSE,
                        filter.number = 10,
                        family = "DaubLeAsymm",
-                       e = 0.001)
+                       e = 0.001,
+                       tol_null_prior=0.001)
 
 
 {
@@ -353,7 +354,8 @@ multfsusie <- function(Y, X, L = 2,
                                  ind_analysis   = ind_analysis,
                                  max_SNP_EM     = max_SNP_EM,
                                  gridmult       = gridmult,
-                                 max_step_EM    = max_step_EM
+                                 max_step_EM    = max_step_EM,
+                                 tol_null_prior = tol_null_prior
   )
 
   G_prior          <- temp$G_prior
