@@ -2007,7 +2007,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   multfsusie.obj <-  update_cal_fit_u(multfsusie.obj )
-  multfsusie.obj  <- update_lfsr_effect(multfsusie.obj)
+ # multfsusie.obj  <- update_lfsr_effect(multfsusie.obj)
 
   if( TI==FALSE& HMM==FALSE){
     multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
