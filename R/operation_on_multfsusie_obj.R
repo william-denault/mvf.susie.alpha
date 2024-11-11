@@ -1588,11 +1588,13 @@ update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
   multfsusie.obj <- update_lBF(multfsusie.obj  = multfsusie.obj,
                                l               = l,
                                lBF             = EM_pi$lBF)
-  multfsusie.obj <- update_lfsr(multfsusie.obj  = multfsusie.obj,
-                                l               = l,
-                                effect_estimate = effect_estimate,
-                                list_indx_lst   = list_indx_lst
-                                )
+
+ #TODO: fix that because it seems to take to much memory
+ # multfsusie.obj <- update_lfsr(multfsusie.obj  = multfsusie.obj,
+ #                               l               = l,
+ # #                              effect_estimate = effect_estimate,
+ #                               list_indx_lst   = list_indx_lst
+ #                               )
 
   return(multfsusie.obj)
 }

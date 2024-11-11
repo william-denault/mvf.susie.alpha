@@ -35,7 +35,7 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
                             control_mixsqp ,
                             nullweight,
                             low_trait,
-                            max_SNP_EM=1000,
+                            max_SNP_EM=100,
                             df=NULL,
                             tol_null_prior=0.001)
 {

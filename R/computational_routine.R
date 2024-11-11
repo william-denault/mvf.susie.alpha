@@ -128,18 +128,23 @@ cal_clfsr.multfsusie_prior <- function(G_prior ,
                                        list_indx_lst,...){
 
   if( ! is.null(effect_estimate$res_f)){
-    clfsr_wc <- lapply(1: length(effect_estimate$res_f),
-                       function(k){
+    clfsr_wc <- NULL
 
-                         fsusieR::cal_clfsr (
-                           G_prior  = G_prior$G_prior_f[[k]],
-                           Bhat     = effect_estimate$res_f[[k]]$Bhat,
-                           Shat     = effect_estimate$res_f[[k]]$Shat,
-                           indx_lst = list_indx_lst[[k]]
-                         )
 
-                       }
-    )
+    #TODO the line below take to much memory
+    # this need to be cleaned
+    #clfsr_wc <- lapply(1: length(effect_estimate$res_f),
+    #                    function(k){
+    #
+    #                     fsusieR::cal_clfsr (
+    #                       G_prior  = G_prior$G_prior_f[[k]],
+    #                       Bhat     = effect_estimate$res_f[[k]]$Bhat,
+    #                       Shat     = effect_estimate$res_f[[k]]$Shat,
+    #                       indx_lst = list_indx_lst[[k]]
+    #                     )
+    #
+    #                  }
+    #)
   }else{
     clfsr_wc <- NULL
   }
