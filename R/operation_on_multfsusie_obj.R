@@ -410,6 +410,7 @@ HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,verbose=TRUE,maxit=5, 
     print( "Fine mapping done, refining effect estimates using HMM regression")
   }
 
+ #  browser()
   #renaming lfsr output
   for (  l in 1: length(multfsusie.obj$lfsr)){
     names(multfsusie.obj$lfsr[[l]])[1] <- "est_lfsr_functional"
@@ -1781,6 +1782,7 @@ update_lfsr.multfsusie <- function(multfsusie.obj, l, effect_estimate, list_indx
 #' @title Update multfsusie.obj lfsr estimates
 #
 #' @param multfsusie.obj a multfsusie.obj object defined by init_multfsusie_obj function
+#' @param HMM logical if the output is hmm based
 #' @return multfsusie.obj object
 #' @export
 #' @keywords internal
@@ -1800,21 +1802,27 @@ update_lfsr_effect  <- function    (multfsusie.obj ,...)
 
 
 
-update_lfsr_effect.multfsusie  <- function(multfsusie.obj,...){
+update_lfsr_effect.multfsusie  <- function(multfsusie.obj, HMM=TRUE , ...){
   multfsusie.obj$lfsr <- list()
 
   for ( l in 1:length(multfsusie.obj$cs)) {
 
+
     if( !is.null(multfsusie.obj$lfsr_wc)){
-      est_min_lfsr_functional <- do.call(c,
-                                         lapply(1:length(multfsusie.obj$lfsr_wc[[l]]),
-                                            function(k){
-                                                out <-  min(multfsusie.obj$lfsr_wc[[l]][[k]])
-                                                names(out) <- paste("functional trait",k )
-                                            return( out)
-                                            }
-                                         )
-                                        )
+      if ( ! HMM ){
+        est_min_lfsr_functional <- do.call(c,
+                                           lapply(1:length(multfsusie.obj$lfsr_wc[[l]]),
+                                                  function(k){
+                                                    out <-  min(multfsusie.obj$lfsr_wc[[l]][[k]])
+                                                    names(out) <- paste("functional trait",k )
+                                                    return( out)
+                                                  }
+                                           )
+        )
+      }else{
+        est_min_lfsr_functional = rep( 0 , multfsusie.obj$L)
+      }
+
 
 
     }else{
@@ -2009,7 +2017,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   multfsusie.obj <-  update_cal_fit_u(multfsusie.obj )
- # multfsusie.obj  <- update_lfsr_effect(multfsusie.obj)
+  multfsusie.obj  <- update_lfsr_effect(multfsusie.obj,HMM=HMM)
 
   if( TI==FALSE& HMM==FALSE){
     multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
