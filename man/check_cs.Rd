@@ -5,7 +5,7 @@
 \alias{check_cs.multfsusie}
 \title{Check purity credible sets}
 \usage{
-check_cs(mvfsusie.obj, ...)
+check_cs(multfsusie.obj, min_purity = 0.5, X, ...)
 
 \method{check_cs}{multfsusie}(multfsusie.obj, min_purity = 0.5, X, ...)
 }

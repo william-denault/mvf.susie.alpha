@@ -6,18 +6,18 @@
 \alias{update_alpha_hist.multfsusie}
 \title{Update alpha   susiF mixture proportion of effect l}
 \usage{
-update_alpha(mvfsusie.obj, l, alpha, ...)
+update_alpha(multfsusie.obj, l, alpha, ...)
 
 \method{update_alpha}{multfsusie}(multfsusie.obj, l, alpha, ...)
 
 \method{update_alpha_hist}{multfsusie}(multfsusie.obj, discard = FALSE, ...)
 }
 \arguments{
+\item{multfsusie.obj}{a multfsusie  object defined by init_multfsusie_obj function}
+
 \item{l}{integer larger or equal to 1. Corresponds to the effect to be accessed}
 
 \item{alpha}{vector of p alpha values summing up to one}
-
-\item{multfsusie.obj}{a multfsusie  object defined by init_multfsusie_obj function}
 }
 \value{
 multfsusie.obj object

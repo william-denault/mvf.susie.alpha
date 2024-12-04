@@ -5,16 +5,16 @@
 \alias{update_residual_variance.multfsusie}
 \title{Update residual variance}
 \usage{
-update_residual_variance(mvfsusie.obj, sigma2, ...)
+update_residual_variance(multfsusie.obj, sigma2, ...)
 
 \method{update_residual_variance}{multfsusie}(multfsusie.obj, sigma2, ...)
 }
 \arguments{
+\item{multfsusie.obj}{a multfsusie object}
+
 \item{sigma2}{the new values for residual variance}
 
 \item{...}{Additional arguments passed to other functions.}
-
-\item{multfsusie.obj}{a multfsusie object}
 }
 \description{
 See title

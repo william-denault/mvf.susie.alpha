@@ -5,16 +5,16 @@
 \alias{estimate_residual_variance.multfsusie}
 \title{Compute Residual variance}
 \usage{
-estimate_residual_variance(mvfsusie, DW_tens, X, ...)
+estimate_residual_variance(multfsusie.obj, Y, X, ...)
 
 \method{estimate_residual_variance}{multfsusie}(multfsusie.obj, Y, X, ind_analysis, ...)
 }
 \arguments{
-\item{X}{observed covariates}
-
 \item{multfsusie.obj}{a multfsusie object}
 
 \item{Y}{observed response data}
+
+\item{X}{observed covariates}
 }
 \description{
 see title

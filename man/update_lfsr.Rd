@@ -5,14 +5,14 @@
 \alias{update_lfsr.multfsusie}
 \title{Update lfsr multfsusie l}
 \usage{
-update_lfsr(mvfsusie.obj, l, tens_post, ...)
+update_lfsr(multfsusie.obj, l, ...)
 
 \method{update_lfsr}{multfsusie}(multfsusie.obj, l, effect_estimate, list_indx_lst, ...)
 }
 \arguments{
-\item{l}{the effect to be updated new ELBO value}
-
 \item{multfsusie.obj}{a multfsusie}
+
+\item{l}{the effect to be updated new ELBO value}
 }
 \value{
 multfsusie object

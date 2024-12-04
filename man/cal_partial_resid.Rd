@@ -5,7 +5,7 @@
 \alias{cal_partial_resid.multfsusie}
 \title{Compute partial residuals}
 \usage{
-cal_partial_resid(mvfsusie.obj, l, X, D, indx_lst, ...)
+cal_partial_resid(multfsusie.obj, ...)
 
 \method{cal_partial_resid}{multfsusie}(
   multfsusie.obj = multfsusie.obj,

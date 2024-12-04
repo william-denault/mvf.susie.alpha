@@ -5,16 +5,16 @@
 \alias{update_lBF.multfsusie}
 \title{Update multfsusie log Bayes factor}
 \usage{
-update_lBF(mvfsusie.obj, l, lBF, ...)
+update_lBF(multfsusie.obj, l, lBF, ...)
 
 \method{update_lBF}{multfsusie}(multfsusie.obj, l, lBF, ...)
 }
 \arguments{
+\item{multfsusie.obj}{a susiF object defined by init_multfsusie_obj function}
+
 \item{l}{effect to update}
 
 \item{lBF}{vector of length p, containing the updated log Bayes factors}
-
-\item{multfsusie.obj}{a susiF object defined by init_multfsusie_obj function}
 }
 \value{
 multfsusie object
