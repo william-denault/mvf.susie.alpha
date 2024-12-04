@@ -7,10 +7,12 @@
 \usage{
 update_lfsr_effect(multfsusie.obj, ...)
 
-\method{update_lfsr_effect}{multfsusie}(multfsusie.obj, ...)
+\method{update_lfsr_effect}{multfsusie}(multfsusie.obj, HMM = TRUE, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie.obj object defined by init_multfsusie_obj function}
+
+\item{HMM}{logical if the output is hmm based}
 }
 \value{
 multfsusie.obj object

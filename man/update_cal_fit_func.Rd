@@ -5,7 +5,7 @@
 \alias{update_cal_fit_func.multfsusie}
 \title{Update multfsusie by computing posterior curves}
 \usage{
-update_cal_fit_func(multfsusie.obj, list_indx_lst, ...)
+update_cal_fit_func(mvfsusie.obj, indx_lst, ...)
 
 \method{update_cal_fit_func}{multfsusie}(multfsusie.obj, list_indx_lst, ...)
 }

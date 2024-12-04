@@ -5,7 +5,7 @@
 \alias{update_cal_pip.multfsusie}
 \title{Update multfsusie by computing PiP}
 \usage{
-update_cal_pip(multfsusie.obj, ...)
+update_cal_pip(mvfsusie.obj, ...)
 
 \method{update_cal_pip}{multfsusie}(multfsusie.obj, ...)
 }

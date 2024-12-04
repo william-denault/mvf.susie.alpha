@@ -25,14 +25,15 @@ multfsusie(
   cal_obj = FALSE,
   greedy = TRUE,
   backfit = TRUE,
-  max_SNP_EM = 1000,
+  max_SNP_EM = 100,
   gridmult = sqrt(2),
   max_scale = 10,
   max_step_EM = 1,
   cor_small = FALSE,
   filter.number = 10,
   family = "DaubLeAsymm",
-  e = 0.001
+  e = 0.001,
+  tol_null_prior = 0.001
 )
 }
 \arguments{
