@@ -18,8 +18,6 @@ Imports:
   fsusieR (>= 0.2.81),
   ashr (>= 2.2-47),
   mixsqp (>= 0.3-43),
-  mashr (>= 0.2.57),
-  abind (>= 1.4-5),
   matrixStats (>= 0.62.0),
   Rfast (>= 2.1.0),
   ggplot2 (>= 3.5.0),
