@@ -167,7 +167,7 @@
 multfsusie <- function(Y, X, L = 2,
                        pos = NULL,
                        prior = "mixture_normal",
-                       post_processing = "TI",
+                       post_processing=c("smash","TI","HMM","none"),
                        verbose = TRUE,
                        maxit = 100,
                        tol = 1e-3,
@@ -200,6 +200,8 @@ multfsusie <- function(Y, X, L = 2,
 {
   pt <- proc.time()
 
+  prior           <- match.arg(prior)
+  post_processing <- match.arg( post_processing)
   if(L_start >L)
   {
     L_start <- L
@@ -208,19 +210,6 @@ multfsusie <- function(Y, X, L = 2,
     print("Starting initialization")
   }
 
-
-  if(post_processing=="TI"){
-    TI  <- TRUE
-    HMM <- FALSE
-  }
-  if(post_processing=="HMM"){
-    TI  <- FALSE
-    HMM <- TRUE
-  }
-  if(post_processing=="none"){
-    TI  <- FALSE
-    HMM <- FALSE
-  }
   ind_analysis <- which_notNA_pos(Y)
 #remove column of X constant in some sub cases
   tidx <- check_cst_X_sub_case(X,ind_analysis)
@@ -530,7 +519,7 @@ multfsusie <- function(Y, X, L = 2,
 
 
 
-
+#browser()
   #preparing output
    multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,
                               Y               = Y_data,
@@ -543,8 +532,7 @@ multfsusie <- function(Y, X, L = 2,
                               filter.number   = filter.number,
                               family          = family,
                               ind_analysis    = ind_analysis,
-                              TI              = TI,
-                              HMM             = HMM
+                              post_processing = post_processing
 
     )
    multfsusie.obj$runtime <- proc.time()-pt
