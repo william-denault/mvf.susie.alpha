@@ -61,8 +61,10 @@
 #' @param filter_cs Logical, if TRUE filters the credible sets
 #' (removing low purity credible sets and those with estimated prior equal to 0).
 #'
-#' @param nullweight Numeric value for penalizing likelihood at point mass 0
-#' (should be between 0 and 1). Useful in small sample sizes.
+#' @param nullweight numeric value for penalizing likelihood at point mass 0. This number roughly corresponds
+#' to the number of zeros observation you add  (useful in small sample size). Default is 10 as recommended by Stephens in
+#' False discovery rate a new deal. Setting it too low tend lead to adding false discoveries. Setting it too
+#' high may reduce power.
 #'
 #' @param min_purity minimum purity for estimated credible sets
 #'
@@ -532,7 +534,8 @@ multfsusie <- function(Y, X, L = 2,
                               filter.number   = filter.number,
                               family          = family,
                               ind_analysis    = ind_analysis,
-                              post_processing = post_processing
+                              post_processing = post_processing,
+                              verbose= verbose
 
     )
    multfsusie.obj$runtime <- proc.time()-pt

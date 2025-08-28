@@ -1445,6 +1445,7 @@ name_cs.multfsusie <- function(multfsusie.obj,X,...){
 #
 #' @param filter_cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
 #'@param post_processing the chosen postprocessing
+#'@param verbose  true or false
 #' @export
 #' @keywords internal
 out_prep <- function(multfsusie.obj,
@@ -1484,6 +1485,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                 family = "DaubLeAsymm",
                                 ind_analysis ,
                                 post_processing="smash",
+                                verbose=TRUE,
                                 ... )
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
@@ -1495,11 +1497,11 @@ out_prep.multfsusie <- function(multfsusie.obj,
 
   }
   if( post_processing== "smash"){
-    print("SMASSSSSHHHHH")
+
     multfsusie.obj <-  smash_regression(multfsusie.obj = multfsusie.obj,
                                      Y              = interpolated_Y,
                                      X              = X,
-                                     verbose        = TRUE,
+                                     verbose        = verbose ,
                                      ind_analysis   = ind_analysis,
                                      filter.number  = filter.number,
                                      family         = family)
@@ -1509,7 +1511,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
     multfsusie.obj <-  TI_regression(multfsusie.obj = multfsusie.obj,
                                      Y              = interpolated_Y,
                                      X              = X,
-                                     verbose        = TRUE,
+                                     verbose        = verbose ,
                                      ind_analysis   = ind_analysis,
                                      filter.number  = filter.number,
                                      family         = family)
@@ -1519,7 +1521,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                       Y               = interpolated_Y,
                                       ind_analysis    = ind_analysis,
                                       X               = X,
-                                      verbose         = TRUE )
+                                      verbose         = verbose )
   }
 
 
