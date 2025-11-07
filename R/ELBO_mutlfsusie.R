@@ -268,7 +268,16 @@ get_objective <- function    (multfsusie.obj,  Y, X,  ind_analysis,  ...)
 #' @keywords internal
 get_objective.multfsusie <- function    (multfsusie.obj, Y, X  ,ind_analysis, ...)
 {
-    out <- Eloglik(multfsusie.obj, Y, X,ind_analysis=ind_analysis) - sum(multfsusie.obj$KL)
+
+  o= Reduce("sum",
+            lapply(1: length(multfsusie.obj$alpha), function(i){
+              multfsusie.obj$alpha [[i]]* log( ncol(X)/ pmax(multfsusie.obj$alpha [[i]], 1e-6))
+            }
+            )
+  )
+    out <- Eloglik(multfsusie.obj, Y, X,ind_analysis=ind_analysis) - sum(multfsusie.obj$KL)+o
+
+
   return(out)
 
 }
