@@ -2270,7 +2270,7 @@ test_stop_cond.multfsusie <- function(multfsusie.obj, check, cal_obj, Y, X, list
       if( len>1)#update parameter convergence, no ELBO for the moment
       {
         check <-0
-browser()
+
         T1 <- do.call( rbind, multfsusie.obj$alpha_hist[[len ]])
         T1 <- T1[1:multfsusie.obj$L,] #might be longer than L because alpha computed before discarding effect
         T2 <- do.call( rbind, multfsusie.obj$alpha_hist[[(len-1) ]])
