@@ -442,7 +442,7 @@ HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,verbose=TRUE,maxit=5, 
 
     susiF.obj <- fsusieR::HMM_regression.susiF(    obj            = dummy_susiF.obj,
                                                     Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],
-                                                    X             = X[ind_analysis$idx_f[[k]],],
+                                                    X             = X[ind_analysis$idx_f[[k]],, drop=FALSE],
                                                     verbose       = FALSE ,
                                                     fit_indval    = FALSE)
 
@@ -1028,7 +1028,7 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X,ind_analysis, ... ) {
     }else{
       ER2$uni <-  do.call( c,
                            lapply(1:ncol( Y$Y_u),
-                                  function(k) sum((Y$Y_u[ind_analysis$idx_u[[k]],k] - X[ind_analysis$idx_u[[k]],]%*%postF$post_u[,k] )^2) -sum( postF$post_u_sd2[,k]^2) +sum( postF2$post_u_sd2[,k])
+                                  function(k) sum((Y$Y_u[ind_analysis$idx_u[[k]],k] - X[ind_analysis$idx_u[[k]],,drop=FALSE]%*%postF$post_u[,k] )^2) -sum( postF$post_u_sd2[,k]^2) +sum( postF2$post_u_sd2[,k])
                            )
       )
     }
@@ -1051,7 +1051,7 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X,ind_analysis, ... ) {
     }else{
       ER2$f <-  do.call( c,
                          lapply(1:length( Y$Y_f),
-                                function(k) sum((Y$Y_f[[k]][ind_analysis$idx_f[[k]],] - X[ind_analysis$idx_f[[k]],]%*%postF$post_f[[k]])^2)  -sum(postF$post_f[[k]]^2) + sum( postF2$post_f_sd2 [[k]])
+                                function(k) sum((Y$Y_f[[k]][ind_analysis$idx_f[[k]],] - X[ind_analysis$idx_f[[k]],, drop=FALSE]%*%postF$post_f[[k]])^2)  -sum(postF$post_f[[k]]^2) + sum( postF2$post_f_sd2 [[k]])
                          )
       )
     }
@@ -2270,7 +2270,7 @@ test_stop_cond.multfsusie <- function(multfsusie.obj, check, cal_obj, Y, X, list
       if( len>1)#update parameter convergence, no ELBO for the moment
       {
         check <-0
-
+browser()
         T1 <- do.call( rbind, multfsusie.obj$alpha_hist[[len ]])
         T1 <- T1[1:multfsusie.obj$L,] #might be longer than L because alpha computed before discarding effect
         T2 <- do.call( rbind, multfsusie.obj$alpha_hist[[(len-1) ]])
@@ -2389,7 +2389,7 @@ TI_regression.multfsusie<- function(multfsusie.obj,
 
     susiF.obj <- fsusieR::TI_regression.susiF(     obj           = dummy_susiF.obj,
                                                    Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],
-                                                   X             = X[ind_analysis$idx_f[[k]],],
+                                                   X             = X[ind_analysis$idx_f[[k]],, drop=FALSE],
                                                    verbose       = FALSE,
                                                    filter.number = filter.number,
                                                    family        = family   )
@@ -2489,7 +2489,7 @@ smash_regression.multfsusie<- function(multfsusie.obj,
 
     susiF.obj <- fsusieR::smash_regression.susiF(     obj           = dummy_susiF.obj,
                                                    Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],
-                                                   X             = X[ind_analysis$idx_f[[k]],],
+                                                   X             = X[ind_analysis$idx_f[[k]],, drop=FALSE],
                                                    verbose       = FALSE,
                                                    filter.number = filter.number,
                                                    family        = family ,

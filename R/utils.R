@@ -4,6 +4,20 @@
 check_cst_X_sub_case <- function(X,ind_analysis){
 
 
+  if(ncol(X)==1){
+
+    if( var(X)==0){
+      warning("X has a single column with variance of 0")
+    }else{
+
+      pb_f<- integer(0)
+      pb_u<- integer(0)
+      return( unique (c(pb_f,pb_u)))
+    }
+
+  }
+
+
   if( !is.null(ind_analysis$idx_f)){
   pb_f <-  do.call(c,lapply(1:length(ind_analysis$idx_f), function(k)
                           which(apply(X[ind_analysis$idx_f[[k]],],2,stats::var)==0)

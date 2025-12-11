@@ -204,14 +204,26 @@ multfsusie <- function(Y, X, L = 2,
 
   prior           <- match.arg(prior)
   post_processing <- match.arg( post_processing)
-  if(L_start >L)
-  {
-    L_start <- L
-  }
+
   if(verbose){
     print("Starting initialization")
   }
 
+
+
+  if(L>ncol(X)){
+    L <-ncol(X)
+  }
+
+  if(L_start>ncol(X)){
+    L_start <-ncol(X)
+  }
+
+
+  if(L_start >L)
+  {
+    L_start <- L
+  }
   ind_analysis <- which_notNA_pos(Y)
 #remove column of X constant in some sub cases
   tidx <- check_cst_X_sub_case(X,ind_analysis)
