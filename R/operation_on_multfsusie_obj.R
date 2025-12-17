@@ -2072,7 +2072,7 @@ update_cal_cs.multfsusie <- function(multfsusie.obj, cov_lev=0.95, ...)
   {
     temp        <- multfsusie.obj$alpha[[l]]
     temp_cumsum <- cumsum( temp[order(temp, decreasing =TRUE)])
-    max_indx_cs <- min(which( temp_cumsum >cov_lev ))
+    max_indx_cs <- min(c(which( temp_cumsum >cov_lev ), multfsusie.obj$P))
     multfsusie.obj$cs[[l]]  <- order(temp, decreasing = TRUE)[1:max_indx_cs ]
 
   }

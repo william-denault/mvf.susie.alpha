@@ -301,6 +301,7 @@ multfsusie <- function(Y, X, L = 2,
   #### centering and scaling covariate ----
   X <- fsusieR::colScale(X)
 
+  Y0=Y_data
   # centering input
   Y_data <- multi_array_colScale(Y_data, scale=FALSE)
   #
@@ -536,7 +537,7 @@ multfsusie <- function(Y, X, L = 2,
 #browser()
   #preparing output
    multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,
-                              Y               = Y_data,
+                              Y               = Y0,#Y_data,
                               interpolated_Y  = interpolated_Y,
                               X               = X,
                               list_indx_lst   = list_indx_lst,
