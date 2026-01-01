@@ -96,6 +96,7 @@
 #' @param e Threshold value to avoid computing posterior probabilities
 #'  that have low alpha values. Set to 0 to compute the entire posterior.
 #'  Default value is 0.001.
+#' @param lbf_min numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value
 #'
 #' @export
 #' @examples
@@ -178,7 +179,7 @@ multfsusie <- function(Y, X, L = 2,
                        L_start = 3,
                        filter_cs = TRUE,
                        init_pi0_w = 1,
-                       nullweight = 10,
+                       nullweight = 1 ,
                        control_mixsqp = list(
                          eps = 1e-6,
                          numiter.em = 40,
@@ -196,7 +197,8 @@ multfsusie <- function(Y, X, L = 2,
                        filter.number = 10,
                        family = "DaubLeAsymm",
                        e = 0.001,
-                       tol_null_prior=0.001)
+                       tol_null_prior=0.001,
+                       lbf_min=0.1)
 
 
 {
@@ -308,7 +310,6 @@ multfsusie <- function(Y, X, L = 2,
   if(verbose){
     print("Data transform done")
   }
-
   ### Cleaning ------
 
   #### discarding  null/low variance    ------
@@ -364,7 +365,7 @@ multfsusie <- function(Y, X, L = 2,
 
   G_prior          <- temp$G_prior
   effect_estimate  <- temp$res
-  init             <- TRUE
+  init             <- FALSE
 
 
   multfsusie.obj <- init_multfsusie_obj( L_max         = L,
@@ -380,7 +381,7 @@ multfsusie <- function(Y, X, L = 2,
 
   check <- 3*tol
 
- # browser()
+
   update_Y    <-  Y_data
 
   if(verbose){
@@ -405,6 +406,7 @@ multfsusie <- function(Y, X, L = 2,
                                low_trait       = low_trait,
                                max_SNP_EM      = max_SNP_EM,
                                max_step        = max_step_EM,
+                               tol_null_prior  =  tol_null_prior,
                                df              = df
     )
 
@@ -441,7 +443,6 @@ multfsusie <- function(Y, X, L = 2,
 
       for( l in 1:multfsusie.obj$L)
       {
-
         update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
                                       l              = (l-1)  ,
                                       X              = X,
@@ -470,7 +471,7 @@ multfsusie <- function(Y, X, L = 2,
                                                         low_trait      = low_trait,
                                                         ind_analysis   = ind_analysis
                                                         )
-          tpi               <- get_pi(multfsusie.obj,1)
+          tpi               <- get_pi(multfsusie.obj,l)
           G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
 
 
@@ -481,12 +482,13 @@ multfsusie <- function(Y, X, L = 2,
                                      control_mixsqp  = control_mixsqp,
                                      nullweight      = nullweight,
                                      low_trait       = low_trait,
+                                     max_SNP_EM      = max_SNP_EM,
                                      df              = df
           )
 
 
         }
-
+        print(hist(EM_out$lBF))
         multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,###TODO:: SLOW
                                             l               = l,
                                             EM_pi           = EM_out,
@@ -495,6 +497,7 @@ multfsusie <- function(Y, X, L = 2,
                                             low_trait       = low_trait,
                                             e               = e)
 
+        #
 
       }#end for l in 1:L  -----
 
@@ -533,8 +536,6 @@ multfsusie <- function(Y, X, L = 2,
   }#end else in if(L==1)
 
 
-
-#browser()
   #preparing output
    multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,
                               Y               = Y0,#Y_data,

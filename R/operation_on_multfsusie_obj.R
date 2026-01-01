@@ -492,7 +492,17 @@ HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,verbose=TRUE,maxit=5, 
 # \item{ELBO}{ The evidence lower bound}
 # \item{lfsr_wc}{Local fasle sign rate of the fitted wavelet coefficients}
 # @export
-init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,backfit, ind_analysis )
+init_multfsusie_obj <- function(L_max,
+                                G_prior,
+                                Y,
+                                X,
+                                type_mark,
+                                L_start,
+                                greedy,
+                                backfit,
+                                ind_analysis,
+
+                                lbf_min=0.1)
 {
   sigma2          <- list()
   if(!is.null(Y$Y_f)){
@@ -609,7 +619,9 @@ init_multfsusie_obj <- function(L_max, G_prior, Y,X,type_mark,L_start,greedy,bac
                greedy          = greedy,
                backfit         = backfit,
                greedy_backfit_update=greedy_backfit_update,
-               ind_analysis    =  ind_analysis)
+               ind_analysis    =  ind_analysis,
+
+               lbf_min=  lbf_min )
 
   class(obj) <- "multfsusie"
   return(obj)
@@ -2516,7 +2528,7 @@ smash_regression.multfsusie<- function(multfsusie.obj,
 #' @param multfsusie.obj a susif object defined by \code{\link{init_susiF_obj}} function
 #' @param min_purity minimal purity within a CS
 #' @param X matrix of covariate
-#
+#' @param lbf_min numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value
 #' @return a list of index corresponding the the dummy effect
 #
 #' @export
@@ -2536,10 +2548,17 @@ which_dummy_cs <- function(multfsusie.obj, min_purity=0.5,X,...)
 #' @keywords internal
 #
 
-which_dummy_cs.multfsusie  <- function(multfsusie.obj, min_purity =0.5, X,median_crit=FALSE, ... ){
+which_dummy_cs.multfsusie  <- function(multfsusie.obj,
+                                       min_purity =0.5,
+                                       X,
+                                       median_crit=FALSE,
+                                       lbf_min... ){
   dummy.cs<- c()
   if(  multfsusie.obj$L==1){
     return(dummy.cs)
+  }
+  if(missing(lbf_min)){
+    lbf_min=Inf
   }
   f_crit <- function (multfsusie.obj, min_purity=0.5, l, median_crit=FALSE){
     if( median_crit){
@@ -2552,12 +2571,12 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj, min_purity =0.5, X,median
       }else{
         tt <-  stats::cor( X[,multfsusie.obj$cs[[l]]])
 
-        is.dummy.cs <-   stats::median(abs( tt[lower.tri(tt, diag =FALSE)]))  <  min_purity
+        is.dummy.cs <-   stats::median(abs( tt[lower.tri(tt, diag =FALSE)]))  <  min_purity & max(multfsusie.obj$lBF[[l]])<lbf_min
       }
 
 
     }else{
-      is.dummy.cs <-   min(abs(stats::cor( X[,multfsusie.obj$cs[[l]]]))) <  min_purity
+      is.dummy.cs <-   min(abs(stats::cor( X[,multfsusie.obj$cs[[l]]]))) <  min_purity & max(multfsusie.obj$lBF[[l]])<lbf_min
     }
 
     return( is.dummy.cs)
@@ -2572,19 +2591,23 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj, min_purity =0.5, X,median
     if (length(multfsusie.obj$cs[[l]])==1)
     {
 
-      if(   mean(unlist(get_pi0(multfsusie.obj,l=l)))==1){# check if the estimated prior is exactly 0
+      if(   mean(unlist(get_pi0(multfsusie.obj,l=l)))>1-multfsusie.obj$tol_null_prior){# check if the estimated prior is exactly 0
 
         dummy.cs<-  c( dummy.cs,l)
       }
 
     }else{
 
-      if(   f_crit(multfsusie.obj = multfsusie.obj, min_purity=0.5, l, median_crit )){#check if the purity of cs l is lower that min_purity
+      if(   f_crit(multfsusie.obj = multfsusie.obj,
+                   min_purity=min_purity,
+                   l=l,
+                   median_crit=median_crit ,
+                   lbf_min =lbf_min)){#check if the purity of cs l is lower that min_purity
 
         dummy.cs<-  c( dummy.cs,l)
 
       }else{
-        if(  mean(unlist(get_pi0(multfsusie.obj,l=l)))==1){
+        if(   mean(unlist(get_pi0(multfsusie.obj,l=l)))>1-multfsusie.obj$tol_null_prior){
 
           dummy.cs<-  c( dummy.cs,l)
         }
