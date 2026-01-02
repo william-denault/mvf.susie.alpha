@@ -33,7 +33,8 @@ multfsusie(
   filter.number = 10,
   family = "DaubLeAsymm",
   e = 0.001,
-  tol_null_prior = 0.001
+  tol_null_prior = 0.001,
+  lbf_min = 0.1
 )
 }
 \arguments{
@@ -125,6 +126,8 @@ The Bayes factor from Valen E Johnson JRSSB 2005 tends to have better coverage i
 \item{e}{Threshold value to avoid computing posterior probabilities
 that have low alpha values. Set to 0 to compute the entire posterior.
 Default value is 0.001.}
+
+\item{lbf_min}{numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value}
 }
 \description{
 Implementation of the Multi-modal fSuSiE method.

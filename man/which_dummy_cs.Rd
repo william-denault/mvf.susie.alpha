@@ -7,7 +7,13 @@
 \usage{
 which_dummy_cs(multfsusie.obj, min_purity = 0.5, X, ...)
 
-\method{which_dummy_cs}{multfsusie}(multfsusie.obj, min_purity = 0.5, X, median_crit = FALSE, ...)
+\method{which_dummy_cs}{multfsusie}(
+  multfsusie.obj,
+  min_purity = 0.5,
+  X,
+  median_crit = FALSE,
+  lbf_min...
+)
 }
 \arguments{
 \item{multfsusie.obj}{a susif object defined by \code{\link{init_susiF_obj}} function}
@@ -15,6 +21,8 @@ which_dummy_cs(multfsusie.obj, min_purity = 0.5, X, ...)
 \item{min_purity}{minimal purity within a CS}
 
 \item{X}{matrix of covariate}
+
+\item{lbf_min}{numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value}
 }
 \value{
 a list of index corresponding the the dummy effect
