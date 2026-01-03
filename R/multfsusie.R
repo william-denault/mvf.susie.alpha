@@ -170,7 +170,7 @@
 multfsusie <- function(Y, X, L = 2,
                        pos = NULL,
                        prior = "mixture_normal",
-                       post_processing=c("smash","TI","HMM","none"),
+                       post_processing=c("TI","smash","HMM","none"),
                        verbose = TRUE,
                        maxit = 100,
                        tol = 1e-3,
@@ -376,7 +376,9 @@ multfsusie <- function(Y, X, L = 2,
                                          L_start       = L_start,
                                          greedy        = greedy,
                                          backfit       = backfit,
-                                         ind_analysis  = ind_analysis)
+                                         ind_analysis  = ind_analysis,
+                                         tol_null_prior= tol_null_prior,
+                                         lbf_min       = lbf_min)
 
 
   check <- 3*tol
@@ -534,7 +536,6 @@ multfsusie <- function(Y, X, L = 2,
 
     }#end while
   }#end else in if(L==1)
-
 
   #preparing output
    multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,

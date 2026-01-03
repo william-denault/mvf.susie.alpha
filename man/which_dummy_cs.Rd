@@ -12,7 +12,8 @@ which_dummy_cs(multfsusie.obj, min_purity = 0.5, X, ...)
   min_purity = 0.5,
   X,
   median_crit = FALSE,
-  lbf_min...
+  lbf_min,
+  ...
 )
 }
 \arguments{

@@ -501,7 +501,7 @@ init_multfsusie_obj <- function(L_max,
                                 greedy,
                                 backfit,
                                 ind_analysis,
-
+                                tol_null_prior,
                                 lbf_min=0.1)
 {
   sigma2          <- list()
@@ -619,8 +619,8 @@ init_multfsusie_obj <- function(L_max,
                greedy          = greedy,
                backfit         = backfit,
                greedy_backfit_update=greedy_backfit_update,
-               ind_analysis    =  ind_analysis,
-
+               ind_analysis    = ind_analysis,
+               tol_null_prior  = tol_null_prior,
                lbf_min=  lbf_min )
 
   class(obj) <- "multfsusie"
@@ -1115,7 +1115,8 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
   dummy.cs <-  which_dummy_cs(multfsusie.obj,
                               min_purity = min_purity,
                               median_crit=TRUE,
-                              X=X)
+                              X=X,
+                              lbf_min=multfsusie.obj$lbf_min)
   if(multfsusie.obj$backfit & (length(dummy.cs)>0)){
 
     multfsusie.obj$greedy <- FALSE
@@ -1350,7 +1351,7 @@ merge_effect <- function( multfsusie.obj, tl, ...)
 
 merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=FALSE, ...){
 
-
+return(multfsusie.obj)
   if(is.vector( tl)){
     #print( tl)
     if( !is.null(multfsusie.obj$fitted_wc[[1]])){
@@ -1502,7 +1503,6 @@ out_prep.multfsusie <- function(multfsusie.obj,
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   multfsusie.obj <-  update_cal_fit_u(multfsusie.obj )
-  multfsusie.obj  <- update_lfsr_effect(multfsusie.obj,HMM=HMM)
 
   if(post_processing== "none"){
     multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
@@ -1911,74 +1911,6 @@ update_lfsr.multfsusie <- function(multfsusie.obj, l, effect_estimate, list_indx
 
 
 
-#' @title Update multfsusie.obj lfsr estimates
-#
-#' @param multfsusie.obj a multfsusie.obj object defined by init_multfsusie_obj function
-#' @param HMM logical if the output is hmm based
-#' @return multfsusie.obj object
-#' @export
-#' @keywords internal
-
-
-update_lfsr_effect  <- function    (multfsusie.obj ,...)
-  UseMethod("update_lfsr_effect")
-
-#' @rdname update_lfsr_effect
-#
-#' @method update_lfsr_effect multfsusie
-#
-#' @export update_lfsr_effect.multfsusie
-#
-#' @export
-#' @keywords internal
-
-
-
-update_lfsr_effect.multfsusie  <- function(multfsusie.obj, HMM=TRUE , ...){
-  multfsusie.obj$lfsr <- list()
-
-  for ( l in 1:length(multfsusie.obj$cs)) {
-
-
-    if( !is.null(multfsusie.obj$lfsr_wc)){
-      if ( ! HMM ){
-        est_min_lfsr_functional <- do.call(c,
-                                           lapply(1:length(multfsusie.obj$lfsr_wc[[l]]),
-                                                  function(k){
-                                                    out <-  min(multfsusie.obj$lfsr_wc[[l]][[k]])
-                                                    names(out) <- paste("functional trait",k )
-                                                    return( out)
-                                                  }
-                                           )
-        )
-      }else{
-        est_min_lfsr_functional = rep( 0 , multfsusie.obj$L)
-      }
-
-
-
-    }else{
-      est_min_lfsr_functional <- NULL
-    }
-    if( !is.null(multfsusie.obj$lfsr_u)){
-      est_lfsr_univariate <- multfsusie.obj$lfsr_u[[l]]
-      names( est_lfsr_univariate ) <- paste("trait",
-                                            1:length( multfsusie.obj$lfsr_u[[l]])
-      )
-
-      #### TODO:  min  lfsr for functional phenotype and lfsr for univariate ----
-
-
-    }else{
-      est_lfsr_univariate <- NULL
-    }
-    multfsusie.obj$lfsr[[l]]  <- list( est_min_lfsr_functional =  est_min_lfsr_functional,
-                                       est_lfsr_univariate     = est_lfsr_univariate)
-  }
-  return( multfsusie.obj)
-}
-
-
 
 
 
@@ -2371,6 +2303,7 @@ TI_regression.multfsusie<- function(multfsusie.obj,
                                     verbose=TRUE,
                                     filter.number = 10,
                                     family = "DaubLeAsymm", ...  ){
+
   if(is.null(multfsusie.obj$fitted_wc)){
     return(multfsusie.obj)
   }
@@ -2403,8 +2336,8 @@ TI_regression.multfsusie<- function(multfsusie.obj,
                                                    Y             = Y$Y_f[[k]][ind_analysis$idx_f[[k]],],
                                                    X             = X[ind_analysis$idx_f[[k]],, drop=FALSE],
                                                    verbose       = FALSE,
-                                                   filter.number = filter.number,
-                                                   family        = family   )
+                                                   filter.number = 1 ,
+                                                   family = "DaubExPhase" )
 
     for ( l in 1:length(multfsusie.obj$cs)){
 
@@ -2552,7 +2485,7 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj,
                                        min_purity =0.5,
                                        X,
                                        median_crit=FALSE,
-                                       lbf_min... ){
+                                       lbf_min,... ){
   dummy.cs<- c()
   if(  multfsusie.obj$L==1){
     return(dummy.cs)
@@ -2560,7 +2493,11 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj,
   if(missing(lbf_min)){
     lbf_min=Inf
   }
-  f_crit <- function (multfsusie.obj, min_purity=0.5, l, median_crit=FALSE){
+  f_crit <- function (multfsusie.obj,
+                      min_purity=0.5,
+                      l,
+                      median_crit=FALSE,
+                      lbf_min){
     if( median_crit){
       #if( length(multfsusie.obj$cs[[l]] )  < ncol(X)/10) {
       #  is.dummy.cs <- FALSE
@@ -2581,7 +2518,6 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj,
 
     return( is.dummy.cs)
   }
-
 
 
 
