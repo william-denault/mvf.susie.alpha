@@ -7,7 +7,7 @@
 \usage{
 merge_effect(multfsusie.obj, tl, ...)
 
-\method{merge_effect}{multfsusie}(multfsusie.obj, tl, discard = FALSE, ...)
+\method{merge_effect}{multfsusie}(multfsusie.obj, verbose = FALSE)
 }
 \arguments{
 \item{multfsusie.obj}{a susiF object defined by init_multfsusie_obj function}

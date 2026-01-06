@@ -1177,21 +1177,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
 
 
 
-    if( length(multfsusie.obj$cs)>1){
-      A <- fsusieR::cal_cor_cs(multfsusie.obj, X)$cs_cor
-      tl <- which(A>0.99, arr.ind = TRUE)
-      tl <-  tl[- which( tl[,1]==tl[,2]),]
-
-      if ( dim(tl)[1]==0){
-
-      }else{
-
-        tl <-  tl[which(tl[,1] < tl[,2]),]
-        multfsusie.obj <- merge_effect(multfsusie.obj, tl, discard=TRUE)
-        # multfsusie.obj$greedy <- TRUE
-        #return(multfsusie.obj)
-      }
-    }
+    multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
     if(verbose){
       print( paste( "Discarding ",(multfsusie.obj$L_max- multfsusie.obj$L), " effects"))
       print( "Greedy search and backfitting done")
@@ -1207,20 +1193,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
 
   if(!(multfsusie.obj$greedy )&!(multfsusie.obj$backfit ) ){
 
-    if( length(multfsusie.obj$cs)>1){
-      A <- fsusieR::cal_cor_cs(multfsusie.obj, X)$cs_cor
-      tl <- which(A>0.99, arr.ind = TRUE)
-      tl <-  tl[- which( tl[,1]==tl[,2]),]
-
-      if ( dim(tl)[1]==0){
-
-      }else{
-
-        tl <-  tl[which(tl[,1] < tl[,2]),]
-        multfsusie.obj <- merge_effect(multfsusie.obj, tl, discard=TRUE)
-
-      }
-    }
+    multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
 
     if(verbose){
       print( paste( "Discarding ",(multfsusie.obj$L_max- multfsusie.obj$L), " effects"))
@@ -1238,20 +1211,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
     temp <- min( ifelse(tt>0,tt,0 ) , 7)
 
     if(temp==0){
-      if( length(multfsusie.obj$cs)>1){
-        A <- fsusieR::cal_cor_cs(multfsusie.obj, X)$cs_cor
-        tl <- which(A>0.99, arr.ind = TRUE)
-        tl <-  tl[- which( tl[,1]==tl[,2]),]
-
-        if ( dim(tl)[1]==0){
-
-        }else{
-
-          tl <-  tl[which(tl[,1] < tl[,2]),]
-          multfsusie.obj <- merge_effect(multfsusie.obj, tl, discard = FALSE)
-          return(multfsusie.obj)
-        }
-      }
+      multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
 
       if(verbose){
 
@@ -1272,24 +1232,11 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
 
 
 
-    if( length(multfsusie.obj$cs)>1){
-      A <- fsusieR::cal_cor_cs(multfsusie.obj, X)$cs_cor
-      tl <- which(A>0.99, arr.ind = TRUE)
-      tl <-  tl[- which( tl[,1]==tl[,2]),]
-
-      if ( dim(tl)[1]==0){
-
-      }else{
-
-        tl <-  tl[which(tl[,1] < tl[,2]),]
-        multfsusie.obj <- merge_effect(multfsusie.obj, tl, discard=FALSE)
-
-      }
-    }
+    multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
 
 
 
-    multfsusie.obj <- expand_multfsusie_obj(multfsusie.obj,L_extra = temp)
+    multfsusie.obj <- expand_multfsusie_obj(multfsusie.obj,L_extra = 7)
     return(multfsusie.obj)
   }
 
@@ -1352,78 +1299,9 @@ merge_effect <- function( multfsusie.obj, tl, ...)
 #' @export
 #' @keywords internal
 
-merge_effect.multfsusie <- function( multfsusie.obj, tl, discard=FALSE, ...){
+merge_effect.multfsusie  <-  function(multfsusie.obj, verbose = FALSE) {
 
-return(multfsusie.obj)
-  if(is.vector( tl)){
-    #print( tl)
-    if( !is.null(multfsusie.obj$fitted_wc[[1]])){
-      for ( k in 1: length(multfsusie.obj$fitted_wc[[1]])){
-
-        multfsusie.obj$fitted_wc[[tl[  1]]][[k]] <- multfsusie.obj$fitted_wc[[tl[  1]]][[k]]+     0* multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
-        multfsusie.obj$fitted_wc2[[tl[ 1]]][[k]] <- multfsusie.obj$fitted_wc2[[tl[  1]]][[k]] +   0* multfsusie.obj$fitted_wc2[[tl[  2]]][[k]]
-        multfsusie.obj$fitted_wc[[tl[  2]]][[k]] <- 0* multfsusie.obj$fitted_wc[[tl[ 2]]][[k]]
-      }
-
-
-    }
-    if(!is.null(multfsusie.obj$fitted_u[[1]])){
-
-
-        multfsusie.obj$fitted_u [[tl[  1]]]  <- multfsusie.obj$fitted_u[[tl[  1]]]  + 0 *  multfsusie.obj$fitted_u[[tl[ 2]]]
-        multfsusie.obj$fitted_u2[[tl[  1]]] <- multfsusie.obj$fitted_u2[[tl[  1]]]  +  0 *  multfsusie.obj$fitted_u2[[tl[  2]]]
-        multfsusie.obj$fitted_u [[tl[  2]]]  <- 0* multfsusie.obj$fitted_u[[tl[ 2]]]
-    }
-    tindx <-  tl[  2]
-  }else{
-    tl <- tl[order(tl[,1], tl[,2], decreasing = TRUE),]
-    #print( tl)
-    tindx <- c(0)
-    for ( o in 1:dim(tl)[1]){
-
-      if ( tl[o, 2]%!in%tindx){
-        if( !is.null(multfsusie.obj$fitted_wc[[1]])){
-          for ( k in 1: length(multfsusie.obj$fitted_wc[[1]])){
-
-            multfsusie.obj$fitted_wc[[tl[o,  1]]][[k]] <- multfsusie.obj$fitted_wc[[tl[o,  1]]][[k]] +   0 *  multfsusie.obj$fitted_wc[[tl[o, 2]]][[k]]
-            multfsusie.obj$fitted_wc2[[tl[o,  1]]][[k]] <- multfsusie.obj$fitted_wc2[[tl[o,  1]]][[k]] + 0 *  multfsusie.obj$fitted_wc2[[tl[o,  2]]][[k]]
-            multfsusie.obj$fitted_wc[[tl[o, 2]]][[k]] <- 0* multfsusie.obj$fitted_wc[[tl[o, 2]]][[k]]
-          }
-
-
-        }
-        if(!is.null(multfsusie.obj$fitted_u[[1]])){
-
-
-          multfsusie.obj$fitted_u[[tl[ o,  1]]]  <- multfsusie.obj$fitted_u[[tl[o,    1]]]  +  0  *    multfsusie.obj$fitted_u[[tl[ o,2]]]
-          multfsusie.obj$fitted_u2[[tl[ o, 1]]] <- multfsusie.obj$fitted_u2[[tl[o,    1]]]  +  0 *    multfsusie.obj$fitted_u2[[tl[o,  2]]]
-          multfsusie.obj$fitted_u[[tl[o,   2]]]  <- 0* multfsusie.obj$fitted_u[[tl[o, 2]]]
-        }
-        tindx <- c(tindx, tl[o, 2])
-      }
-
-    }
-
-    tindx <- tindx[-1]
-
-  }
-  if(discard){
-    multfsusie.obj<-  discard_cs(multfsusie.obj,cs=tindx, out_prep=FALSE)
-  }
-
-  return( multfsusie.obj)
-}
-
-
-
-
-
-
-
-
-merge_effect.susiF  <- function(multfsusie.obj, verbose = FALSE) {
-
-  if (obj$L < 2) return(multfsusie.obj)
+  if (multfsusie.obj$L < 2) return(multfsusie.obj)
 
   to_drop <- integer(0)
 
