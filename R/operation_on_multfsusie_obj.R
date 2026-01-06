@@ -362,6 +362,9 @@ expand_multfsusie_obj <- function(multfsusie.obj,L_extra)
     multfsusie.obj$n_expand <- multfsusie.obj$n_expand+1
     multfsusie.obj$greedy_backfit_update <- TRUE
 
+    if( multfsusie.obj$L== multfsusie.obj$L_max){
+      multfsusie.obj$greedy=FALSE
+    }
     return(multfsusie.obj)
   }
 
@@ -1413,6 +1416,57 @@ return(multfsusie.obj)
 
 
 
+
+
+
+
+
+merge_effect.susiF  <- function(multfsusie.obj, verbose = FALSE) {
+
+  if (obj$L < 2) return(multfsusie.obj)
+
+  to_drop <- integer(0)
+
+  for (i in 1:(multfsusie.obj$L - 1)) {
+    for (j in (i + 1):obj$L) {
+
+      if (i %in% to_drop || j %in% to_drop) next
+
+      rel <-  fsusieR::cs_relation(multfsusie.obj$cs[[i]],
+                                   multfsusie.obj$cs[[j]])
+
+      if (rel == "none") next
+
+      largest <- fsusieR::which_cs_largeBF(multfsusie.obj, i, j)
+      smallest  <- setdiff(c(i, j), largest)
+
+      to_drop <- c(to_drop,  smallest )
+
+      if (verbose) {
+        message(
+          sprintf(
+            "Trivial merge: dropping effect %d (CS %s effect %d)",
+            smallest,
+            ifelse(rel == "identical", "identical to", "nested in"),
+            largest
+          )
+        )
+      }
+    }
+  }
+
+  to_drop <- sort(unique(to_drop))
+  if (length(to_drop) == 0) return(obj)
+
+  discard_cs(multfsusie.obj, cs = to_drop, out_prep = FALSE)
+}
+
+
+
+
+
+
+
 # @title Updates CS names for output
 #
 # @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
@@ -2329,7 +2383,7 @@ TI_regression.multfsusie<- function(multfsusie.obj,
   }
   multfsusie.obj$cred_band <- tp
   dummy_susiF.obj <- create_dummy_susiF(multfsusie.obj)
-
+  dummy_susiF.obj$L=multfsusie.obj$L
   for ( k in 1: length(Y$Y_f)){
 
     susiF.obj <- fsusieR::TI_regression.susiF(     obj           = dummy_susiF.obj,
