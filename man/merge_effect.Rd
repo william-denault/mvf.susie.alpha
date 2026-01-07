@@ -5,14 +5,14 @@
 \alias{merge_effect.multfsusie}
 \title{Merging effect function}
 \usage{
-merge_effect(multfsusie.obj, tl, ...)
+merge_effect(multfsusie.obj, verbose, ...)
 
 \method{merge_effect}{multfsusie}(multfsusie.obj, verbose = FALSE)
 }
 \arguments{
 \item{multfsusie.obj}{a susiF object defined by init_multfsusie_obj function}
 
-\item{tl}{see  \code{\link{greedy_backfit}}}
+\item{verbose}{}
 }
 \value{
 a multfusie  object

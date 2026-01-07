@@ -1139,22 +1139,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
                                    out_prep= FALSE
       )
 
-      if( length(multfsusie.obj$cs)>1){
-        A <- fsusieR::cal_cor_cs(multfsusie.obj, X)$cs_cor
-        tl <- which(A>0.99, arr.ind = TRUE)
-        tl <-  tl[- which( tl[,1]==tl[,2]),]
-
-        if ( length(tl )==0){
-
-        }else{
-# if merging don't discard
-          tl <-  tl[which(tl[,1] < tl[,2]),]
-          multfsusie.obj <- merge_effect(multfsusie.obj, tl, discard=TRUE)
-          # L_extra <- temp_L- multfsusie.obj$L
-          #multfsusie.obj <- expand_multfsusie_obj(multfsusie.obj,L_extra = L_extra)
-          # return(multfsusie.obj)
-        }
-      }
+      merge_effect (multfsusie.obj , verbose = verbose)
       if(verbose){
         print( paste( "Discarding ",(temp_L- multfsusie.obj$L), " effects"))
       }
@@ -1280,14 +1265,14 @@ list_post_mean_sd <- function(G_prior, Bhat,Shat,lBF,  indx_lst, lowc_wc=NULL,e=
 #
 #' @param multfsusie.obj a susiF object defined by init_multfsusie_obj function
 #
-#' @param tl see  \code{\link{greedy_backfit}}
+#' @param  verbose
 #
 #
 #
-#' @return  a multfusie  object
+#' @return  a multfsusie  object
 #' @export
 #' @keywords internal
-merge_effect <- function( multfsusie.obj, tl, ...)
+merge_effect <- function( multfsusie.obj,  verbose , ...)
   UseMethod("merge_effect")
 
 #' @rdname merge_effect
@@ -1306,7 +1291,7 @@ merge_effect.multfsusie  <-  function(multfsusie.obj, verbose = FALSE) {
   to_drop <- integer(0)
 
   for (i in 1:(multfsusie.obj$L - 1)) {
-    for (j in (i + 1):obj$L) {
+    for (j in (i + 1):multfsusie.obj$L) {
 
       if (i %in% to_drop || j %in% to_drop) next
 
@@ -1334,7 +1319,7 @@ merge_effect.multfsusie  <-  function(multfsusie.obj, verbose = FALSE) {
   }
 
   to_drop <- sort(unique(to_drop))
-  if (length(to_drop) == 0) return(obj)
+  if (length(to_drop) == 0) return(multfsusie.obj)
 
   discard_cs(multfsusie.obj, cs = to_drop, out_prep = FALSE)
 }
