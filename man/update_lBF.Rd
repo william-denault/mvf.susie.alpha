@@ -7,7 +7,7 @@
 \usage{
 update_lBF(multfsusie.obj, l, lBF, ...)
 
-\method{update_lBF}{multfsusie}(multfsusie.obj, l, lBF, ...)
+\method{update_lBF}{multfsusie}(multfsusie.obj, l, lBF, lBF_per_trait, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a susiF object defined by init_multfsusie_obj function}

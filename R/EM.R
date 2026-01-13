@@ -42,14 +42,17 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
 
   ### Work here ------
 
-  lBF <- log_BF(G_prior,
+  lBF_per_trait <- log_BF(G_prior,
                 effect_estimate = effect_estimate,
                 list_indx_lst   = list_indx_lst,
                 low_trait       = low_trait ,
-                df              = df)
+                df              = df )
 
 
 
+  f_logBF = apply( lBF_per_trait$f_logBF ,2,sum)
+  u_logBF = apply( lBF_per_trait$u_logBF ,2,sum)
+  lBF=  f_logBF+u_logBF
 
   if( !is.null(effect_estimate$res_uni)){
     J <- nrow( effect_estimate$res_uni$Bhat)
@@ -92,18 +95,23 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
                                 tol_null_prior = tol_null_prior)
     G_prior <- update_prior(G_prior,tpi_k)
 
-    lBF <- log_BF(G_prior,
+    lBF_per_trait <- log_BF(G_prior,
                   effect_estimate = effect_estimate,
                   list_indx_lst   = list_indx_lst,
                   low_trait       = low_trait ,
                   df              = df)
+
+    f_logBF = apply( lBF_per_trait$f_logBF ,2,sum)
+    u_logBF = apply( lBF_per_trait$u_logBF ,2,sum)
+    lBF=  f_logBF+u_logBF
+
     lBF <- ifelse(lBF==-Inf,0,lBF)
     newloglik <- fsusieR::cal_lik(lBF,zeta)
     k <- k+1
 
   }
 
-  out <- list(tpi_k = tpi_k,lBF = lBF)
+  out <- list(tpi_k = tpi_k,lBF = lBF, lBF_per_trait=lBF_per_trait  )
   class(out) <- c("EM_pi_multfsusie","list")
   return(out)
 }

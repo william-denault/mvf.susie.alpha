@@ -264,7 +264,7 @@ log_BF.multfsusie_prior <- function( G_prior,
 {
   if(is.null(df)){
     if( is.null(G_prior$G_prior_u)){
-      u_logBF <- rep(0,nrow(effect_estimate$res_f[[1]]$Bhat  ))
+      u_logBF <-  matrix(rep(0,nrow(effect_estimate$res_f[[1]]$Bhat  )), nrow=1)
     }else{
       u_logBF <-  lapply(1:ncol(effect_estimate$res_u$Bhat),
                          function(k)
@@ -277,7 +277,7 @@ log_BF.multfsusie_prior <- function( G_prior,
       u_logBF <- apply(do.call(rbind, u_logBF),2,sum)
     }
     if(is.null(G_prior$G_prior_f)){
-      f_logBF <- rep(0,nrow(effect_estimate$res_u[[1]] ))
+      f_logBF <-  matrix(rep(0,nrow(effect_estimate$res_u[[1]] )), nrow=1)
     }else{
       f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
         fsusieR::log_BF(G_prior  = G_prior$G_prior_f[[k]],
@@ -287,13 +287,13 @@ log_BF.multfsusie_prior <- function( G_prior,
                             lowc_wc  = low_trait$lowc_wc[[k]]
         )
       )
-      f_logBF <- apply(do.call(rbind, f_logBF),2,sum)
+      f_logBF <- do.call(rbind, f_logBF)
     }
 
   }else{
     ### Work here ------
     if( is.null(G_prior$G_prior_u)){
-      u_logBF <- rep(0,nrow(effect_estimate$res_f[[1]]$Bhat  ))
+      u_logBF <- matrix(rep(0,nrow(effect_estimate$res_f[[1]]$Bhat  )), nrow=1)
     }else{
      # print( "moderated BF u ")
       u_logBF <-  lapply(1:ncol(effect_estimate$res_u$Bhat),
@@ -305,10 +305,10 @@ log_BF.multfsusie_prior <- function( G_prior,
                                    df      =  df$Y_u[k]
                            )
       )
-      u_logBF <- apply(do.call(rbind, u_logBF),2,sum)
+      u_logBF <-  do.call(rbind, u_logBF)
     }
     if(is.null(G_prior$G_prior_f)){
-      f_logBF <- rep(0,nrow(effect_estimate$res_u[[1]] ))
+      f_logBF <- matrix(rep(0,nrow(effect_estimate$res_u[[1]] )), nrow=1)
     }else{
       #print( "moderated BF f ")
       f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
@@ -320,14 +320,15 @@ log_BF.multfsusie_prior <- function( G_prior,
                             df       = df$Y_f[k]
         )
       )
-      f_logBF <- apply(do.call(rbind, f_logBF),2,sum)
+      f_logBF <-do.call(rbind, f_logBF)
     }
 
 
 
   }
 
-  out <- f_logBF+u_logBF
+  out <- list(  f_logBF=f_logBF,
+                u_logBF=u_logBF)
   return(out)
 
 }

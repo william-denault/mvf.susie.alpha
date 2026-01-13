@@ -241,7 +241,6 @@ multfsusie <- function(Y, X, L = 2,
       print("Data transform")
     }
 
-browser()
     h <- 1
     list_wdfs <- list()
     list_indx_lst  <-  list()
@@ -304,6 +303,7 @@ browser()
 
 
   #### centering and scaling covariate ----
+  X0=X
   X <- fsusieR::colScale(X)
 
   Y0=Y_data
@@ -381,13 +381,12 @@ browser()
                                          backfit       = backfit,
                                          ind_analysis  = ind_analysis,
                                          tol_null_prior= tol_null_prior,
-                                         lbf_min       = lbf_min)
+                                         lbf_min       = tol_null_prior)
 
 
   check <- 3*tol
 
 
-  browser()
   update_Y    <-  Y_data
   if(verbose){
     print("Initialization done")
@@ -447,6 +446,7 @@ browser()
     {
       for( l in 1:multfsusie.obj$L)
       {
+
         update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
                                       l              = (l-1)  ,
                                       X              = X,
@@ -492,7 +492,6 @@ browser()
 
 
         }
-        print(hist(EM_out$lBF))
         multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,###TODO:: SLOW
                                             l               = l,
                                             EM_pi           = EM_out,
@@ -540,10 +539,11 @@ browser()
   }#end else in if(L==1)
 
   #preparing output
+
    multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,
                               Y               = Y0,#Y_data,
                               interpolated_Y  = interpolated_Y,
-                              X               = X,
+                              X               = X0,
                               list_indx_lst   = list_indx_lst,
                               filter_cs       = filter_cs,
                               outing_grid     = outing_grid,

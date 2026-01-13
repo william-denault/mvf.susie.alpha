@@ -416,9 +416,12 @@ HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,verbose=TRUE,maxit=5, 
 
  #  browser()
   #renaming lfsr output
-  for (  l in 1: length(multfsusie.obj$lfsr)){
-    names(multfsusie.obj$lfsr[[l]])[1] <- "est_lfsr_functional"
-    multfsusie.obj$lfsr[[l]]$est_lfsr_functional  <- list()
+  multfsusie.obj$lfsr <- vector("list", length(multfsusie.obj$cs))
+
+  for (l in seq_along(multfsusie.obj$lfsr)) {
+    multfsusie.obj$lfsr[[l]] <- list(
+      est_lfsr_functional = list()
+    )
   }
 
   tl <- list()
@@ -550,6 +553,7 @@ init_multfsusie_obj <- function(L_max,
   n_cond          <- type_mark$ncond
   P               <- ncol(X)
   lBF             <- list()
+  lBF_trait       <- list()
   KL              <- rep(NA,L)
   ELBO            <- c()
   P               <- ncol(X)
@@ -599,6 +603,7 @@ init_multfsusie_obj <- function(L_max,
                fitted_u        = fitted_u,
                fitted_u2       = fitted_u2,
                lBF             = lBF,
+               lBF_trait       = lBF_trait,
                KL              = KL,
                ELBO            = ELBO,
                ind_fitted_val  = ind_fitted_val,
@@ -1642,7 +1647,8 @@ update_multfsusie   <- function(multfsusie.obj, l, EM_pi, effect_estimate, list_
   multfsusie.obj <- update_alpha(multfsusie.obj, l, new_alpha)
   multfsusie.obj <- update_lBF(multfsusie.obj  = multfsusie.obj,
                                l               = l,
-                               lBF             = EM_pi$lBF)
+                               lBF             = EM_pi$lBF,
+                               lBF_per_trait   = EM_pi$lBF_per_trait)
 
  #TODO: fix that because it seems to take to much memory
  # multfsusie.obj <- update_lfsr(multfsusie.obj  = multfsusie.obj,
@@ -2072,14 +2078,18 @@ update_lBF  <- function    (multfsusie.obj, l, lBF,...)
 
 
 
-update_lBF.multfsusie <- function    (multfsusie.obj,l, lBF, ...)
+update_lBF.multfsusie <- function    (multfsusie.obj,l, lBF,lBF_per_trait, ...)
 {
   if(l> multfsusie.obj$L)
   {
     stop("Error: trying to update more effects than the number of specified effect")
   }
 
+  multfsusie.obj$lBF_per_trait [[l]] <-  lBF_per_trait
+
+
   multfsusie.obj$lBF[[l]] <- lBF
+
   return(multfsusie.obj)
 }
 
