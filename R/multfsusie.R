@@ -179,7 +179,7 @@ multfsusie <- function(Y, X, L = 2,
                        L_start = 3,
                        filter_cs = TRUE,
                        init_pi0_w = 1,
-                       nullweight = 1 ,
+                       nullweight = .1 ,
                        control_mixsqp = list(
                          eps = 1e-6,
                          numiter.em = 40,
@@ -241,7 +241,7 @@ multfsusie <- function(Y, X, L = 2,
       print("Data transform")
     }
 
-
+browser()
     h <- 1
     list_wdfs <- list()
     list_indx_lst  <-  list()
@@ -271,12 +271,15 @@ multfsusie <- function(Y, X, L = 2,
         map_data <-  fsusieR::remap_data(Y=Y$Y_f[[k]],
                                              pos=pos[[k]],
                                              verbose=verbose)
+
+
+
         outing_grid[[k]] <- map_data$outing_grid
         interpolated_Y$Y_f[[k]] <-  map_data$Y
 
 
-
-        temp               <- DWT2( map_data$Y,
+### scaling here  -----
+        temp               <- DWT2( fsusieR::colScale(map_data$Y),
                                     filter.number = filter.number,
                                     family        = family)
         list_wdfs[[h]]     <- cbind( temp$D,temp$C)
@@ -305,7 +308,7 @@ multfsusie <- function(Y, X, L = 2,
 
   Y0=Y_data
   # centering input
-  Y_data <- multi_array_colScale(Y_data, scale=FALSE)
+  Y_data <- multi_array_colScale(Y_data )
   #
   if(verbose){
     print("Data transform done")
@@ -384,8 +387,8 @@ multfsusie <- function(Y, X, L = 2,
   check <- 3*tol
 
 
+  browser()
   update_Y    <-  Y_data
-
   if(verbose){
     print("Initialization done")
   }
@@ -442,7 +445,6 @@ multfsusie <- function(Y, X, L = 2,
     iter <- 1
     while(check >tol & iter <=maxit)
     {
-
       for( l in 1:multfsusie.obj$L)
       {
         update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,

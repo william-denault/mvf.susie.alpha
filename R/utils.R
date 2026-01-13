@@ -204,14 +204,14 @@ is.functional <- function(Y, min_levres =4 ){
 
 }
 
-multi_array_colScale <- function(Y, scale=FALSE){
+multi_array_colScale <- function(Y, scale=TRUE){
 
   if( !is.null(Y$Y_u))
   {
-    Y$Y_u <- fsusieR::colScale   (Y$Y_u,scale=FALSE)
+    Y$Y_u <- fsusieR::colScale   (Y$Y_u,scale=scale)
   }
   if(!is.null(Y$Y_f)){
-    Y$Y_f <- lapply( 1:length(Y$Y_f), function(k)  fsusieR::colScale(Y$Y_f[[k]],scale=FALSE) )
+    Y$Y_f <- lapply( 1:length(Y$Y_f), function(k)  fsusieR::colScale(Y$Y_f[[k]],scale=scale) )
   }
 
  return( Y)

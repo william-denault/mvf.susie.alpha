@@ -272,6 +272,7 @@ discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE, ...)
       return(multfsusie.obj)
     }
   }
+  if( length(cs)>0){
   multfsusie.obj$alpha       <-  multfsusie.obj$alpha[ -cs]
   multfsusie.obj$lBF         <-  multfsusie.obj$lBF[ -cs]
   if(!is.null(multfsusie.obj$G_prior$G_prior_f)){
@@ -296,7 +297,7 @@ discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE, ...)
 
   multfsusie.obj$est_pi           <-  multfsusie.obj$est_pi[ -cs]
   multfsusie.obj$L                <-  multfsusie.obj$L -length(cs)
-
+}
 
   return(multfsusie.obj)
 }
@@ -1152,7 +1153,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
 
     multfsusie.obj$greedy <- FALSE
 
-
+    merge_effect (multfsusie.obj , verbose = verbose)
 
     multfsusie.obj <- discard_cs(multfsusie.obj,
                                  cs= (multfsusie.obj$L_max+1):multfsusie.obj$L,
@@ -1293,28 +1294,32 @@ merge_effect.multfsusie  <-  function(multfsusie.obj, verbose = FALSE) {
   for (i in 1:(multfsusie.obj$L - 1)) {
     for (j in (i + 1):multfsusie.obj$L) {
 
-      if (i %in% to_drop || j %in% to_drop) next
+      if (!(i %in% to_drop || j %in% to_drop)){
+        rel <-  fsusieR::cs_relation(multfsusie.obj$cs[[i]],
+                                     multfsusie.obj$cs[[j]])
 
-      rel <-  fsusieR::cs_relation(multfsusie.obj$cs[[i]],
-                                   multfsusie.obj$cs[[j]])
+        if(! (rel == "none")){
+          largest <- fsusieR::which_cs_largeBF(multfsusie.obj, i, j)
+          smallest  <- setdiff(c(i, j), largest)
 
-      if (rel == "none") next
+          to_drop <- c(to_drop,  smallest )
 
-      largest <- fsusieR::which_cs_largeBF(multfsusie.obj, i, j)
-      smallest  <- setdiff(c(i, j), largest)
+          if (verbose) {
+            message(
+              sprintf(
+                "Trivial merge: dropping effect %d (CS %s effect %d)",
+                smallest,
+                ifelse(rel == "identical", "identical to", "nested in"),
+                largest
+              )
+            )
+          }
+        }
 
-      to_drop <- c(to_drop,  smallest )
 
-      if (verbose) {
-        message(
-          sprintf(
-            "Trivial merge: dropping effect %d (CS %s effect %d)",
-            smallest,
-            ifelse(rel == "identical", "identical to", "nested in"),
-            largest
-          )
-        )
       }
+
+
     }
   }
 

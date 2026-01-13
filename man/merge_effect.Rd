@@ -15,7 +15,7 @@ merge_effect(multfsusie.obj, verbose, ...)
 \item{verbose}{}
 }
 \value{
-a multfusie  object
+a multfsusie  object
 }
 \description{
 Merging effect function
