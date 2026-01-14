@@ -97,7 +97,7 @@
 #'  that have low alpha values. Set to 0 to compute the entire posterior.
 #'  Default value is 0.001.
 #' @param lbf_min numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value
-#'
+#'@param posthoc logical , default TRUE if set to TRUE compute post hoc probabilities of causal configurations as in Yuan Nat Gen 2024
 #' @export
 #' @examples
 #' library(mvf.susie.alpha)
@@ -198,7 +198,8 @@ multfsusie <- function(Y, X, L = 2,
                        family = "DaubLeAsymm",
                        e = 0.001,
                        tol_null_prior=0.001,
-                       lbf_min=0.1)
+                       lbf_min=0.1,
+                       posthoc=TRUE)
 
 
 {
@@ -552,7 +553,8 @@ multfsusie <- function(Y, X, L = 2,
                               family          = family,
                               ind_analysis    = ind_analysis,
                               post_processing = post_processing,
-                              verbose= verbose
+                              verbose         = verbose,
+                              posthoc         = posthoc
 
     )
    multfsusie.obj$runtime <- proc.time()-pt

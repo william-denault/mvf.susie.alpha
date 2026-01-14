@@ -274,7 +274,7 @@ log_BF.multfsusie_prior <- function( G_prior,
                                    low_u   =  ifelse(k%in%low_trait$low_u, TRUE,FALSE)
                            )
       )
-      u_logBF <- apply(do.call(rbind, u_logBF),2,sum)
+      u_logBF <-  do.call(rbind, u_logBF)
     }
     if(is.null(G_prior$G_prior_f)){
       f_logBF <-  matrix(rep(0,nrow(effect_estimate$res_u[[1]] )), nrow=1)

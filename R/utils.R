@@ -377,3 +377,11 @@ init_var_multf <- function(Y){
   }
   return(sigma2)
 }
+
+
+
+
+get_cs_logBF_multfsusie <- function(alpha_l, logBF_trait_snp) {
+
+  drop(logBF_trait_snp %*% alpha_l)
+}

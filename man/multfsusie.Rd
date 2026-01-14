@@ -34,7 +34,8 @@ multfsusie(
   family = "DaubLeAsymm",
   e = 0.001,
   tol_null_prior = 0.001,
-  lbf_min = 0.1
+  lbf_min = 0.1,
+  posthoc = TRUE
 )
 }
 \arguments{
@@ -128,6 +129,8 @@ that have low alpha values. Set to 0 to compute the entire posterior.
 Default value is 0.001.}
 
 \item{lbf_min}{numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value}
+
+\item{posthoc}{logical , default TRUE if set to TRUE compute post hoc probabilities of causal configurations as in Yuan Nat Gen 2024}
 }
 \description{
 Implementation of the Multi-modal fSuSiE method.

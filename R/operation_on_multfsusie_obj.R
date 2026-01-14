@@ -639,6 +639,9 @@ init_multfsusie_obj <- function(L_max,
 
 
 
+
+
+
 #' @title Acces mixture proportion  for multfsusie.obj
 #' @description see title
 #' @param multfsusie.obj a multfsusie object
@@ -1386,6 +1389,7 @@ name_cs.multfsusie <- function(multfsusie.obj,X,...){
 #' @param filter_cs logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)
 #'@param post_processing the chosen postprocessing
 #'@param verbose  true or false
+#'@param posthoc logical , default TRUE if set to TRUE compute post hoc probabilities of causal configurations as in Yuan Nat Gen 2024
 #' @export
 #' @keywords internal
 out_prep <- function(multfsusie.obj,
@@ -1399,7 +1403,8 @@ out_prep <- function(multfsusie.obj,
                      filter.number ,
                      family ,
                      ind_analysis ,
-                     post_processing,...)
+                     post_processing,
+                     posthoc,...)
 UseMethod("out_prep")
 
 #' @rdname out_prep
@@ -1426,6 +1431,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                 ind_analysis ,
                                 post_processing="smash",
                                 verbose=TRUE,
+                                posthoc=TRUE,
                                 ... )
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
@@ -1483,9 +1489,84 @@ out_prep.multfsusie <- function(multfsusie.obj,
   }
   multfsusie.obj$purity      <- fsusieR::cal_purity(l_cs= multfsusie.obj$cs, X=X)
 
+  if(posthoc){
+    multfsusie.obj$posthoc <-  posthoc_multfsusie  (multfsusie.obj)
+  }
 
   return( multfsusie.obj)
 }
+
+
+
+
+posthoc_multfsusie <- function(
+    multfsusie.obj,
+    prob_thresh=0.8
+){
+  alpha_list <- multfsusie.obj$alpha
+
+
+  out <- vector("list", length(alpha_list))
+
+  for (l in seq_along(alpha_list)) {
+
+    alpha_l <- alpha_list[[l]]
+    if (all(alpha_l == 0)) {
+      out[[l]] <- NULL
+      next
+    }
+
+    temp=do.call( rbind,
+                  multfsusie.obj$lBF_per_trait[[l]])
+
+    if( is.null(multfsusie.obj$fitted_wc)){
+      temp=  multfsusie.obj$lBF_per_trait[[l]]$u_logBF
+    }
+    if( is.null(multfsusie.obj$fitted_u)){
+      temp=  multfsusie.obj$lBF_per_trait[[l]]$f_logBF
+    }
+
+
+    ## ---- per-trait log BF for this CS
+    logBF_l <- get_cs_logBF_multfsusie(alpha_l,
+                                       logBF_trait_snp = temp
+    )
+    S <-length(logBF_l)
+    ## ---- enumerate configurations
+    if (S > 20) {
+      warning(paste("CS", l, ": too many traits for exact posthoc"))
+      out[[l]] <- NULL
+      next
+    }
+
+    configs <- as.matrix(expand.grid(rep(list(c(0,1)), S)))
+    colnames(configs) <- paste0("trait", seq_len(S))
+
+    ## ---- configuration log BF
+    logBF_conf <- as.vector(configs %*%  logBF_l )
+
+    ## ---- normalize (stable)
+    maxlog <- max(logBF_conf)
+    prob_conf <- exp(logBF_conf - maxlog)
+    prob_conf <- prob_conf / sum(prob_conf)
+
+    ## ---- marginal per-trait posterior prob
+    posthoc_trait <- colSums(configs * prob_conf)
+
+    out[[l]] <- list(
+      logBF_trait = logBF_l,
+      posthoc     = posthoc_trait,
+      active      = posthoc_trait >= prob_thresh,
+      configs     = configs,
+      config_prob = prob_conf
+    )
+  }
+
+  out
+}
+
+
+
 
 
 pred_partial_u <- function( multfsusie.obj, l, X )

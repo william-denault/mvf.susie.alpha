@@ -18,6 +18,7 @@ out_prep(
   family,
   ind_analysis,
   post_processing,
+  posthoc,
   ...
 )
 
@@ -35,6 +36,7 @@ out_prep(
   ind_analysis,
   post_processing = "smash",
   verbose = TRUE,
+  posthoc = TRUE,
   ...
 )
 }
@@ -52,6 +54,8 @@ out_prep(
 \item{filter_cs}{logical, if TRUE filter the credible set (removing low purity cs and cs with estimated prior equal to 0)}
 
 \item{post_processing}{the chosen postprocessing}
+
+\item{posthoc}{logical , default TRUE if set to TRUE compute post hoc probabilities of causal configurations as in Yuan Nat Gen 2024}
 
 \item{verbose}{true or false}
 }
