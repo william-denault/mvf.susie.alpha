@@ -553,7 +553,7 @@ init_multfsusie_obj <- function(L_max,
   n_cond          <- type_mark$ncond
   P               <- ncol(X)
   lBF             <- list()
-  lBF_trait       <- list()
+  lBF_per_trait   <- list()
   KL              <- rep(NA,L)
   ELBO            <- c()
   P               <- ncol(X)
@@ -603,7 +603,7 @@ init_multfsusie_obj <- function(L_max,
                fitted_u        = fitted_u,
                fitted_u2       = fitted_u2,
                lBF             = lBF,
-               lBF_trait       = lBF_trait,
+               lBF_per_trait   = lBF_per_trait,
                KL              = KL,
                ELBO            = ELBO,
                ind_fitted_val  = ind_fitted_val,
@@ -630,7 +630,7 @@ init_multfsusie_obj <- function(L_max,
                greedy_backfit_update=greedy_backfit_update,
                ind_analysis    = ind_analysis,
                tol_null_prior  = tol_null_prior,
-               lbf_min=  lbf_min )
+               lbf_min         =  lbf_min )
 
   class(obj) <- "multfsusie"
   return(obj)
