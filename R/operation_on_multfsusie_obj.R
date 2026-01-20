@@ -2517,7 +2517,7 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj,
       #   return(is.dummy.cs )
       #}
       if(length(multfsusie.obj$cs[[l]]) <5){
-        if(length(obj$cs[[l]])==0 ){
+        if(length(multfsusie.obj$cs[[l]])==0 ){
 
           is.dummy.cs <- TRUE
           return( is.dummy.cs)
@@ -2531,7 +2531,7 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj,
 
 
     }else{
-      if(length(obj$cs[[l]])==0 ){
+      if(length(multfsusie.obj$cs[[l]])==0 ){
 
         is.dummy.cs <- TRUE
         return( is.dummy.cs)

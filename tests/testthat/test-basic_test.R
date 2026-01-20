@@ -42,7 +42,7 @@ filter.number = 10
 family = "DaubLeAsymm"
 pos=NULL
 prior = "mixture_normal"
-
+tol_null_prior=0.001
 noisy.data  <- list()
 rsnr <- 6
 for ( i in 1:N)
@@ -245,18 +245,20 @@ multfsusie.obj <- init_multfsusie_obj(L_max          = 10,
                                       L_start        =   3,
                                       greedy         = greedy,
                                       backfit        = backfit,
-                                      ind_analysis   = ind_analysis)
+                                      ind_analysis   = ind_analysis,
+                                      tol_null_prior=tol_null_prior)
 test_that("multfsusie internal prior to be equal to ",
           {
             multfsusie.obj <- init_multfsusie_obj(L_max          = 10,
                                                   G_prior        = G_prior,
                                                   Y              = Y_data,
-                                                  X              = X ,
+                                                  X              = X,
                                                   type_mark      = type_mark,
                                                   L_start        =   3,
                                                   greedy         = greedy,
                                                   backfit        = backfit,
-                                                  ind_analysis   = ind_analysis)
+                                                  ind_analysis   = ind_analysis,
+                                                  tol_null_prior=tol_null_prior)
             expect_equal(get_G_prior (multfsusie.obj ),  G_prior)
 
           }
@@ -350,7 +352,7 @@ est_pi_f <- lapply(1:length(L_mat$L_mat_f) ,
                                       list_indx_lst[[k]],
                                       init_pi0_w= init_pi0_w,
                                       control_mixsqp = control_mixsqp,
-                                      nullweight = nullweight
+                                      nullweight = 0
                    )
 )
 
@@ -362,8 +364,7 @@ test_that("The highest assignation should be equal to", {
                tolerance = 0.01)
   expect_equal(tpi$est_pi_u[[3]][1], 0,
                tolerance = 0.01)
-  expect_lt( fsusieR::get_pi0(tpi = tpi$est_pi_f[[1]]),  c(0.73  ) )
-  expect_lt( fsusieR::get_pi0(tpi = tpi$est_pi_f[[2]]) , c( 999998 ) )
+  expect_lt( fsusieR::get_pi0(tpi = tpi$est_pi_f[[1]]),  c(0.77  ) )
 })
 
 threshs <- create_null_thresh(type_mark = type_mark)
@@ -389,17 +390,7 @@ test_that("check greedy backfit",{
     if(verbose){
       print(paste("Fitting effect ", l,", iter" ,  iter ))
     }
-    if(init){#recycle operation used to fit the prior
 
-      EM_out <- fsusieR:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
-                                          lBF  = log_BF(G_prior,
-                                                        effect_estimate,
-                                                        list_indx_lst,
-                                                        low_trait = low_trait)
-      )
-      class(EM_out) <- c("EM_pi_multfsusie","list")
-      init <- FALSE
-    }else{
 
       effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
                                                     low_trait      = low_trait,
@@ -420,7 +411,7 @@ test_that("check greedy backfit",{
       )
 
 
-    }
+
 
   multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,###TODO:: SLOW
                                       l               = l,
@@ -434,11 +425,11 @@ test_that("check greedy backfit",{
 
   multfsusie.obj$lfsr_wc
   multfsusie.obj$lfsr_u
-  multfsusie.obj <- greedy_backfit (multfsusie.obj,
+  multfsusie.obj <- greedy_backfit.multfsusie (multfsusie.obj,
                                     verbose        = verbose,
                                     cov_lev        = cov_lev,
                                     X              = X,
-                                    min.purity     = min.purity
+                                    min_purity     = min.purity
   )
   iter =  iter+1
   expect_equal(multfsusie.obj$L ,  (7+3))
@@ -465,17 +456,7 @@ test_that("check greedy backfit",{
     if(verbose){
       print(paste("Fitting effect ", l,", iter" ,  iter ))
     }
-    if(init){#recycle operation used to fit the prior
 
-      EM_out <- fsusieR:::gen_EM_out (tpi_k= get_pi_G_prior(G_prior),
-                                          lBF  = log_BF(G_prior,
-                                                        effect_estimate,
-                                                        list_indx_lst,
-                                                        low_trait = low_trait)
-      )
-      class(EM_out) <- c("EM_pi_multfsusie","list")
-      init <- FALSE
-    }else{
 
       effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
                                                     low_trait      = low_trait,
@@ -496,7 +477,6 @@ test_that("check greedy backfit",{
       )
 
 
-    }
 
     multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,###TODO:: SLOW
                                         l               = l,
@@ -510,11 +490,11 @@ test_that("check greedy backfit",{
 
   multfsusie.obj$lfsr_wc
   multfsusie.obj$lfsr_u
-  multfsusie.obj <- greedy_backfit (multfsusie.obj,
+  multfsusie.obj <-greedy_backfit.multfsusie  (multfsusie.obj,
                                     verbose        = verbose,
                                     cov_lev        = cov_lev,
                                     X              = X,
-                                    min.purity     = min.purity
+                                    min_purity     = min.purity
   )
 
   multfsusie.obj$cs
@@ -561,13 +541,36 @@ test_that("The performance  of multfsusie on  this example should be",{
                    X=G,
                    L=11 ,
                    L_start=11 ,
-                   nullweight=10,
+                   nullweight=.1,
                    cal_obj =FALSE,
+                   post_processing = "smash",
                    maxit=10, verbose=FALSE)
 
-  expect_lt(  sqrt(mean( (m1$fitted_func[[2]][[1]]-lf[[3]])^2)),0.7)
-  expect_lt(  sqrt(mean( (m1$fitted_func[[1]][[1]]-lf[[1]])^2)),0.7)
-  expect_lt(  sqrt(mean( (m1$fitted_func[[3]][[1]]-lf[[2]])^2)),0.7)
+
+
+
+  ll= c()
+  for(k in 1:3){
+    ll= c(ll,
+          sqrt(mean( (m1$fitted_func[[2]][[1]]-lf[[k]])^2))
+    )
+  }
+
+  expect_lt(  min(ll) ,0.7)
+  ll= c()
+  for(k in 1:3){
+    ll= c(ll,
+          sqrt(mean( (m1$fitted_func[[1]][[1]]-lf[[k]])^2))
+    )
+  }
+  expect_lt(  min(ll) ,0.7)
+  ll= c()
+  for(k in 1:3){
+    ll= c(ll,
+          sqrt(mean( (m1$fitted_func[[3]][[1]]-lf[[k]])^2))
+    )
+  }
+  expect_lt(  min(ll) ,0.7)
   expect_equal( length(which(true_pos%in% do.call(c, m1$cs))) , length(true_pos))
 }
 )

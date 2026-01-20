@@ -170,7 +170,7 @@
 multfsusie <- function(Y, X, L = 2,
                        pos = NULL,
                        prior = "mixture_normal",
-                       post_processing=c("TI","smash","HMM","none"),
+                       post_processing=c("smash","TI","HMM","none"),
                        verbose = TRUE,
                        maxit = 100,
                        tol = 1e-3,

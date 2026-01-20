@@ -1,7 +1,6 @@
 rm(list=ls())
 library(fsusieR)
 library(mvf.susie.alpha)
-library(sim1000G)
 set.seed(1)
 N <-100
 P <- 50
