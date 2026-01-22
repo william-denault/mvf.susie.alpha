@@ -1294,7 +1294,7 @@ merge_effect <- function( multfsusie.obj,  verbose , ...)
 #' @keywords internal
 
 merge_effect.multfsusie  <-  function(multfsusie.obj, verbose = FALSE) {
-
+return(multfsusie.obj)
   if (multfsusie.obj$L < 2) return(multfsusie.obj)
 
   to_drop <- integer(0)
@@ -2248,7 +2248,7 @@ test_stop_cond.multfsusie <- function(multfsusie.obj, check, cal_obj, Y, X, list
         }
 
 
-        check <- sum(abs(T1-T2))/nrow(X)
+        check <-max (abs(T1-T2))
         multfsusie.obj$check <- check
         return(multfsusie.obj)
         #print(check)
