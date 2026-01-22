@@ -26,7 +26,6 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                   tol_null_prior=0.001
                                   )
 {
-
   if(is.null(Y$Y_u)){
     G_prior_u <- NULL
     res_u   <- NULL
@@ -86,7 +85,6 @@ init_prior_multfsusie <- function(Y,X, v1 ,
 
 
     }else{
-
         t_G_prior_f <-lapply(1:length(Y$Y_f),
                              function(k) fsusieR:::init_prior.default( Y              = Y$Y_f[[k]],
                                                                            X              = X,
@@ -107,7 +105,6 @@ init_prior_multfsusie <- function(Y,X, v1 ,
 
 
     }
-
     G_prior_f <- lapply(1:length(Y$Y_f), function(k)  t_G_prior_f [[k]]$G_prior)
     res_f     <- lapply(1:length(Y$Y_f), function(k)  t_G_prior_f [[k]]$tt)
   }
