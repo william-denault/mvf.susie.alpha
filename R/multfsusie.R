@@ -279,7 +279,7 @@ multfsusie <- function(Y, X, L = 2,
 
 
 ### scaling here  -----
-        temp               <- DWT2( fsusieR::colScale(map_data$Y),
+        temp               <- DWT2( fsusieR::colScale(map_data$Y ),
                                     filter.number = filter.number,
                                     family        = family)
         list_wdfs[[h]]     <- cbind( temp$D,temp$C)
