@@ -1148,7 +1148,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
                                    out_prep= FALSE
       )
 
-      merge_effect (multfsusie.obj , verbose = verbose)
+      #merge_effect (multfsusie.obj , verbose = verbose)
       if(verbose){
         print( paste( "Discarding ",(temp_L- multfsusie.obj$L), " effects"))
       }
@@ -1161,7 +1161,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
 
     multfsusie.obj$greedy <- FALSE
 
-    merge_effect (multfsusie.obj , verbose = verbose)
+    #merge_effect (multfsusie.obj , verbose = verbose)
 
     multfsusie.obj <- discard_cs(multfsusie.obj,
                                  cs= (multfsusie.obj$L_max+1):multfsusie.obj$L,
@@ -1171,7 +1171,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
 
 
 
-    multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
+   # multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
     if(verbose){
       print( paste( "Discarding ",(multfsusie.obj$L_max- multfsusie.obj$L), " effects"))
       print( "Greedy search and backfitting done")
@@ -1187,7 +1187,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
 
   if(!(multfsusie.obj$greedy )&!(multfsusie.obj$backfit ) ){
 
-    multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
+    #multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
 
     if(verbose){
       print( paste( "Discarding ",(multfsusie.obj$L_max- multfsusie.obj$L), " effects"))
@@ -1205,7 +1205,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
     temp <- min( ifelse(tt>0,tt,0 ) , 7)
 
     if(temp==0){
-      multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
+     # multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
 
       if(verbose){
 
@@ -1226,7 +1226,7 @@ greedy_backfit.multfsusie <-  function(multfsusie.obj,verbose,cov_lev,X,min_puri
 
 
 
-    multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
+   # multfsusie.obj  <- merge_effect (multfsusie.obj , verbose = verbose)
 
 
 
@@ -1294,7 +1294,7 @@ merge_effect <- function( multfsusie.obj,  verbose , ...)
 #' @keywords internal
 
 merge_effect.multfsusie  <-  function(multfsusie.obj, verbose = FALSE) {
-return(multfsusie.obj)
+#return(multfsusie.obj)
   if (multfsusie.obj$L < 2) return(multfsusie.obj)
 
   to_drop <- integer(0)
@@ -1436,7 +1436,11 @@ out_prep.multfsusie <- function(multfsusie.obj,
 {
   multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   multfsusie.obj <-  update_cal_fit_u(multfsusie.obj )
-
+  if(filter_cs)
+  {
+    multfsusie.obj <- check_cs(multfsusie.obj,min_purity=0.5,X=X)
+    multfsusie.obj<-  merge_effect( multfsusie.obj)
+  }
   if(post_processing== "none"){
     multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
 
@@ -1477,10 +1481,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                   cov_lev=cov_lev)
 
   multfsusie.obj <-  name_cs(multfsusie.obj,X)
-  if(filter_cs)
-  {
-    multfsusie.obj <- check_cs(multfsusie.obj,min_purity=0.5,X=X)
-  }
+
 
 
   if(!is.null( Y$Y_u)){

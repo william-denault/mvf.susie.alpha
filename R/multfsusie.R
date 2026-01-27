@@ -266,8 +266,14 @@ multfsusie <- function(Y, X, L = 2,
       interpolated_Y <- Y
 
 
+
+      Y0=Y
       for ( k in 1:length(Y$Y_f))
       {
+
+
+
+
         map_data <-  fsusieR::remap_data(Y=Y$Y_f[[k]],
                                              pos=pos[[k]],
                                              verbose=verbose)
@@ -275,7 +281,19 @@ multfsusie <- function(Y, X, L = 2,
 
 
         outing_grid[[k]] <- map_data$outing_grid
-        interpolated_Y$Y_f[[k]] <-  map_data$Y
+
+
+        #allow arbitrary length output when using smash
+        if(post_processing=="smash" & length(unique(diff(pos[[k]])))==1){
+          Y0$Y_f[[k]] <-  Y$Y_f[[k]]
+          interpolated_Y$Y_f[[k]]<-  Y$Y_f[[k]]
+          outing_grid[[k]] =pos
+        }else{
+          Y0$Y_f[[k]] <-  map_data$Y
+          outing_grid[[k]] =outing_grid[[k]]
+          interpolated_Y$Y_f[[k]] <-  map_data$Y
+        }
+
 
 
 ### scaling here  -----
@@ -307,7 +325,7 @@ multfsusie <- function(Y, X, L = 2,
   X0=X
   X <- fsusieR::colScale(X)
 
-  Y0=Y_data
+
   # centering input
   Y_data <- multi_array_colScale(Y_data )
   #
@@ -540,7 +558,6 @@ multfsusie <- function(Y, X, L = 2,
   }#end else in if(L==1)
 
   #preparing output
-
    multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,
                               Y               = Y0,#Y_data,
                               interpolated_Y  = interpolated_Y,
