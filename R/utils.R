@@ -250,12 +250,48 @@ create_null_thresh <- function(type_mark ){
  return(out)
 }
 
+Quantile_transform  <- function(x)
+{
+
+  x.rank = rank(x, ties.method="random")
+  #x.rank = rank(x, ties.method="average")
+  return(qqnorm(x.rank,plot.it = F)$x)
+}
+
+mfsusie_Quantile_transform=function(Y){
+
+  if (!is.null(Y$Y_f)){
+    for ( k in 1: length(Y$Y_f))
+      Y$Y_f[[k]]=apply(Y$Y_f[[k]],2,  Quantile_transform )
+  }
+  if( !is.null(Y$Y_u)){
+    Y$Y_u=apply(Y$Y_u,2,  Quantile_transform )
+  }
+
+  return(Y)
+
+}
+
+
 #@title function checking which
 #
 #@param  Y data list with two entry Y_u and Y_f containning ther differnet phenotypes
 #@param thresh_lowcount an object created by \link{\code{ threshold_set_up }}
 
 check_low_count <- function(Y, thresh_lowcount, ind_analysis ){
+
+
+
+  if (length(thresh_lowcount )==1 & is.numeric(thresh_lowcount)){
+    threshs <- create_null_thresh(type_mark = type_mark)
+    if ( !is.null(threshs$thresh_u)){
+      threshs$thresh_u= rep(thresh_lowcount, length(threshs$thresh_u))
+    }
+    if ( !is.null(threshs$thresh_f)){
+      threshs$thresh_f= rep(thresh_lowcount, length(threshs$thresh_f))
+    }
+    thresh_lowcount=threshs
+  }
 
 if(missing(ind_analysis )){
   if( !is.null(Y$Y_f)){

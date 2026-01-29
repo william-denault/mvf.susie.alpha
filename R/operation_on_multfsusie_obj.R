@@ -98,7 +98,9 @@ cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,
                    Y_f=NULL)
 
   if( !is.null(Y$Y_u)){
+
     if(L>1){
+
       id_L <- (1:L)[ - ( (l%%L)+1) ]#Computing residuals R_{l+1} by removing all the effect except effect l+1
       update_Y$Y_u   <- Y$Y_u - Reduce("+", lapply(id_L, function(k)
                                                     pred_partial_u(multfsusie.obj,k,X)

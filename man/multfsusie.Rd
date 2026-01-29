@@ -21,6 +21,7 @@ multfsusie(
   init_pi0_w = 1,
   nullweight = 0.1,
   control_mixsqp = list(eps = 1e-06, numiter.em = 40, verbose = FALSE),
+  quantile_trans = FALSE,
   thresh_lowcount,
   cal_obj = FALSE,
   greedy = TRUE,

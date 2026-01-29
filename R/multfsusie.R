@@ -185,6 +185,7 @@ multfsusie <- function(Y, X, L = 2,
                          numiter.em = 40,
                          verbose = FALSE
                        ),
+                       quantile_trans=FALSE,
                        thresh_lowcount,
                        cal_obj = FALSE,
                        greedy = TRUE,
@@ -345,6 +346,14 @@ multfsusie <- function(Y, X, L = 2,
                                  ind_analysis    = ind_analysis
                                  )
 
+
+
+      if(quantile_trans)# important to do it after testing for lowcount
+      {
+        Y_data <- mfsusie_Quantile_transform(Y_data )
+
+
+      }
   v1 <- rep( 1, nrow(X))
   if(verbose){
     print("Initializing prior")
@@ -400,7 +409,7 @@ multfsusie <- function(Y, X, L = 2,
                                          backfit       = backfit,
                                          ind_analysis  = ind_analysis,
                                          tol_null_prior= tol_null_prior,
-                                         lbf_min       = tol_null_prior)
+                                         lbf_min       = lbf_min )
 
 
   check <- 3*tol
@@ -511,6 +520,7 @@ multfsusie <- function(Y, X, L = 2,
 
 
         }
+
         multfsusie.obj <- update_multfsusie(multfsusie.obj  = multfsusie.obj ,###TODO:: SLOW
                                             l               = l,
                                             EM_pi           = EM_out,

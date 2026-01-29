@@ -44,11 +44,23 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                                                   gridmult=gridmult)
                               )
     }else{
-      G_prior_u <- lapply((1:ncol(Y$Y_u))[- low_trait$low_u], function(j) ashr::ash(res_u$Bhat[,j],
-                                                                          res_u$Shat[,j],
-                                                                          mixcompdist = "normal" ,
-                                                                          outputlevel=0,
-                                                                          gridmult=gridmult)
+      G_prior_u <- lapply((1:ncol(Y$Y_u)), function(j) {
+
+                                                    if ( j %in% low_trait$low_u){
+                                                      ashr::ash(0*res_u$Bhat[,j],
+                                                                res_u$Shat[,j]+1,
+                                                                mixcompdist = "normal" ,
+                                                                outputlevel=0,
+                                                                gridmult=gridmult)
+                                                    }else{
+                                                            ashr::ash(res_u$Bhat[,j],
+                                                                res_u$Shat[,j],
+                                                                mixcompdist = "normal" ,
+                                                                outputlevel=0,
+                                                                gridmult=gridmult)
+                                                    }
+      }
+
                               )
       }
 
