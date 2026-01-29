@@ -246,6 +246,7 @@ multfsusie <- function(Y, X, L = 2,
     h <- 1
     list_wdfs <- list()
     list_indx_lst  <-  list()
+    Y0=Y
     if( !is.null(Y$Y_f)){
       outing_grid <- list()
 
@@ -268,7 +269,7 @@ multfsusie <- function(Y, X, L = 2,
 
 
 
-      Y0=Y
+
       for ( k in 1:length(Y$Y_f))
       {
 
