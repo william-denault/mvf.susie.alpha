@@ -278,7 +278,7 @@ mfsusie_Quantile_transform=function(Y){
 #@param  Y data list with two entry Y_u and Y_f containning ther differnet phenotypes
 #@param thresh_lowcount an object created by \link{\code{ threshold_set_up }}
 
-check_low_count <- function(Y, thresh_lowcount, ind_analysis ){
+check_low_count <- function(Y, thresh_lowcount, ind_analysis,type_mark ){
 
 
 

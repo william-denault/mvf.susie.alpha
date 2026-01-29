@@ -343,7 +343,8 @@ multfsusie <- function(Y, X, L = 2,
   }
   low_trait <- check_low_count  (Y_data,
                                  thresh_lowcount = threshs,
-                                 ind_analysis    = ind_analysis
+                                 ind_analysis    = ind_analysis,
+                                 type_mark       = type_mark
                                  )
 
 
