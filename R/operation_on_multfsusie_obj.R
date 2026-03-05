@@ -1436,13 +1436,14 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                 posthoc=TRUE,
                                 ... )
 {
-  multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   multfsusie.obj <-  update_cal_fit_u(multfsusie.obj )
   if(filter_cs)
   {
     multfsusie.obj <- check_cs(multfsusie.obj,min_purity=0.5,X=X)
     multfsusie.obj<-  merge_effect( multfsusie.obj)
   }
+
+  multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   if(post_processing== "none"){
     multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
 
