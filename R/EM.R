@@ -29,7 +29,7 @@
 # @export
 #
 EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
-                            max_step = 100,
+                            max_step = 1 ,
                             espsilon = 0.0001,
                             init_pi0_w= 0.9,
                             control_mixsqp ,
@@ -41,7 +41,7 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
 {
 
   ### Work here ------
-
+#browser()
   lBF_per_trait <- log_BF(G_prior,
                 effect_estimate = effect_estimate,
                 list_indx_lst   = list_indx_lst,
@@ -53,6 +53,7 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
   f_logBF = apply( lBF_per_trait$f_logBF ,2,sum)
   u_logBF = apply( lBF_per_trait$u_logBF ,2,sum)
   lBF=  f_logBF+u_logBF
+
 
   if( !is.null(effect_estimate$res_uni)){
     J <- nrow( effect_estimate$res_uni$Bhat)
@@ -76,11 +77,12 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
   newloglik <-1
 
   zeta <- rep(1/J,J) #assignation initial value
-  k <- 1 #counting the number of iteration
+  k <- 0 #counting the number of iteration
 
 
   while( k <max_step &  abs(newloglik-oldloglik)>=espsilon)
   {
+
     # E step----
     oldloglik <- fsusieR::cal_lik(lBF,zeta)
     zeta      <- fsusieR::cal_zeta(lBF)

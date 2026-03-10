@@ -1459,7 +1459,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                      family         = family)
   }
   if( post_processing== "TI"){
-    print("TIIII")
+
     multfsusie.obj <-  TI_regression(multfsusie.obj = multfsusie.obj,
                                      Y              = interpolated_Y,
                                      X              = X,
