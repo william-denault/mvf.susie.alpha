@@ -55,6 +55,7 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
   lBF=  f_logBF+u_logBF
 
 
+
   if( !is.null(effect_estimate$res_uni)){
     J <- nrow( effect_estimate$res_uni$Bhat)
   }else{
@@ -108,6 +109,7 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
     lBF=  f_logBF+u_logBF
 
     lBF <- ifelse(lBF==-Inf,0,lBF)
+
     newloglik <- fsusieR::cal_lik(lBF,zeta)
     k <- k+1
 

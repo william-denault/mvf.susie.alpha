@@ -1437,6 +1437,9 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                 ... )
 {
   multfsusie.obj <-  update_cal_fit_u(multfsusie.obj )
+
+  multfsusie.obj <- update_cal_cs(multfsusie.obj,
+                                  cov_lev=cov_lev)
   if(filter_cs)
   {
     multfsusie.obj <- check_cs(multfsusie.obj,min_purity=0.5,X=X)
@@ -1480,8 +1483,6 @@ out_prep.multfsusie <- function(multfsusie.obj,
 
 
 
-  multfsusie.obj <- update_cal_cs(multfsusie.obj,
-                                  cov_lev=cov_lev)
 
   multfsusie.obj <-  name_cs(multfsusie.obj,X)
 
