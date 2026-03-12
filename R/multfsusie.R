@@ -173,7 +173,7 @@ multfsusie <- function(Y, X, L = 2,
                        post_processing=c("smash","TI","HMM","none"),
                        verbose = TRUE,
                        maxit = 100,
-                       tol = 1e-3,
+                       tol = 1e-6,
                        cov_lev = 0.95,
                        min_purity = 0.5,
                        L_start = 3,
@@ -569,6 +569,7 @@ multfsusie <- function(Y, X, L = 2,
     }#end while
   }#end else in if(L==1)
   #preparing output
+  #browser()
    multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,
                               Y               = Y0,#Y_data,
                               interpolated_Y  = interpolated_Y,
