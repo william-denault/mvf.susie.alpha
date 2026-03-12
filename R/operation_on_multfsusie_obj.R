@@ -424,6 +424,9 @@ HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,verbose=TRUE,maxit=5, 
     multfsusie.obj$lfsr[[l]] <- list(
       est_lfsr_functional = list()
     )
+    multfsusie.obj$HMM_lBF[[l]] <- list(
+      HMM_lBF = list()
+    )
   }
 
   tl <- list()
@@ -460,6 +463,7 @@ HMM_regression.multfsusie <- function(multfsusie.obj,Y,X ,verbose=TRUE,maxit=5, 
       multfsusie.obj$fitted_func[[l]][[k]] <- susiF.obj$fitted_func[[l]]
       multfsusie.obj$lfsr[[l]]$est_lfsr_functional[[k]] <-  susiF.obj$lfsr_func[[l]]
 
+      multfsusie.obj$HMM_lBF[[l]][[k]] <-  susiF.obj$HMM_lBF[[l]]
     }
 
 

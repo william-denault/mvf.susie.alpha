@@ -13,7 +13,7 @@ multfsusie(
   post_processing = c("smash", "TI", "HMM", "none"),
   verbose = TRUE,
   maxit = 100,
-  tol = 0.001,
+  tol = 1e-06,
   cov_lev = 0.95,
   min_purity = 0.5,
   L_start = 3,
