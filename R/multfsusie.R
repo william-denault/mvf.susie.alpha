@@ -569,7 +569,7 @@ multfsusie <- function(Y, X, L = 2,
     }#end while
   }#end else in if(L==1)
   #preparing output
-  #browser()
+  # browser()
    multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,
                               Y               = Y0,#Y_data,
                               interpolated_Y  = interpolated_Y,

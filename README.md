@@ -19,3 +19,9 @@ directory containing the git repository):
 ```R
 remotes::install_local("mvf.susie.alpha")
 ```
+
+
+
+ David A Knowles
+
+Associate Professor of Computer Science; Interdisciplinary Appointee in Systems Biology; Core Faculty Member, New York Genome Center 

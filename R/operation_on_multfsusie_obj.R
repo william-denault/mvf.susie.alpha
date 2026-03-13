@@ -1442,6 +1442,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
 {
   multfsusie.obj <-  update_cal_fit_u(multfsusie.obj )
 
+  multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   multfsusie.obj <- update_cal_cs(multfsusie.obj,
                                   cov_lev=cov_lev)
   if(filter_cs)
@@ -1450,7 +1451,6 @@ out_prep.multfsusie <- function(multfsusie.obj,
     multfsusie.obj<-  merge_effect( multfsusie.obj)
   }
 
-  multfsusie.obj <-  update_cal_pip(multfsusie.obj)
   if(post_processing== "none"){
     multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
 

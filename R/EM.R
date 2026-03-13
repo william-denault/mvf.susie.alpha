@@ -54,9 +54,9 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
   u_logBF = apply( lBF_per_trait$u_logBF ,2,sum)
   lBF=  f_logBF+u_logBF
 
-  #browser()
-  #par(mfrow=c(2,1))
-  #plot(lBF)
+
+   #par(mfrow=c(2,1))
+   #plot(lBF)
 
   if( !is.null(effect_estimate$res_uni)){
     J <- nrow( effect_estimate$res_uni$Bhat)
@@ -116,8 +116,8 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
     k <- k+1
 
   }
-  #plot(lBF)
-  #par(mfrow=c(1,1))
+  # plot(lBF)
+  # par(mfrow=c(1,1))
   out <- list(tpi_k = tpi_k,lBF = lBF, lBF_per_trait=lBF_per_trait  )
   class(out) <- c("EM_pi_multfsusie","list")
   return(out)
