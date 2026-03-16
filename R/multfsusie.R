@@ -278,7 +278,8 @@ multfsusie <- function(Y, X, L = 2,
 
         map_data <-  fsusieR::remap_data(Y=Y$Y_f[[k]],
                                              pos=pos[[k]],
-                                             verbose=verbose)
+                                             verbose=verbose,
+                                             max_scale=  max_scale)
 
 
 
@@ -286,7 +287,7 @@ multfsusie <- function(Y, X, L = 2,
 
 
         #allow arbitrary length output when using smash
-        if(post_processing=="smash" & length(unique(diff(pos[[k]])))==1){
+        if( ( post_processing=="smash"|post_processing=="HMM") & length(unique(diff(pos[[k]])))==1){
           Y0$Y_f[[k]] <-  Y$Y_f[[k]]
           interpolated_Y$Y_f[[k]]<-  Y$Y_f[[k]]
           outing_grid[[k]] =pos
