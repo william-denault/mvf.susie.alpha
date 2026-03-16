@@ -1455,6 +1455,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
     multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
 
   }
+ # browser()
   if( post_processing== "smash"){
 
     multfsusie.obj <-  smash_regression(multfsusie.obj = multfsusie.obj,
