@@ -36,7 +36,9 @@ multfsusie(
   e = 0.001,
   tol_null_prior = 0.001,
   lbf_min = 0.1,
-  posthoc = TRUE
+  posthoc = TRUE,
+  max_step = 20,
+  multfsusie.obj = NULL
 )
 }
 \arguments{
@@ -132,6 +134,10 @@ Default value is 0.001.}
 \item{lbf_min}{numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value}
 
 \item{posthoc}{logical , default TRUE if set to TRUE compute post hoc probabilities of causal configurations as in Yuan Nat Gen 2024}
+
+\item{max_step}{number of iteration in a given pass of the multfsusie function, see vignette on large fitting procedure for details}
+
+\item{multfsusie.obj}{a multfsusie object that was previously fitted on the same data the one currently being analysed, see vignette on large fitting procedure for details}
 }
 \description{
 Implementation of the Multi-modal fSuSiE method.

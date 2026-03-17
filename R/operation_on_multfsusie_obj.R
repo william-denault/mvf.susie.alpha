@@ -566,6 +566,7 @@ init_multfsusie_obj <- function(L_max,
   mean_X          <- attr(X, "scaled:center")
   csd_X           <- attr(X, "scaled:scale")
   n_expand        <- 0 #number of greedy expansion
+  runtime         <- proc.time()*0
   greedy          <- greedy
   backfit         <- backfit
   greedy_backfit_update <- FALSE
@@ -636,7 +637,8 @@ init_multfsusie_obj <- function(L_max,
                greedy_backfit_update=greedy_backfit_update,
                ind_analysis    = ind_analysis,
                tol_null_prior  = tol_null_prior,
-               lbf_min         =  lbf_min )
+               lbf_min         = lbf_min,
+               runtime         = runtime )
 
   class(obj) <- "multfsusie"
   return(obj)

@@ -1,0 +1,128 @@
+---
+title: "Workaround for long run"
+output: html_document
+date: "2026-03-17"
+---
+
+
+Sometime when analysing large phenotype matrices (say many ATAC seq conditions) in a cluster
+the multFSuSiE fitting procedure main take longer than the allowed wall time.
+
+Here we showcase how to use a given fit that has not reached convergence and to 
+continue iterating. This allow you to save the fit every say 20 iterations and 
+to restart a job at the exact same step as when the data point was fitted
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+Here we simulate a relatively simple example in which SNP can affect 2 functional/spatially structure traits and 3 univariate traits.
+ 
+```{r data_generation}
+library(mvf.susie.alpha)
+library(susieR)
+set.seed(1)
+
+N <- 100 # Sample size 
+L <- 2 # Number of effects
+list_lev_res <- list(7, 5)
+# Two functional phenotypes, one of length 2^5 and one of length 2^6
+n_univ <- 3 # 3 univariate phenotypes
+eff <- list()
+for (l in 1:L) { # Simulate the multi-trait effect
+  eff[[l]] <- simu_effect_multfsusie(list_lev_res=list_lev_res,
+                                     n_univ=n_univ, output_level=2)
+}
+
+Y_f1 <- matrix(rnorm((2^list_lev_res[[1]]) * N, sd=.51), nrow=N)
+Y_f2 <- matrix(rnorm((2^list_lev_res[[2]]) * N, sd=.51), nrow=N)
+Y_u <- matrix(rnorm(n_univ * N, sd=1), nrow=N)
+# Genotype matrix
+G <- N3finemapping$X[1:100, ]
+
+true_pos <- sample(1:ncol(G), L) # Actually causal columns/SNPs
+
+for (i in 1:N) {
+  for (l in 1:L) {
+    Y_f1[i,] <- Y_f1[i,] + eff[[l]]$func_effect[[1]]$sim_func * G[i, true_pos[[l]]]
+    Y_f2[i,] <- Y_f2[i,] + eff[[l]]$func_effect[[2]]$sim_func * G[i, true_pos[[l]]]
+    Y_u[i,]  <- Y_u[i,]  + eff[[l]]$univ_effect * G[i, true_pos[[l]]]
+  }
+}
+
+Y_f <- list(Y_f1, Y_f2)
+Y <- list(Y_f=Y_f, Y_u=Y_u) # Preparing data
+pos <- list(pos1=1:ncol(Y$Y_f[[1]]), pos2=1:ncol(Y$Y_f[[2]]))
+
+```
+
+
+We showcase that storing the multfsusie object and them re-injecting it in the fit
+lead to the same results as the full procedure.
+
+Note the that parameter maxit controls the total number of iterations (default 100) throughout your iterations
+whereas the parameter max_step controls the total number of iterations  (default 100) in a given call of the multfsusie function.
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r example}
+
+
+# If your signal is sampled between 1 and 64
+
+m0 <- multfsusie(Y=Y, X=G, pos=pos, L=3, max_step = 4)
+m0$check
+
+
+```
+
+So you get a wrning message to tell you that the fitting stopped early and the part m0$check gives
+you the difference in fitted alpha values between iteration.
+
+Let's now iterate the fit
+
+```{r}
+m1=m0
+for ( k in 1:5){
+  if (m1$check>1e-6) { #default convergence criterion 
+     m1 <- multfsusie(Y=Y, X=G, pos=pos, L=3, max_step = 4,
+                   multfsusie.obj = m1)
+  }
+ 
+}
+
+```
+
+Well done now lets fit everything in one go for the sake of comparison
+```{r}
+
+mfull <- multfsusie(Y=Y, X=G, pos=pos, L=3 )
+```
+
+```{r}
+mfull$check
+m1$check
+```
+
+
+
+
+ 
+```{r}
+par(mfrow=c(2,2))
+plot( mfull$fitted_func[[1]][[1]], ylab="effect estimate")
+lines(m1$fitted_func[[1]][[1]])
+plot( mfull$fitted_func[[1]][[1]],m1$fitted_func[[1]][[1]], 
+      ylab="effect estimate iterated", xlab="effect estimate full")
+abline(a=0,b=1)
+plot( mfull$fitted_func[[2]][[1]], ylab="effect estimate")
+lines(m1$fitted_func[[2]][[1]])
+plot( mfull$fitted_func[[2]][[1]],
+      m1$fitted_func[[2]][[1]], 
+      ylab="effect estimate iterated", xlab="effect estimate full")
+abline(a=0,b=1)
+```
+

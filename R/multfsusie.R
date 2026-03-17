@@ -97,7 +97,9 @@
 #'  that have low alpha values. Set to 0 to compute the entire posterior.
 #'  Default value is 0.001.
 #' @param lbf_min numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value
-#'@param posthoc logical , default TRUE if set to TRUE compute post hoc probabilities of causal configurations as in Yuan Nat Gen 2024
+#' @param posthoc logical , default TRUE if set to TRUE compute post hoc probabilities of causal configurations as in Yuan Nat Gen 2024
+#' @param  max_step number of iteration in a given pass of the multfsusie function, see vignette on large fitting procedure for details
+#' @param multfsusie.obj a multfsusie object that was previously fitted on the same data the one currently being analysed, see vignette on large fitting procedure for details
 #' @export
 #' @examples
 #' library(mvf.susie.alpha)
@@ -200,7 +202,10 @@ multfsusie <- function(Y, X, L = 2,
                        e = 0.001,
                        tol_null_prior=0.001,
                        lbf_min=0.1,
-                       posthoc=TRUE)
+                       posthoc=TRUE,
+
+                       max_step =20,
+                       multfsusie.obj=NULL)
 
 
 {
@@ -382,40 +387,49 @@ multfsusie <- function(Y, X, L = 2,
   }
 
 
-  temp  <- init_prior_multfsusie(Y              = Y_data ,
-                                 X              = X,
-                                 v1             = v1,
-                                 prior          = prior,
-                                 list_indx_lst  = list_indx_lst,
-                                 low_trait      = low_trait,
-                                 control_mixsqp = control_mixsqp,
-                                 nullweight     = nullweight,
-                                 ind_analysis   = ind_analysis,
-                                 max_SNP_EM     = max_SNP_EM,
-                                 gridmult       = gridmult,
-                                 max_step_EM    = max_step_EM,
-                                 tol_null_prior = tol_null_prior
-  )
+  if ( is.null (multfsusie.obj)) {
+    temp  <- init_prior_multfsusie(Y              = Y_data ,
+                                   X              = X,
+                                   v1             = v1,
+                                   prior          = prior,
+                                   list_indx_lst  = list_indx_lst,
+                                   low_trait      = low_trait,
+                                   control_mixsqp = control_mixsqp,
+                                   nullweight     = nullweight,
+                                   ind_analysis   = ind_analysis,
+                                   max_SNP_EM     = max_SNP_EM,
+                                   gridmult       = gridmult,
+                                   max_step_EM    = max_step_EM,
+                                   tol_null_prior = tol_null_prior
+    )
 
-  G_prior          <- temp$G_prior
-  effect_estimate  <- temp$res
-  init             <- FALSE
-
-
-  multfsusie.obj <- init_multfsusie_obj( L_max         = L,
-                                         G_prior       = G_prior,
-                                         Y             = Y_data,
-                                         X             = X,
-                                         type_mark     = type_mark,
-                                         L_start       = L_start,
-                                         greedy        = greedy,
-                                         backfit       = backfit,
-                                         ind_analysis  = ind_analysis,
-                                         tol_null_prior= tol_null_prior,
-                                         lbf_min       = lbf_min )
+    G_prior          <- temp$G_prior
+    effect_estimate  <- temp$res
+    init             <- FALSE
 
 
-  check <- 3*tol
+    multfsusie.obj <- init_multfsusie_obj( L_max         = L,
+                                           G_prior       = G_prior,
+                                           Y             = Y_data,
+                                           X             = X,
+                                           type_mark     = type_mark,
+                                           L_start       = L_start,
+                                           greedy        = greedy,
+                                           backfit       = backfit,
+                                           ind_analysis  = ind_analysis,
+                                           tol_null_prior= tol_null_prior,
+                                           lbf_min       = lbf_min )
+    check <- 3*tol
+    iter <- 1
+  }else{
+    iter    <- multfsusie.obj$iter
+    check   <- multfsusie.obj$check
+    G_prior <- multfsusie.obj$G_prior
+    init    <- FALSE
+  }
+
+
+
 
 
   update_Y    <-  Y_data
@@ -472,8 +486,8 @@ multfsusie <- function(Y, X, L = 2,
 
   }else{
     ##### Start While -----
-    iter <- 1
-    while(check >tol & iter <=maxit)
+    n_step=1
+    while(check >tol & iter <=maxit & n_step<= max_step)
     {
       for( l in 1:multfsusie.obj$L)
       {
@@ -536,6 +550,8 @@ multfsusie <- function(Y, X, L = 2,
 
       }#end for l in 1:L  -----
 
+
+
       multfsusie.obj <- greedy_backfit (multfsusie.obj,
                                         verbose        = verbose,
                                         cov_lev        = cov_lev,
@@ -563,14 +579,28 @@ multfsusie <- function(Y, X, L = 2,
 
 
 
-      iter <- iter+1
 
+      multfsusie.obj$iter     = iter
+      multfsusie.obj$max_step = n_step
 
+      iter  <- iter+1
+      n_step <- n_step+1
 
     }#end while
   }#end else in if(L==1)
   #preparing output
   # browser()
+  if( multfsusie.obj$L>1){
+    if(check >tol &iter >maxit ){
+      warning("Convergence not reached, fitting procedure stopped due to having reached the maximum number of iterations")
+    }
+    if(check> tol &  n_step> max_step){
+      warning("Convergence not reached, fitting procedure stopped due to having reached the maximum number of iterations in a single call of the function")
+      warning("returning rough fit ")
+      multfsusie.obj$runtime <- multfsusie.obj$runtime+ proc.time()-pt
+      return ( multfsusie.obj)
+    }
+  }
    multfsusie.obj <- out_prep(multfsusie.obj  = multfsusie.obj,
                               Y               = Y0,#Y_data,
                               interpolated_Y  = interpolated_Y,
@@ -587,7 +617,7 @@ multfsusie <- function(Y, X, L = 2,
                               posthoc         = posthoc
 
     )
-   multfsusie.obj$runtime <- proc.time()-pt
+   multfsusie.obj$runtime <- multfsusie.obj$runtime+ proc.time()-pt
   return(multfsusie.obj)
 
 }
