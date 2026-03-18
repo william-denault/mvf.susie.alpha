@@ -37,7 +37,7 @@ multfsusie(
   tol_null_prior = 0.001,
   lbf_min = 0.1,
   posthoc = TRUE,
-  max_step = 20,
+  max_step = 100,
   multfsusie.obj = NULL
 )
 }

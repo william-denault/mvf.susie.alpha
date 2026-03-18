@@ -73,7 +73,7 @@ You can also embed plots, for example:
 
 # If your signal is sampled between 1 and 64
 
-m0 <- multfsusie(Y=Y, X=G, pos=pos, L=3, max_step = 4)
+m0 <- multfsusie(Y=Y, X=G, pos=pos, L=3, max_step = 4 )
 m0$check
 
 
@@ -99,7 +99,7 @@ for ( k in 1:5){
 Well done now lets fit everything in one go for the sake of comparison
 ```{r}
 
-mfull <- multfsusie(Y=Y, X=G, pos=pos, L=3 )
+mfull <- multfsusie(Y=Y, X=G, pos=pos, L=3  )
 ```
 
 ```{r}
