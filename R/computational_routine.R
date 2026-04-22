@@ -229,9 +229,9 @@ log_BFu <- function (G_prior, Bhat, Shat,low_u=FALSE,df=NULL, ...) {
       for (o in 1:length(G_prior$fitted_g$pi)){
         tt <- tt + pi_k[o] *LaplacesDemon::dstp(Bhat,tau = 1/(sd_k[o]^2 + Shat ^2), nu=df)
       }
-
+      out <- sum(log(tt) - LaplacesDemon::dstp(Bhat ,tau = 1/Shat ^2,nu=df,log = TRUE))
     }
-    out <- sum(log(tt) - LaplacesDemon::dstp(Bhat ,tau = 1/Shat ^2,nu=df,log = TRUE))
+
 
   }
 

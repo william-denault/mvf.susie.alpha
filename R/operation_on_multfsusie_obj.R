@@ -1054,13 +1054,13 @@ get_ER2.multfsusie = function (  multfsusie.obj,Y, X,ind_analysis, ... ) {
     if( missing(ind_analysis)){
       ER2$uni <-  do.call( c,
                            lapply(1:ncol( Y$Y_u),
-                                  function(k) sum((Y$Y_u[,k] - X%*%postF$post_u[,k] )^2) -sum( postF$post_u_sd2[,k]^2) +sum( postF2$post_u_sd2[,k])
+                                  function(k) sum((Y$Y_u[,k] - X%*%postF$post_u[,k] )^2) - sum( postF$post_u[,k]^2) + sum( postF2$post_u_sd2[,k])
                            )
       )
     }else{
       ER2$uni <-  do.call( c,
                            lapply(1:ncol( Y$Y_u),
-                                  function(k) sum((Y$Y_u[ind_analysis$idx_u[[k]],k] - X[ind_analysis$idx_u[[k]],,drop=FALSE]%*%postF$post_u[,k] )^2) -sum( postF$post_u_sd2[,k]^2) +sum( postF2$post_u_sd2[,k])
+                                  function(k) sum((Y$Y_u[ind_analysis$idx_u[[k]],k] - X[ind_analysis$idx_u[[k]],,drop=FALSE]%*%postF$post_u[,k] )^2) - sum( postF$post_u[,k]^2) + sum( postF2$post_u_sd2[,k])
                            )
       )
     }

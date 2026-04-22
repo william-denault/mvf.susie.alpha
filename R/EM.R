@@ -28,101 +28,101 @@
 #
 # @export
 #
-EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
-                            max_step = 1 ,
+EM_pi_multsusie <- function(G_prior, effect_estimate, list_indx_lst,
+                            max_step = 1,
                             espsilon = 0.0001,
-                            init_pi0_w= 0.9,
-                            control_mixsqp ,
+                            init_pi0_w = 0.9,
+                            control_mixsqp,
                             nullweight,
                             low_trait,
-                            max_SNP_EM=100,
-                            df=NULL,
-                            tol_null_prior=0.001)
+                            max_SNP_EM = 100,
+                            df = NULL,
+                            tol_null_prior = 0.001)
 {
-
-  ### Work here ------
-#browser()
   lBF_per_trait <- log_BF(G_prior,
-                effect_estimate = effect_estimate,
-                list_indx_lst   = list_indx_lst,
-                low_trait       = low_trait ,
-                df              = df )
+                          effect_estimate = effect_estimate,
+                          list_indx_lst   = list_indx_lst,
+                          low_trait       = low_trait,
+                          df              = df)
 
+  f_logBF <- apply(lBF_per_trait$f_logBF, 2, sum)
+  u_logBF <- apply(lBF_per_trait$u_logBF, 2, sum)
+  lBF     <- f_logBF + u_logBF
 
-
-  f_logBF = apply( lBF_per_trait$f_logBF ,2,sum)
-  u_logBF = apply( lBF_per_trait$u_logBF ,2,sum)
-  lBF=  f_logBF+u_logBF
-
-
-   #par(mfrow=c(2,1))
-   #plot(lBF)
-
-  if( !is.null(effect_estimate$res_uni)){
-    J <- nrow( effect_estimate$res_uni$Bhat)
-  }else{
-    J <- nrow( effect_estimate$res_f[[1]]$Bhat)
+  if (!is.null(effect_estimate$res_uni)) {
+    J <- nrow(effect_estimate$res_uni$Bhat)
+  } else {
+    J <- nrow(effect_estimate$res_f[[1]]$Bhat)
   }
 
+  # Scale nullweight by number of active modalities K.
+  # With K modalities the joint lBF concentrates zeta ~K-fold, making the
+  # M step K times more susceptible to estimating spurious non-null priors.
+  # Multiplying nullweight by K restores equivalent null regularisation.
+  # K = 1 → no change in behaviour.
+  K_f     <- if (!is.null(G_prior$G_prior_f)) length(G_prior$G_prior_f) else 0L
+  K_u     <- if (!is.null(G_prior$G_prior_u)) length(G_prior$G_prior_u) else 0L
+  nullweight_scaled <- nullweight * max(1L, K_f + K_u)
 
-  if( length(lBF)> max_SNP_EM){ # basically allow running EM only on data point with most signal
-    idx <- order(lBF, decreasing =  TRUE)[1:ceiling(max_SNP_EM)]
-
-  }else{
+  if (length(lBF) > max_SNP_EM) {
+    idx <- order(lBF, decreasing = TRUE)[1:ceiling(max_SNP_EM)]
+  } else {
     idx <- 1:length(lBF)
   }
 
-  L_mat  <- L_mixsq_multsusie (G_prior, effect_estimate, list_indx_lst,idx=idx)
+  L_mat <- L_mixsq_multsusie(G_prior, effect_estimate, list_indx_lst, idx = idx)
 
-  #dynamic parameters
-  tpi_k = get_pi_G_prior(G_prior)
-  oldloglik <-0
-  newloglik <-1
+  tpi_k     <- get_pi_G_prior(G_prior)
+  oldloglik <- 0
+  newloglik <- 1
+  zeta      <- rep(1 / J, J)
+  k         <- 0
 
-  zeta <- rep(1/J,J) #assignation initial value
-  k <- 0 #counting the number of iteration
+  while (k < max_step & abs(newloglik - oldloglik) >= espsilon) {
 
-
-  while( k <max_step &  abs(newloglik-oldloglik)>=espsilon)
-  {
-
-    # E step----
-    oldloglik <- fsusieR::cal_lik(lBF,zeta)
+    oldloglik <- fsusieR::cal_lik(lBF, zeta)
     zeta      <- fsusieR::cal_zeta(lBF)
 
-    # M step ----
-    tpi_k   <- m_step_multsusie(L_mat          = L_mat,
-                                zeta           = zeta[idx] ,
-                                list_indx_lst  = list_indx_lst,
-                                init_pi0_w     = init_pi0_w,
-                                control_mixsqp = control_mixsqp,
-                                nullweight     = nullweight,
-                                tol_null_prior = tol_null_prior)
-    G_prior <- update_prior(G_prior,tpi_k)
+    zeta_u <- if (!is.null(G_prior$G_prior_u))
+      lapply(seq_len(nrow(lBF_per_trait$u_logBF)),
+             function(k) fsusieR::cal_zeta(lBF_per_trait$u_logBF[k, ])[idx])
+    else NULL
+
+    zeta_f <- if (!is.null(G_prior$G_prior_f))
+      lapply(seq_len(nrow(lBF_per_trait$f_logBF)),
+             function(k) fsusieR::cal_zeta(lBF_per_trait$f_logBF[k, ])[idx])
+
+    zeta_all= list(zeta_u=zeta_u, zeta_f=zeta_f)
+
+    tpi_k <- m_step_multsusie(L_mat          = L_mat,
+                              zeta           = zeta,
+                              list_indx_lst  = list_indx_lst,
+                              init_pi0_w     = init_pi0_w,
+                              control_mixsqp = control_mixsqp,
+                              nullweight     = nullweight_scaled,  # ← K-scaled
+                              tol_null_prior = tol_null_prior)
+
+    G_prior <- update_prior(G_prior, tpi_k)
 
     lBF_per_trait <- log_BF(G_prior,
                             effect_estimate = effect_estimate,
                             list_indx_lst   = list_indx_lst,
-                            low_trait       = low_trait ,
+                            low_trait       = low_trait,
                             df              = df)
 
-    f_logBF = apply( lBF_per_trait$f_logBF ,2,sum)
-    u_logBF = apply( lBF_per_trait$u_logBF ,2,sum)
-    lBF=  f_logBF+u_logBF
+    f_logBF <- apply(lBF_per_trait$f_logBF, 2, sum)
+    u_logBF <- apply(lBF_per_trait$u_logBF, 2, sum)
+    lBF     <- f_logBF + u_logBF
+    lBF     <- ifelse(lBF == -Inf, 0, lBF)
 
-    lBF <- ifelse(lBF==-Inf,0,lBF)
-
-    newloglik <- fsusieR::cal_lik(lBF,zeta)
-    k <- k+1
-
+    newloglik <- fsusieR::cal_lik(lBF, zeta)
+    k <- k + 1
   }
-  # plot(lBF)
-  # par(mfrow=c(1,1))
-  out <- list(tpi_k = tpi_k,lBF = lBF, lBF_per_trait=lBF_per_trait  )
-  class(out) <- c("EM_pi_multfsusie","list")
+
+  out <- list(tpi_k = tpi_k, lBF = lBF, lBF_per_trait = lBF_per_trait)
+  class(out) <- c("EM_pi_multfsusie", "list")
   return(out)
 }
-
 
 
 
@@ -145,9 +145,9 @@ L_mixsq_multsusie <- function(G_prior, effect_estimate, list_indx_lst,idx ) {
   }else{
     L_mat_f <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
       fsusieR::L_mixsq(G_prior$G_prior_f[[k]],
-                           Bhat     = effect_estimate$res_f[[k]]$Bhat[idx,],
-                           Shat     = effect_estimate$res_f[[k]]$Shat[idx,],
-                           indx_lst = list_indx_lst[[k]]
+                       Bhat     = effect_estimate$res_f[[k]]$Bhat[idx,],
+                       Shat     = effect_estimate$res_f[[k]]$Shat[idx,],
+                       indx_lst = list_indx_lst[[k]]
       )
     )
 
@@ -175,14 +175,14 @@ L_mixsq_u <- function(G_prior, Bhat, Shat){
   sdmat <- sqrt(outer(c(Shat ^2), m$fitted_g$sd^2,"+"))
   L     <- (
     stats:: dnorm(
-                 outer(
-                        c(Bhat),
-                        rep(0,length(m$fitted_g$sd)),
-                         FUN="-"
-                       )/sdmat,
-                log=TRUE
-              ) -log(sdmat )
-          )
+      outer(
+        c(Bhat),
+        rep(0,length(m$fitted_g$sd)),
+        FUN="-"
+      )/sdmat,
+      log=TRUE
+    ) -log(sdmat )
+  )
   L <- rbind(c(0, rep( -100,(ncol(L)-1)  )),#adding penalty line
              L)
   class(L) <- "lik_mixture_normal"
@@ -213,10 +213,9 @@ m_step_multsusie <- function(L_mat,
                              init_pi0_w,
                              control_mixsqp,
                              nullweight,
-                             tol_null_prior =0.001,
+                             tol_null_prior = 0.001,
                              ...)
 {
-  #setting the weight to fit the weighted ash problem
   if (is.null(L_mat$L_mat_u)){
     est_pi_u <- NULL
   }else{
@@ -225,32 +224,30 @@ m_step_multsusie <- function(L_mat,
                                              zeta,
                                              init_pi0_w     = init_pi0_w,
                                              control_mixsqp = control_mixsqp,
-                                             nullweight     = nullweight)
+                                             nullweight     = nullweight,
+                                             tol_null_prior = tol_null_prior)  # ← added
     )
   }
   if (is.null(L_mat$L_mat_f)){
     est_pi_f <- NULL
   }else{
     est_pi_f <- lapply(1:length(L_mat$L_mat_f) ,
-                       function(k)fsusieR::m_step(L_mat$L_mat_f[[k]],
-                                                      zeta=zeta ,
-                                                      indx_lst=list_indx_lst[[k]],
-                                                      init_pi0_w= init_pi0_w,
-                                                      control_mixsqp = control_mixsqp,
-                                                      nullweight     = nullweight,
-                                                      tol_null_prior = tol_null_prior
+                       function(k) fsusieR::m_step(L_mat$L_mat_f[[k]],
+                                                   zeta           = zeta ,
+                                                   indx_lst       = list_indx_lst[[k]],
+                                                   init_pi0_w     = init_pi0_w,
+                                                   control_mixsqp = control_mixsqp,
+                                                   nullweight     = nullweight,
+                                                   tol_null_prior = tol_null_prior
                        )
     )
   }
 
-  out <- list(est_pi_u= est_pi_u,
-              est_pi_f = est_pi_f
-  )
+  out <- list(est_pi_u = est_pi_u,
+              est_pi_f = est_pi_f)
   attr(out, "class") <- "pi_multfsusie"
   return(out)
-
 }
-
 
 
 
@@ -270,18 +267,31 @@ m_step_multsusie <- function(L_mat,
 #
 # @export
 
-m_step_u <- function  (L, zeta , init_pi0_w , control_mixsqp,nullweight, ...)
+m_step_u <- function(L, zeta, init_pi0_w, control_mixsqp, nullweight,
+                     tol_null_prior = 0.001, ...)  # ← added tol_null_prior
 {
-  w <-c(nullweight,zeta) # setting the weight to fit the weighted ash problem
+  w       <- c(nullweight, zeta)
   tlength <- ncol(L) - 1
+
   mixsqp_out <- mixsqp::mixsqp(L,
-                                w,
-                                log = TRUE,
-                                x0 = c(init_pi0_w ,rep(1e-12,tlength)), # put starting point close to sparse solution
-                                control = control_mixsqp
-  )
+                               w,
+                               log     = TRUE,
+                               x0      = c(init_pi0_w, rep(1e-12, tlength)),
+                               control = control_mixsqp)
   out <- mixsqp_out$x
-  class(out) <-  "pi_mixture_normal"
+
+  # Collapse to exact null if essentially all mass is on null component,
+  # matching the behaviour of fsusieR::m_step
+  if (out[1] > 1 - tol_null_prior) {   # ← added
+    out    <- 0 * out
+    out[1] <- 1
+  }
+
+  class(out) <- "pi_mixture_normal"
   return(out)
 }
+
+
+
+
 
