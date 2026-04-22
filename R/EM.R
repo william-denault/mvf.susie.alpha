@@ -101,10 +101,10 @@ EM_pi_multsusie <- function(G_prior,effect_estimate, list_indx_lst,
     G_prior <- update_prior(G_prior,tpi_k)
 
     lBF_per_trait <- log_BF(G_prior,
-                  effect_estimate = effect_estimate,
-                  list_indx_lst   = list_indx_lst,
-                  low_trait       = low_trait ,
-                  df              = df)
+                            effect_estimate = effect_estimate,
+                            list_indx_lst   = list_indx_lst,
+                            low_trait       = low_trait ,
+                            df              = df)
 
     f_logBF = apply( lBF_per_trait$f_logBF ,2,sum)
     u_logBF = apply( lBF_per_trait$u_logBF ,2,sum)
@@ -172,7 +172,7 @@ L_mixsq_multsusie <- function(G_prior, effect_estimate, list_indx_lst,idx ) {
 # @export
 L_mixsq_u <- function(G_prior, Bhat, Shat){
   m     <-  (G_prior )
-  sdmat <- outer(c(Shat ^2), m$fitted_g$sd^2,"+")
+  sdmat <- sqrt(outer(c(Shat ^2), m$fitted_g$sd^2,"+"))
   L     <- (
     stats:: dnorm(
                  outer(
