@@ -19,7 +19,7 @@ multfsusie(
   L_start = 3,
   filter_cs = TRUE,
   init_pi0_w = 1,
-  nullweight = 0.1,
+  nullweight = 0.7,
   control_mixsqp = list(eps = 1e-06, numiter.em = 40, verbose = FALSE),
   quantile_trans = FALSE,
   thresh_lowcount,

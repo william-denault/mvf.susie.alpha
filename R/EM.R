@@ -93,9 +93,9 @@ EM_pi_multsusie <- function(G_prior, effect_estimate, list_indx_lst,
              function(k) fsusieR::cal_zeta(lBF_per_trait$f_logBF[k, ])[idx])
 
     zeta_all= list(zeta_u=zeta_u, zeta_f=zeta_f)
-
+browser()
     tpi_k <- m_step_multsusie(L_mat          = L_mat,
-                              zeta           = zeta,
+                              zeta           = zeta_all,
                               list_indx_lst  = list_indx_lst,
                               init_pi0_w     = init_pi0_w,
                               control_mixsqp = control_mixsqp,
@@ -221,7 +221,7 @@ m_step_multsusie <- function(L_mat,
   }else{
     est_pi_u <- lapply(1:length(L_mat$L_mat_u) ,
                        function(k) m_step_u (L_mat$L_mat_u[[k]],
-                                             zeta,
+                                             zeta=zeta$zeta_u[[1]],
                                              init_pi0_w     = init_pi0_w,
                                              control_mixsqp = control_mixsqp,
                                              nullweight     = nullweight,
@@ -233,7 +233,7 @@ m_step_multsusie <- function(L_mat,
   }else{
     est_pi_f <- lapply(1:length(L_mat$L_mat_f) ,
                        function(k) fsusieR::m_step(L_mat$L_mat_f[[k]],
-                                                   zeta           = zeta ,
+                                                   zeta           = zeta$zeta_f[[k]],
                                                    indx_lst       = list_indx_lst[[k]],
                                                    init_pi0_w     = init_pi0_w,
                                                    control_mixsqp = control_mixsqp,
