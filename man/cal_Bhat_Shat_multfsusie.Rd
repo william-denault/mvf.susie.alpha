@@ -10,6 +10,7 @@ cal_Bhat_Shat_multfsusie(
   sigma2,
   low_trait = NULL,
   ind_analysis = NULL,
+  chunk_size = Inf,
   v1 = NULL,
   list_indx_lst = NULL,
   ...
