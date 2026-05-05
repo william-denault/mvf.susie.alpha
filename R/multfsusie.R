@@ -430,8 +430,6 @@ multfsusie <- function(Y, X, L = 2,
 
 
 
-
-
   update_Y    <-  Y_data
   if(verbose){
     print("Initialization done")
@@ -439,9 +437,14 @@ multfsusie <- function(Y, X, L = 2,
   if( L==1)
   {
 
-    effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
-                                                  low_trait=low_trait,
-                                                  ind_analysis   = ind_analysis )
+    effect_estimate <- cal_Bhat_Shat_multfsusie(
+      Y            = update_Y,
+      X            = X,
+      sigma2       = multfsusie.obj$sigma2,
+      low_trait    = low_trait,
+      ind_analysis = ind_analysis
+    )
+
     tpi               <- get_pi(multfsusie.obj,1)
     G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
 
@@ -516,10 +519,13 @@ multfsusie <- function(Y, X, L = 2,
           init <- FALSE
         }else{
 
-          effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
-                                                        low_trait      = low_trait,
-                                                        ind_analysis   = ind_analysis
-                                                        )
+          effect_estimate <- cal_Bhat_Shat_multfsusie(
+            Y            = update_Y,
+            X            = X,
+            sigma2       = multfsusie.obj$sigma2,    # was: v1
+            low_trait    = low_trait,
+            ind_analysis = ind_analysis
+          )
           tpi               <- get_pi(multfsusie.obj,l)
           G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
 

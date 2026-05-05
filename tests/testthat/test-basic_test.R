@@ -278,7 +278,11 @@ test_that("G_prior object should have the following classes ",
 )
 
 update_Y <-Y_data
-effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
+effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,
+                                              X,
+                                              sigma2 =multfsusie.obj$sigma2 ,
+
+                                              ind_analysis   = ind_analysis)
 
 
 

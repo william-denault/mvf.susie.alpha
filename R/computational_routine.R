@@ -1,87 +1,78 @@
 
 
-# @title Regress different marks of Y   on X nxp
-#
-# @description regression coefficients (and sd) of the column wise regression
-#
-# @param Y a list of two, Y_u containning a N by J data frame of univariate phneotype and Y_f a k list contains a list of functionnal phenoytpes
-#
-# @param X matrix of size N by P in
-#
-# @return a nested list list of two
-#
-# \item{res_u}{ list of two Bhat: matrix pxJ regression coefficient, Bhat[j,t] corresponds to regression coefficient of the t univariate phneotype
-#  on X[,j]; Shat is the matrix of the corresponding standard error }
-#
-# \item{res_f}{ a list of k in which each element contains Bhat and Shat matrix (see description in item res_u}
-#
-# @export
+#' @title Compute Bhat / Shat across all multfSuSiE modalities
+#'
+#' @param Y          named list with optional Y_u (N x K_u, univariate traits)
+#'                   and optional Y_f (length-M list of N x T_m wavelet
+#'                   coefficient matrices).
+#' @param X          N x p predictor matrix.
+#' @param sigma2     multfsusie.obj$sigma2 — a list with components
+#'                     $sd_u  (length K_u, per univariate trait), and/or
+#'                     $sd_f  (length M scalars per modality, or a length-M
+#'                            list of length-T_m vectors if you have moved
+#'                            to per-position residual variance).
+#' @param low_trait  list of low-count masks: $low_u (vec of trait indices to
+#'                   mask) and $low_wc (length-M list of position-index vecs).
+#' @param ind_analysis  named list with $idx_u (length K_u of row vectors)
+#'                      and $idx_f (length M of row vectors); missing or NULL
+#'                      means "use all rows".
+#' @param v1, list_indx_lst   ignored — kept for backward signature
+#'   compatibility.
+#'
+#' @return list(res_u = list(Bhat, Shat) | NULL,
+#'              res_f = list of M lists(Bhat, Shat) | NULL)
+#' @export
+cal_Bhat_Shat_multfsusie <- function(Y, X, sigma2,
+                                     low_trait     = NULL,
+                                     ind_analysis  = NULL,   # NEW: default NULL
+                                     v1            = NULL,   # ignored
+                                     list_indx_lst = NULL,   # ignored
+                                     ...) {
 
+  if (is.null(sigma2)) {
+    stop("cal_Bhat_Shat_multfsusie: pass multfsusie.obj$sigma2 as 'sigma2'.")
+  }
 
-cal_Bhat_Shat_multfsusie <- function( Y,X,v1,
-                                      list_indx_lst=NULL,
-                                      low_trait=NULL,
-                                      ind_analysis   )
-{
+  ## Single boolean — captured cleanly by the closures below.
+  has_ind <- !is.null(ind_analysis)
 
-  if(is.null(Y$Y_u)){
+  ## --- Univariate block ----------------------------------------------------
+  if (is.null(Y$Y_u)) {
     res_u <- NULL
-  }else{
-    if(missing(ind_analysis)){
-      res_u   <- fsusieR:::cal_Bhat_Shat(Y=Y$Y_u,
-                                               X=X,
-                                               v1=v1,
-                                               lowc_wc=low_trait$low_u)
-    #  res_u$Shat <- res_u$Shat%*%diag(sqrt(multfsusie.obj$sigma2$sd_u))
-    }else{
-      res_u   <- fsusieR:::cal_Bhat_Shat(Y=Y$Y_u,
-                                               X=X,
-                                               v1=v1,
-                                               lowc_wc=low_trait$low_u,
-                                               ind_analysis=ind_analysis$idx_u)
-     # res_u$Shat <- res_u$Shat%*%diag(sqrt(multfsusie.obj$sigma2$sd_u))
+  } else {
+    if (is.null(sigma2$sd_u)) {
+      stop("cal_Bhat_Shat_multfsusie: Y$Y_u present but sigma2$sd_u is NULL.")
     }
-
+    ind_u <- if (has_ind) ind_analysis$idx_u else NULL
+    res_u <- fsusieR:::cal_Bhat_Shat(Y            = Y$Y_u,
+                                     X            = X,
+                                     sigma2       = sigma2$sd_u,
+                                     lowc_wc      = low_trait$low_u,
+                                     ind_analysis = ind_u)
   }
 
-  if(is.null(Y$Y_f)){
+  ## --- Functional / wavelet block ------------------------------------------
+  if (is.null(Y$Y_f)) {
     res_f <- NULL
-  }else{
-    if(missing(ind_analysis)){
-
-
-
-        res_f <- lapply(1:length(Y$Y_f),
-                        function(k) fsusieR:::cal_Bhat_Shat(Y$Y_f[[k]],
-                                                                X       = X,
-                                                                v1      = v1,
-                                                                lowc_wc = low_trait$low_wc[[k]])
-
-
-                      )
-
-    }else{
-
-
-
-        res_f <- lapply(1:length(Y$Y_f),
-                        function(k) fsusieR:::cal_Bhat_Shat(Y$Y_f[[k]],
-                                                                X       = X,
-                                                                v1      = v1,
-                                                                lowc_wc = low_trait$low_wc[[k]],
-                                                                ind_analysis=ind_analysis$idx_f[[k]])
-        )
-
-
+  } else {
+    if (is.null(sigma2$sd_f)) {
+      stop("cal_Bhat_Shat_multfsusie: Y$Y_f present but sigma2$sd_f is NULL.")
     }
+    M <- length(Y$Y_f)
 
+    res_f <- lapply(seq_len(M), function(m) {
+      sigma2_m <- if (is.list(sigma2$sd_f)) sigma2$sd_f[[m]] else sigma2$sd_f[m]
+      ind_m    <- if (has_ind) ind_analysis$idx_f[[m]] else NULL
+      fsusieR:::cal_Bhat_Shat(Y            = Y$Y_f[[m]],
+                              X            = X,
+                              sigma2       = sigma2_m,
+                              lowc_wc      = low_trait$low_wc[[m]],
+                              ind_analysis = ind_m)
+    })
   }
 
- res  <- list( res_u = res_u,
-               res_f   = res_f)
-
+  list(res_u = res_u, res_f = res_f)
 }
-
 
 
 

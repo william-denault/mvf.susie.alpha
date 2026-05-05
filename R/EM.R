@@ -93,7 +93,7 @@ EM_pi_multsusie <- function(G_prior, effect_estimate, list_indx_lst,
              function(k) fsusieR::cal_zeta(lBF_per_trait$f_logBF[k, ])[idx])
 
     zeta_all= list(zeta_u=zeta_u, zeta_f=zeta_f)
-browser()
+
     tpi_k <- m_step_multsusie(L_mat          = L_mat,
                               zeta           = zeta_all,
                               list_indx_lst  = list_indx_lst,
