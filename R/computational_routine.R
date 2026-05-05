@@ -22,214 +22,56 @@
 #' @return list(res_u = list(Bhat, Shat) | NULL,
 #'              res_f = list of M lists(Bhat, Shat) | NULL)
 #' @export
-## ============================================================================
-## cal_Bhat_Shat_multfsusie  —  zero-pad-and-correct version
-##
-## Designed for M up to many hundreds of modalities, each with its own row
-## mask.  Replaces M small crossprod calls with ONE large one, regardless of
-## how heterogeneous the missing-data pattern is across modalities.
-##
-## Algorithm (functional block, full data — easy case):
-##   d <- attr(X, "d")                           # cached column-norms-squared
-##   Y_stack <- do.call(cbind, Y_f)              # N x sum(T_m)
-##   B_stack <- crossprod(X, Y_stack) / d        # ONE BLAS call
-##   slice B_stack into per-modality (Bhat_m, Shat_m)
-##
-## Algorithm (functional block, with per-modality row masks):
-##   pad each Y_f[[m]] with zeros at the rows NOT in idx_f[[m]]:
-##       Y_pad_m[i, ] = Y_f[[m]][i, ] if i in idx_f[[m]] else 0
-##   Y_stack <- do.call(cbind, Y_pad)            # still N x sum(T_m)
-##   B_stack <- crossprod(X, Y_stack)            # ONE BLAS call, no /d yet
-##
-##   for each modality m:
-##     d_m <- attr(X,"d") - colSums(X[!idx_m, , drop=FALSE]^2)   # incremental
-##     Bhat_m <- B_stack[, cols_m] / d_m                          # per-m
-##     Shat_m <- (1/sqrt(d_m)) %o% sqrt(sigma2_m)                 # tcrossprod
-##
-## The d_m correction is O(|missing| * p) per modality.  When missingness is
-## sparse (typical), this is negligible.  When it is dense, fall back to a
-## direct colSums(X[idx_m, ]^2) per modality (also O(N*p) per m, but you'd
-## have paid that anyway in the per-m approach — only the BLAS overhead is
-## now amortised).
-##
-## Memory note:
-##   Y_stack is an extra N x sum(T_m) double array.  For N=1000, T_m=128,
-##   M=500 that's ~4 GB.  If memory is constrained, use chunk_size below to
-##   process modalities in chunks of K -> M/K BLAS calls instead of M.
-##   K=50 typically keeps the working set under 500 MB and still gives a
-##   ~10x speedup over per-m.
-## ============================================================================
-
 cal_Bhat_Shat_multfsusie <- function(Y, X, sigma2,
                                      low_trait     = NULL,
-                                     ind_analysis  = NULL,
-                                     chunk_size    = Inf,    # set to e.g. 50 if memory tight
+                                     ind_analysis  = NULL,   # NEW: default NULL
                                      v1            = NULL,   # ignored
                                      list_indx_lst = NULL,   # ignored
                                      ...) {
 
-  if (is.null(sigma2))
+  if (is.null(sigma2)) {
     stop("cal_Bhat_Shat_multfsusie: pass multfsusie.obj$sigma2 as 'sigma2'.")
-  if (!is.list(sigma2))
-    stop("cal_Bhat_Shat_multfsusie: 'sigma2' must be a list with $sd_u/$sd_f. ",
-         "Did you pass legacy `v1` positionally?")
+  }
 
-  has_ind   <- !is.null(ind_analysis)
-  has_idx_u <- has_ind && !is.null(ind_analysis$idx_u)
-  has_idx_f <- has_ind && !is.null(ind_analysis$idx_f)
+  ## Single boolean — captured cleanly by the closures below.
+  has_ind <- !is.null(ind_analysis)
 
   ## --- Univariate block ----------------------------------------------------
   if (is.null(Y$Y_u)) {
     res_u <- NULL
   } else {
-    if (is.null(sigma2$sd_u))
+    if (is.null(sigma2$sd_u)) {
       stop("cal_Bhat_Shat_multfsusie: Y$Y_u present but sigma2$sd_u is NULL.")
-    res_u <- fsusieR:::cal_Bhat_Shat(
-      Y            = Y$Y_u,
-      X            = X,
-      sigma2       = sigma2$sd_u,
-      lowc_wc      = low_trait$low_u,
-      ind_analysis = if (has_idx_u) ind_analysis$idx_u else NULL
-    )
+    }
+    ind_u <- if (has_ind) ind_analysis$idx_u else NULL
+    res_u <- fsusieR:::cal_Bhat_Shat(Y            = Y$Y_u,
+                                     X            = X,
+                                     sigma2       = sigma2$sd_u,
+                                     lowc_wc      = low_trait$low_u,
+                                     ind_analysis = ind_u)
   }
 
-  ## --- Functional block ----------------------------------------------------
+  ## --- Functional / wavelet block ------------------------------------------
   if (is.null(Y$Y_f)) {
     res_f <- NULL
   } else {
-    if (is.null(sigma2$sd_f))
+    if (is.null(sigma2$sd_f)) {
       stop("cal_Bhat_Shat_multfsusie: Y$Y_f present but sigma2$sd_f is NULL.")
+    }
+    M <- length(Y$Y_f)
 
-    res_f <- .stacked_functional_block(
-      X         = X,
-      Y_f       = Y$Y_f,
-      sigma2_f  = sigma2$sd_f,
-      idx_f     = if (has_idx_f) ind_analysis$idx_f else NULL,
-      low_wc    = low_trait$low_wc,
-      chunk_size = chunk_size
-    )
+    res_f <- lapply(seq_len(M), function(m) {
+      sigma2_m <- if (is.list(sigma2$sd_f)) sigma2$sd_f[[m]] else sigma2$sd_f[m]
+      ind_m    <- if (has_ind) ind_analysis$idx_f[[m]] else NULL
+      fsusieR:::cal_Bhat_Shat(Y            = Y$Y_f[[m]],
+                              X            = X,
+                              sigma2       = sigma2_m,
+                              lowc_wc      = low_trait$low_wc[[m]],
+                              ind_analysis = ind_m)
+    })
   }
 
   list(res_u = res_u, res_f = res_f)
-}
-
-
-## ----------------------------------------------------------------------------
-## Stacked driver — one BLAS call per chunk of modalities.
-## ----------------------------------------------------------------------------
-.stacked_functional_block <- function(X, Y_f, sigma2_f, idx_f, low_wc,
-                                      chunk_size = Inf) {
-
-  M  <- length(Y_f)
-  N  <- nrow(X)
-  P  <- ncol(X)
-  Tm <- vapply(Y_f, ncol, integer(1))           # length M
-
-  ## Cached full-data column norms (set by fsusieR::colScale)
-  d_full <- attr(X, "d")
-  if (is.null(d_full)) d_full <- .colSums(X * X, N, P)
-
-  sd_f_is_list <- is.list(sigma2_f)
-  get_sigma_m  <- function(m) if (sd_f_is_list) sigma2_f[[m]] else sigma2_f[m]
-  get_idx_m    <- function(m) if (is.null(idx_f)) NULL else idx_f[[m]]
-
-  res_f <- vector("list", M)
-
-  ## Chunk modalities to bound peak memory of Y_stack.
-  chunk_size  <- max(1L, min(M, as.integer(chunk_size)))
-  chunk_starts <- seq.int(1L, M, by = chunk_size)
-
-  for (cs in chunk_starts) {
-    ce  <- min(cs + chunk_size - 1L, M)
-    grp <- cs:ce
-
-    ## ---- Build Y_stack for this chunk: zero-pad missing rows ------------
-    ##
-    ## We allocate Y_stack as N x sum(Tm[grp]) and copy each Y_f[[m]] into
-    ## its column slice, zeroing rows that are missing for that modality.
-    Tm_grp     <- Tm[grp]
-    col_end    <- cumsum(Tm_grp)
-    col_start  <- c(1L, head(col_end + 1L, -1L))
-    T_total    <- sum(Tm_grp)
-    Y_stack    <- matrix(0, nrow = N, ncol = T_total)
-
-    for (i in seq_along(grp)) {
-      m  <- grp[i]
-      cs_cols <- col_start[i]:col_end[i]
-      idx_m   <- get_idx_m(m)
-      if (is.null(idx_m)) {
-        ## All rows used.  Direct copy.  If Y_f[[m]] still has NAs, scrub.
-        Yi <- Y_f[[m]]
-        if (anyNA(Yi)) Yi[is.na(Yi)] <- 0
-        Y_stack[, cs_cols] <- Yi
-      } else {
-        ## Only observed rows contribute; the rest stay zero.
-        Y_stack[idx_m, cs_cols] <- Y_f[[m]][idx_m, , drop = FALSE]
-        ## (If Y_f[[m]] has NAs at observed rows, that's a data bug —
-        ## let it propagate so the caller notices.)
-      }
-    }
-
-    ## ---- ONE BLAS call for the whole chunk ------------------------------
-    ## We hold off on dividing by d here because d is per-modality.
-    B_stack <- crossprod(X, Y_stack)                      # P x T_total
-
-    ## ---- Slice + per-modality d_m + finalize ----------------------------
-    for (i in seq_along(grp)) {
-      m       <- grp[i]
-      cs_cols <- col_start[i]:col_end[i]
-      idx_m   <- get_idx_m(m)
-
-      ## Per-modality column norms.
-      ## Sparse-missingness shortcut: d_m = d_full - sum over missing rows.
-      if (is.null(idx_m)) {
-        d_m <- d_full
-      } else {
-        n_obs   <- length(idx_m)
-        n_miss  <- N - n_obs
-        if (n_miss == 0L) {
-          d_m <- d_full
-        } else if (n_miss * 4L < N) {
-          ## Fewer missing than 1/4 of rows — incremental subtraction is
-          ## cheaper than rebuilding from idx_m.
-          miss_idx <- setdiff(seq_len(N), idx_m)
-          Xm <- X[miss_idx, , drop = FALSE]
-          d_m <- d_full - .colSums(Xm * Xm, n_miss, P)
-        } else {
-          ## Lots of missing — direct recomputation on observed rows.
-          Xo <- X[idx_m, , drop = FALSE]
-          d_m <- .colSums(Xo * Xo, n_obs, P)
-        }
-      }
-
-      ## Numerical guard: any d_m[k] = 0 means column k is zero on the
-      ## modality's observed rows.  Mark via Inf Shat so BF contribution -> 0.
-      bad <- d_m <= 0
-      if (any(bad)) d_m[bad] <- 1   # avoid /0; we'll overwrite Shat below
-
-      Bhat_m <- B_stack[, cs_cols, drop = FALSE] / d_m
-
-      sigma2_m <- rep_len(as.numeric(get_sigma_m(m)), Tm_grp[i])
-      Shat_m   <- tcrossprod(1 / sqrt(d_m), sqrt(sigma2_m))   # P x T_m
-
-      if (any(bad)) {
-        Bhat_m[bad, ] <- 0
-        Shat_m[bad, ] <- 1
-      }
-
-      lw <- if (is.null(low_wc)) NULL else low_wc[[m]]
-      if (!is.null(lw)) {
-        Bhat_m[, lw] <- 0
-        Shat_m[, lw] <- 1
-      }
-
-      Shat_m[Shat_m < 1e-32] <- 1e-32
-
-      res_f[[m]] <- list(Bhat = Bhat_m, Shat = Shat_m)
-    }
-  }
-
-  res_f
 }
 
 
