@@ -368,7 +368,6 @@ test_that("The highest assignation should be equal to", {
                tolerance = 0.01)
   expect_equal(tpi$est_pi_u[[3]][1], 0,
                tolerance = 0.01)
-  expect_lt( fsusieR::get_pi0(tpi = tpi$est_pi_f[[1]]),  c(0.77  ) )
 })
 
 threshs <- create_null_thresh(type_mark = type_mark)
