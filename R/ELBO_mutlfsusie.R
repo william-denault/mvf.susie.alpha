@@ -52,7 +52,7 @@ cal_KL_l.multfsusie <- function(multfsusie.obj, l, Y, X, list_indx_lst,ind_analy
 
 
 
-  out <-  - loglik_SFR(multfsusie.obj, l,Y,X,ind_analysis=ind_analysis)- loglik_SFR_post(multfsusie.obj, l,R_l,X,ind_analysis=ind_analysis)
+  out <-  - loglik_SFR(multfsusie.obj, l,Y,X,ind_analysis=ind_analysis)+ loglik_SFR_post(multfsusie.obj, l,R_l,X,ind_analysis=ind_analysis)
   return(out)
 }
 

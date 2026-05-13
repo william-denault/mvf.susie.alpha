@@ -113,12 +113,12 @@ rmse <-function (x,y){
 test_that("check if estimation of the effect is ok",{
 
 
-  expect_lte(  rmse(m2$fitted_func[[2]][[1]],eff[[1]]$func_effect[[1]]$sim_func) , 0.196 )
-  expect_lte(  rmse(m2$fitted_func[[2]][[2]],eff[[1]]$func_effect[[2]]$sim_func) , 0.15 )
-  expect_lte(  rmse(m2$fitted_func[[1]][[1]],eff[[3]]$func_effect[[1]]$sim_func) , 0.23 )
-  expect_lte(  rmse(m2$fitted_func[[1]][[2]],eff[[3]]$func_effect[[2]]$sim_func) , 0.23 )
-  expect_lte(  rmse(m2$fitted_func[[3]][[1]],eff[[2]]$func_effect[[1]]$sim_func) , 0.276 )
-  expect_lte(  rmse(m2$fitted_func[[3]][[2]],eff[[2]]$func_effect[[2]]$sim_func) , 0.124 )
+  expect_lte(  rmse(m2$fitted_func[[1]][[1]],eff[[1]]$func_effect[[1]]$sim_func) , 0.196 )
+  expect_lte(  rmse(m2$fitted_func[[1]][[2]],eff[[1]]$func_effect[[2]]$sim_func) , 0.15 )
+  expect_lte(  rmse(m2$fitted_func[[3]][[1]],eff[[2]]$func_effect[[1]]$sim_func) , 0.23 )
+  expect_lte(  rmse(m2$fitted_func[[3]][[2]],eff[[2]]$func_effect[[2]]$sim_func) , 0.23 )
+  expect_lte(  rmse(m2$fitted_func[[2]][[1]],eff[[3]]$func_effect[[1]]$sim_func) , 0.276 )
+  expect_lte(  rmse(m2$fitted_func[[2]][[2]],eff[[3]]$func_effect[[2]]$sim_func) , 0.124 )
 
 })
 

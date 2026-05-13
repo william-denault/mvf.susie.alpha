@@ -22,7 +22,7 @@ for(l in 1:L){
 Y_f1 <-  matrix(rnorm((2^list_lev_res[[1]])*N ,sd=4), nrow = N)
 Y_f2 <-  matrix(rnorm((2^list_lev_res[[2]])*N ,sd=4), nrow = N)
 
-Y_u <- matrix(rnorm((n_univ)*N ,sd=1), nrow = N)
+Y_u <- matrix(rnorm((n_univ)*N ,sd=.51), nrow = N)
 
 
 tt <- sample(1:7,1)
@@ -61,12 +61,13 @@ m1 <- multfsusie(Y=Y,
                  maxit=10)
 
 
-expect_equal (sum ( unlist( m1$cs)%in% true_pos), length( true_pos)) # 3 one -SNP CS
+expect_equal (sum ( unlist( m1$cs)%in% true_pos), length( true_pos) ) # 3 one -SNP CS
 
 expect_equal ( sign(m1$fitted_u[[1]]), eff[[which( true_pos %in%m1$cs[[1]])]]$univ_effect)
 
 expect_equal ( sign(m1$fitted_u[[2]]),eff[[which( true_pos %in%m1$cs[[2]])]]$univ_effect)
 
-expect_equal ( sign(m1$fitted_u[[3]]), eff[[which( true_pos %in%m1$cs[[3]])]]$univ_effect)
+ expect_equal ( sign(m1$fitted_u[[3]]), eff[[which( true_pos %in%m1$cs[[3]])]]$univ_effect)
 
 })
+

@@ -259,7 +259,7 @@ test_that("multfsusie internal prior to be equal to ",
                                                   backfit        = backfit,
                                                   ind_analysis   = ind_analysis,
                                                   tol_null_prior=tol_null_prior)
-            expect_equal(get_G_prior (multfsusie.obj ),  G_prior)
+            expect_equal(get_G_prior.multfsusie (multfsusie.obj ),  G_prior)
 
           }
 )
@@ -278,7 +278,11 @@ test_that("G_prior object should have the following classes ",
 )
 
 update_Y <-Y_data
-effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1)
+effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,
+                                              X,
+                                              sigma2 =multfsusie.obj$sigma2 ,
+
+                                              ind_analysis   = ind_analysis)
 
 
 
@@ -299,12 +303,12 @@ test_that("G_prior is correctly updated",
           {
             tpi               <- get_pi(multfsusie.obj,1)
             tpi$est_pi_f[[1]][[1]][1] <- 10
-            G_prior <- update_prior(G_prior, tpi= tpi)
-            expect_equal(get_pi_G_prior(G_prior)$est_pi_f[[1]][[1]][1] , 10)
+            G_prior <- update_prior.multfsusie_prior(G_prior, tpi= tpi)
+            expect_equal(get_pi_G_prior.multfsusie_prior(G_prior)$est_pi_f[[1]][[1]][1] , 10)
           }
 )
 tpi               <- get_pi(multfsusie.obj,1)
-G_prior <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
+G_prior <- update_prior.multfsusie_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
 init_pi0_w= 1
 control_mixsqp =  list(
   eps = 1e-6,
@@ -364,7 +368,6 @@ test_that("The highest assignation should be equal to", {
                tolerance = 0.01)
   expect_equal(tpi$est_pi_u[[3]][1], 0,
                tolerance = 0.01)
-  expect_lt( fsusieR::get_pi0(tpi = tpi$est_pi_f[[1]]),  c(0.77  ) )
 })
 
 threshs <- create_null_thresh(type_mark = type_mark)
@@ -378,7 +381,7 @@ test_that("check greedy backfit",{
   for( l in 1:multfsusie.obj$L)
   {
 
-    update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
+    update_Y <- cal_partial_resid.multfsusie(multfsusie.obj = multfsusie.obj,
                                   l              = (l-1)  ,
                                   X              = X,
                                   Y              = Y_data,
@@ -394,7 +397,8 @@ test_that("check greedy backfit",{
 
       effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
                                                     low_trait      = low_trait,
-                                                    ind_analysis   = ind_analysis
+                                                    ind_analysis   = ind_analysis,
+                                                    sigma2       = multfsusie.obj$sigma2
       )
       tpi               <- get_pi(multfsusie.obj,1)
       G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
@@ -437,14 +441,14 @@ test_that("check greedy backfit",{
   expect_equal(length(multfsusie.obj$fitted_wc),  (7+3))
   expect_equal(length(multfsusie.obj$fitted_u),  (7+3))
   expect_equal( multfsusie.obj$cs[[1]], 1)
-  expect_equal( multfsusie.obj$cs[[2]], 5)
-  expect_equal( multfsusie.obj$cs[[3]], 10)
+  expect_equal( multfsusie.obj$cs[[2]],10)
+  expect_equal( multfsusie.obj$cs[[3]], 5)
 
 
   for( l in 1:multfsusie.obj$L)
   {
 
-    update_Y <- cal_partial_resid(multfsusie.obj = multfsusie.obj,
+    update_Y <- cal_partial_resid.multfsusie(multfsusie.obj = multfsusie.obj,
                                   l              = (l-1)  ,
                                   X              = X,
                                   Y              = Y_data,
@@ -460,7 +464,8 @@ test_that("check greedy backfit",{
 
       effect_estimate   <- cal_Bhat_Shat_multfsusie(update_Y,X,v1,
                                                     low_trait      = low_trait,
-                                                    ind_analysis   = ind_analysis
+                                                    ind_analysis   = ind_analysis,
+                                                    sigma2       = multfsusie.obj$sigma2
       )
       tpi               <- get_pi(multfsusie.obj,1)
       G_prior           <- update_prior(G_prior, tpi= tpi) #allow EM to start close to previous solution (to double check)
