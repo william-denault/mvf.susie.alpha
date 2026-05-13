@@ -1,8 +1,0 @@
-build-last-errors="[]"
-build-last-errors-base-dir="D:/Document/Serieux/Travail/Package/mvf.susie.alpha/"
-build-last-outputs="[{\"type\":0,\"output\":\"==> Rcmd.exe INSTALL --preclean --no-multiarch --with-keep.source mvf.susie.alpha\\n\\n\"},{\"type\":1,\"output\":\"* installing to library 'C:/Users/willi/OneDrive/Documents/R/win-library/4.1'\\r\\n\"},{\"type\":1,\"output\":\"\"},{\"type\":1,\"output\":\"* installing *source* package 'mvf.susie.alpha' ...\\r\\n\"},{\"type\":1,\"output\":\"\"},{\"type\":1,\"output\":\"** using staged installation\\r\\n\"},{\"type\":1,\"output\":\"\"},{\"type\":1,\"output\":\"** R\\r\\n\"},{\"type\":1,\"output\":\"Error in parse(outFile) : argument formel répété 'verbose' à la ligne 20\\r\\n\"},{\"type\":2,\"output\":\"ERROR: unable to collate and parse R files for package 'mvf.susie.alpha'\\r\\n\"},{\"type\":1,\"output\":\"* removing 'C:/Users/willi/OneDrive/Documents/R/win-library/4.1/mvf.susie.alpha'\\r\\n\"},{\"type\":1,\"output\":\"* restoring previous 'C:/Users/willi/OneDrive/Documents/R/win-library/4.1/mvf.susie.alpha'\\r\\n\"},{\"type\":1,\"output\":\"\"},{\"type\":2,\"output\":\"\\nExited with status 1.\\n\\n\"}]"
-compile_pdf_state="{\"tab_visible\":false,\"running\":false,\"target_file\":\"\",\"output\":\"\",\"errors\":[]}"
-files.monitored-path=""
-find-in-files-state="{\"handle\":\"\",\"input\":\"\",\"path\":\"\",\"regex\":false,\"ignoreCase\":false,\"results\":{\"file\":[],\"line\":[],\"lineValue\":[],\"matchOn\":[],\"matchOff\":[],\"replaceMatchOn\":[],\"replaceMatchOff\":[]},\"running\":false,\"replace\":false,\"preview\":false,\"gitFlag\":false,\"replacePattern\":\"\"}"
-imageDirtyState="1"
-saveActionState="-1"
