@@ -252,10 +252,22 @@ create_null_thresh <- function(type_mark ){
 
 Quantile_transform  <- function(x)
 {
-set.seed(1)
-  x.rank = rank(x, ties.method="random")
-  #x.rank = rank(x, ties.method="average")
-  return(qqnorm(x.rank,plot.it = F)$x)
+
+  if(length(which(is.na(x)))>0){
+    pos_na= which(is.na(x))
+    set.seed(1)
+    x.rank = rank(x, ties.method="random")
+    #x.rank = rank(x, ties.method="average")
+    out= qqnorm(x.rank,plot.it = F)$x
+    out[pos_na]=NA
+    return(out)
+  }else{
+    set.seed(1)
+    x.rank = rank(x, ties.method="random")
+    #x.rank = rank(x, ties.method="average")
+    return(qqnorm(x.rank,plot.it = F)$x)
+  }
+
 }
 
 mfsusie_Quantile_transform=function(Y){

@@ -437,6 +437,7 @@ multfsusie <- function(Y, X, L = 2,
   if( L==1)
   {
 
+
     effect_estimate <- cal_Bhat_Shat_multfsusie(
       Y            = update_Y,
       X            = X,

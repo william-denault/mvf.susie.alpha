@@ -71,7 +71,6 @@ EM_pi_multsusie <- function(G_prior, effect_estimate, list_indx_lst,
   }
 
   L_mat <- L_mixsq_multsusie(G_prior, effect_estimate, list_indx_lst, idx = idx)
-
   tpi_k     <- get_pi_G_prior(G_prior)
   oldloglik <- 0
   newloglik <- 1
