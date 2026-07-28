@@ -1282,7 +1282,7 @@ list_post_mean_sd <- function(G_prior, Bhat,Shat,lBF,  indx_lst, lowc_wc=NULL,e=
 #
 #' @param multfsusie.obj a susiF object defined by init_multfsusie_obj function
 #
-#' @param  verbose
+#' @param  verbose logical
 #
 #
 #

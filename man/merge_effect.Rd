@@ -12,7 +12,7 @@ merge_effect(multfsusie.obj, verbose, ...)
 \arguments{
 \item{multfsusie.obj}{a susiF object defined by init_multfsusie_obj function}
 
-\item{verbose}{}
+\item{verbose}{logical}
 }
 \value{
 a multfsusie  object
