@@ -46,7 +46,10 @@ multfsusie(
 \arguments{
 \item{Y}{A list of data frames. Univariate traits are stored in Y$Y_u, with one column per univariate trait (can be set to NULL if no univariate traits are considered). Functional traits are stored in the sublist Y$Y_f, where each element of Y$Y_f is an n by T data frame (T being the number of observation points) (can be NULL if no functional trait is considered).}
 
-\item{X}{A matrix of size n by p containing the covariates.}
+\item{X}{A matrix of size n by p containing the covariates. Columns that
+are constant in any analyzed modality are excluded during fitting. Returned
+variant-indexed fields and credible-set indices are restored to the original
+p-column coordinate system.}
 
 \item{L}{The number of effects to fit (default is 2).}
 
@@ -146,6 +149,14 @@ active in a post-hoc configuration. May be a scalar or one value per modality.}
 
 \item{posthoc_variant_prior}{optional prior probabilities over covariates for
 the post-hoc configuration calculation. Defaults to a uniform prior.}
+}
+\value{
+A \code{"multfsusie"} object. Effect-indexed fields have length
+\code{L}; variant-indexed fields such as \code{alpha}, \code{pip},
+\code{lBF}, fitted coefficient matrices, and per-trait log Bayes factors
+use the original columns of \code{X}. \code{variable_index} records the
+columns used for fitting and \code{removed_variable_index} records excluded
+constant columns.
 }
 \description{
 Implementation of the Multi-modal fSuSiE method.

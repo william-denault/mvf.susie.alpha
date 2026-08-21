@@ -5,7 +5,10 @@
 #'
 #' @param Y A list of data frames. Univariate traits are stored in Y$Y_u, with one column per univariate trait (can be set to NULL if no univariate traits are considered). Functional traits are stored in the sublist Y$Y_f, where each element of Y$Y_f is an n by T data frame (T being the number of observation points) (can be NULL if no functional trait is considered).
 #'
-#' @param X A matrix of size n by p containing the covariates.
+#' @param X A matrix of size n by p containing the covariates. Columns that
+#' are constant in any analyzed modality are excluded during fitting. Returned
+#' variant-indexed fields and credible-set indices are restored to the original
+#' p-column coordinate system.
 #'
 #' @param pos A list of sampling positions for Y$Y_f entries.
 #' If not provided, the algorithm will assume the columns are evenly spaced.
@@ -104,6 +107,12 @@
 #' the post-hoc configuration calculation. Defaults to a uniform prior.
 #' @param  max_step number of iteration in a given pass of the multfsusie function, see vignette on large fitting procedure for details
 #' @param multfsusie.obj a multfsusie object that was previously fitted on the same data the one currently being analysed, see vignette on large fitting procedure for details
+#' @return A \code{"multfsusie"} object. Effect-indexed fields have length
+#' \code{L}; variant-indexed fields such as \code{alpha}, \code{pip},
+#' \code{lBF}, fitted coefficient matrices, and per-trait log Bayes factors
+#' use the original columns of \code{X}. \code{variable_index} records the
+#' columns used for fitting and \code{removed_variable_index} records excluded
+#' constant columns.
 #' @export
 #' @examples
 #' library(mvf.susie.alpha)
@@ -219,6 +228,20 @@ multfsusie <- function(Y, X, L = 2,
 
   prior           <- match.arg(prior)
   post_processing <- match.arg( post_processing)
+  X <- as.matrix(X)
+  names_colX <- colnames(X)
+  original_P <- ncol(X)
+  if (original_P < 1L) {
+    stop("X must contain at least one covariate column")
+  }
+  if (length(L) != 1L || !is.finite(L) || L < 1L || L != as.integer(L)) {
+    stop("L must be a positive integer")
+  }
+  if (length(L_start) != 1L || !is.finite(L_start) ||
+      L_start < 1L || L_start != as.integer(L_start)) {
+    stop("L_start must be a positive integer")
+  }
+  original_mean_X <- colMeans(X, na.rm = TRUE)
 
   if(verbose){
     print("Starting initialization")
@@ -242,11 +265,28 @@ multfsusie <- function(Y, X, L = 2,
   ind_analysis <- which_notNA_pos(Y)
 #remove column of X constant in some sub cases
   tidx <- check_cst_X_sub_case(X,ind_analysis)
-
-
-  if( length(tidx)>0){
-    warning(paste("Some of the columns of X are constants, we removed" ,length(tidx), "columns"))
-    X <- X[,-tidx]
+  kept_index <- setdiff(seq_len(original_P), tidx)
+  if (length(kept_index) == 0L) {
+    stop("All columns of X are constant in at least one analyzed modality")
+  }
+  if (length(tidx) > 0L) {
+    warning(paste("Some of the columns of X are constants, we removed",
+                  length(tidx), "columns"))
+    X <- X[, kept_index, drop = FALSE]
+  }
+  L <- min(L, ncol(X))
+  L_start <- min(L_start, L)
+  if (!is.null(posthoc_variant_prior) &&
+      length(posthoc_variant_prior) == original_P) {
+    posthoc_variant_prior <- posthoc_variant_prior[kept_index]
+  }
+  if (!is.null(multfsusie.obj)) {
+    if (identical(multfsusie.obj$column_index_space, "original")) {
+      stop("A finalized original-column multfsusie object cannot be resumed")
+    }
+    if (!is.null(multfsusie.obj$P) && multfsusie.obj$P != ncol(X)) {
+      stop("The supplied multfsusie object is not aligned with the fitted X columns")
+    }
   }
 #Formatting the data ----
 
@@ -627,9 +667,14 @@ multfsusie <- function(Y, X, L = 2,
                               ind_analysis    = ind_analysis,
                               post_processing = post_processing,
                               verbose         = verbose,
-                              posthoc         = posthoc,
-                              posthoc_prior_active = posthoc_prior_active,
-                              posthoc_variant_prior = posthoc_variant_prior
+                               posthoc         = posthoc,
+                               posthoc_prior_active = posthoc_prior_active,
+                               posthoc_variant_prior = posthoc_variant_prior,
+                               tidx = tidx,
+                               kept_index = kept_index,
+                               original_P = original_P,
+                               names_colX = names_colX,
+                               original_mean_X = original_mean_X
 
     )
    multfsusie.obj$runtime <- multfsusie.obj$runtime+ proc.time()-pt

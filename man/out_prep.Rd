@@ -21,6 +21,11 @@ out_prep(
   posthoc = TRUE,
   posthoc_prior_active = 0.5,
   posthoc_variant_prior = NULL,
+  tidx = integer(),
+  kept_index = NULL,
+  original_P = NULL,
+  names_colX = NULL,
+  original_mean_X = NULL,
   ...
 )
 
@@ -41,6 +46,11 @@ out_prep(
   posthoc = TRUE,
   posthoc_prior_active = 0.5,
   posthoc_variant_prior = NULL,
+  tidx = integer(),
+  kept_index = NULL,
+  original_P = NULL,
+  names_colX = NULL,
+  original_mean_X = NULL,
   ...
 )
 }
@@ -66,6 +76,16 @@ active in a post-hoc configuration.}
 
 \item{posthoc_variant_prior}{optional prior probabilities over covariates for
 post-hoc configuration Bayes factors. Defaults to a uniform prior.}
+
+\item{tidx}{original positions of X columns excluded from fitting}
+
+\item{kept_index}{original positions of X columns retained for fitting}
+
+\item{original_P}{number of columns in the user-supplied X}
+
+\item{names_colX}{original column names of X, if present}
+
+\item{original_mean_X}{column means of the user-supplied X}
 
 \item{verbose}{true or false}
 }

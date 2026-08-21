@@ -1,44 +1,33 @@
 
 
 #check if one of the modality leads to some constant varaible in X
-check_cst_X_sub_case <- function(X,ind_analysis){
+check_cst_X_sub_case <- function(X, ind_analysis) {
+  X <- as.matrix(X)
+  if (ncol(X) == 0L) {
+    return(integer(0))
+  }
 
+  row_groups <- c(ind_analysis$idx_f, ind_analysis$idx_u)
+  if (length(row_groups) == 0L) {
+    row_groups <- list(seq_len(nrow(X)))
+  }
 
-  if(ncol(X)==1){
-
-    if( var(X)==0){
-      warning("X has a single column with variance of 0")
-    }else{
-
-      pb_f<- integer(0)
-      pb_u<- integer(0)
-      return( unique (c(pb_f,pb_u)))
+  is_constant <- rep(FALSE, ncol(X))
+  for (rows in row_groups) {
+    rows <- unique(as.integer(rows))
+    rows <- rows[!is.na(rows) & rows >= 1L & rows <= nrow(X)]
+    if (length(rows) < 2L) {
+      stop("At least two analyzed observations are required for every modality")
     }
-
-  }
-
-
-  if( !is.null(ind_analysis$idx_f)){
-  pb_f <-  do.call(c,lapply(1:length(ind_analysis$idx_f), function(k)
-                          which(apply(X[ind_analysis$idx_f[[k]],],2,stats::var)==0)
-      )
-      )
-
-  }else{
-    pb_f<- integer(0)
-  }
-
-
-  if( !is.null(ind_analysis$idx_u)){
-    pb_u <-  do.call(c,lapply(1:length(ind_analysis$idx_u), function(k)
-      which(apply(X[ind_analysis$idx_u[[k]],],2,stats::var)==0)
+    variance <- apply(
+      X[rows, , drop = FALSE],
+      2,
+      stats::var
     )
-    )
-
-  }else{
-    pb_u<- integer(0)
+    is_constant <- is_constant | !is.finite(variance) | variance == 0
   }
-  return( unique (c(pb_f,pb_u)))
+
+  which(is_constant)
 }
 
 

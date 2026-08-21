@@ -236,6 +236,34 @@ create_dummy_susiF <- function( multfsusie.obj   ){
 
 
 
+.mvf_effect_fields <- c(
+  "alpha", "lBF", "lBF_per_trait", "fitted_wc", "fitted_wc2",
+  "fitted_u", "fitted_u2", "cs", "est_pi", "est_sd", "KL",
+  "lfsr_wc", "lfsr_u", "lfsr", "fitted_func", "fitted_var",
+  "cred_band", "HMM_lBF", "posthoc", "purity", "ind_fitted_val"
+)
+
+.mvf_validate_effect_alignment <- function(multfsusie.obj,
+                                           fields = .mvf_effect_fields) {
+  if (length(multfsusie.obj$L) != 1L ||
+      !is.finite(multfsusie.obj$L) ||
+      multfsusie.obj$L < 1L) {
+    stop("Internal error: a multfsusie object must retain at least one effect")
+  }
+  for (field in fields) {
+    value <- multfsusie.obj[[field]]
+    if (!is.null(value) &&
+        length(value) > 0L &&
+        length(value) != multfsusie.obj$L) {
+      stop(sprintf(
+        "Internal error: effect-indexed field '%s' has length %d but L is %d",
+        field, length(value), multfsusie.obj$L
+      ))
+    }
+  }
+  invisible(multfsusie.obj)
+}
+
 #' @title Discard credible sets
 #
 #' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
@@ -267,63 +295,44 @@ discard_cs <- function(multfsusie.obj, cs,...)
 
 discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE, ...)
 {
+  old_L <- multfsusie.obj$L
   cs <- sort(unique(as.integer(cs)))
-  if (anyNA(cs) || any(cs < 1L | cs > multfsusie.obj$L)) {
+  if (anyNA(cs) || any(cs < 1L | cs > old_L)) {
     stop("cs contains an invalid effect index")
   }
 
   # Retain one working effect: downstream output code and IBSS routines assume
   # L >= 1, including after final credible-set filtering.
-  if (length(cs) == multfsusie.obj$L) {
+  if (length(cs) == old_L) {
     cs <- cs[-1L]
   }
-
-  if (length(cs) > 0L) {
-  multfsusie.obj$alpha       <-  multfsusie.obj$alpha[ -cs]
-  multfsusie.obj$lBF         <-  multfsusie.obj$lBF[ -cs]
-  if (!is.null(multfsusie.obj$lBF_per_trait)) {
-    multfsusie.obj$lBF_per_trait <- multfsusie.obj$lBF_per_trait[-cs]
-  }
-  if(!is.null(multfsusie.obj$G_prior$G_prior_f)){
-    multfsusie.obj$fitted_wc   <-  multfsusie.obj$fitted_wc[ -cs]
-    multfsusie.obj$fitted_wc2  <-  multfsusie.obj$fitted_wc2[ -cs]
-  }
-  if(!is.null(multfsusie.obj$G_prior$G_prior_u)){
-    multfsusie.obj$fitted_u  <-  multfsusie.obj$fitted_u[-cs]
-    multfsusie.obj$fitted_u2 <-  multfsusie.obj$fitted_u2[-cs]
+  if (length(cs) == 0L) {
+    return(multfsusie.obj)
   }
 
-
-  if (!out_prep) {
-    multfsusie.obj$greedy_backfit_update <- TRUE
-    multfsusie.obj$ELBO                  <- -Inf
-  }
-
-  for (field in c("KL", "lfsr_wc", "lfsr_u", "lfsr",
-                  "fitted_func", "cred_band")) {
-    if (!is.null(multfsusie.obj[[field]])) {
-      multfsusie.obj[[field]] <- multfsusie.obj[[field]][-cs]
+  for (field in .mvf_effect_fields) {
+    value <- multfsusie.obj[[field]]
+    if (is.null(value) || length(value) == 0L) {
+      next
     }
+    if (length(value) != old_L) {
+      stop(sprintf(
+        "Internal error: cannot discard effects because field '%s' has length %d but L is %d",
+        field, length(value), old_L
+      ))
+    }
+    multfsusie.obj[[field]] <- value[-cs]
   }
 
-  multfsusie.obj$cs          <-  multfsusie.obj$cs[ -cs]
-
-  multfsusie.obj$est_pi           <-  multfsusie.obj$est_pi[ -cs]
-  multfsusie.obj$L                <-  multfsusie.obj$L -length(cs)
-}
-
+  multfsusie.obj$L <- old_L - length(cs)
   if (out_prep) {
-    if (multfsusie.obj$L == 0L) {
-      multfsusie.obj$pip <- rep(0, multfsusie.obj$P)
-      multfsusie.obj$fitted_func <- list()
-      multfsusie.obj$cred_band <- list()
-      multfsusie.obj$posthoc <- list()
-    } else {
-      multfsusie.obj <- update_cal_pip(multfsusie.obj)
-    }
+    multfsusie.obj <- update_cal_pip(multfsusie.obj)
+  } else {
+    multfsusie.obj$greedy_backfit_update <- TRUE
+    multfsusie.obj$ELBO <- -Inf
   }
-
-  return(multfsusie.obj)
+  .mvf_validate_effect_alignment(multfsusie.obj)
+  multfsusie.obj
 }
 
 
@@ -338,61 +347,78 @@ discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE, ...)
 # @return a multfsusie.obj a L_extra effect. Note the the number of effect of the multfsusie.obj cannot exceed the number the user upper bound
 expand_multfsusie_obj <- function(multfsusie.obj,L_extra)
 {
+  if (length(L_extra) != 1L || !is.finite(L_extra) ||
+      L_extra < 0L || L_extra != as.integer(L_extra)) {
+    stop("L_extra must be a non-negative integer")
+  }
+  if (identical(multfsusie.obj$column_index_space, "original")) {
+    stop("Cannot expand an object after original-column output formatting")
+  }
 
-  L_extra <- ifelse (  multfsusie.obj$L_max - (multfsusie.obj$L+L_extra) <0 ,#check if we are adding more effect that maximum specified by user
-                       abs(multfsusie.obj$L_max -(multfsusie.obj$L)),
-                       L_extra
-
-                    )
-
-  if( L_extra==0){
-    return(multfsusie.obj)
-  }else{
-    L_old <- multfsusie.obj$L
-    L_new <- multfsusie.obj$L+L_extra
-    multfsusie.obj$L <- ifelse(L_new<(multfsusie.obj$P+1),L_new,multfsusie.obj$P)
-    l=1
-    k=1
-
-    for ( l in (L_old+1):multfsusie.obj$L )
-    {
-
-      if( !is.null(multfsusie.obj$fitted_wc)){
-
-        multfsusie.obj$fitted_wc[[l]]  <-    lapply( 1:length(multfsusie.obj$n_wac), function(j)
-                                                      matrix( 0,
-                                                              ncol = multfsusie.obj$n_wac[[j]] ,
-                                                              nrow =  multfsusie.obj$P)
-                                                     )
-        multfsusie.obj$fitted_wc2[[l]] <-    lapply( 1:length(multfsusie.obj$n_wac), function(j)
-                                                       matrix( 1,
-                                                              ncol = multfsusie.obj$n_wac[[j]],
-                                                              nrow = multfsusie.obj$P)
-                                                     )
-
-         }
-      if(!is.null(multfsusie.obj$fitted_u)){
-        multfsusie.obj$fitted_u[[l]]        <- 0*multfsusie.obj$fitted_u[[1]]
-        multfsusie.obj$fitted_u2[[l]]       <- 0*multfsusie.obj$fitted_u2[[1]]
-
-      }
-
-      multfsusie.obj$alpha [[l]]           <- rep(0, length(multfsusie.obj$alpha [[1]]))
-      multfsusie.obj$cs[[l]]               <- list()
-      multfsusie.obj$est_pi [[l]]          <- multfsusie.obj$est_pi[[1]]
-      multfsusie.obj$lBF[[l]]              <- rep(NA, length( multfsusie.obj$lBF[[1]]))
-      multfsusie.obj$KL                    <- rep(NA,multfsusie.obj$L)
-      multfsusie.obj$ELBO                  <- c()
-    }
-    multfsusie.obj$n_expand <- multfsusie.obj$n_expand+1
-    multfsusie.obj$greedy_backfit_update <- TRUE
-
-    if( multfsusie.obj$L== multfsusie.obj$L_max){
-      multfsusie.obj$greedy=FALSE
-    }
+  L_old <- multfsusie.obj$L
+  L_target <- min(
+    L_old + as.integer(L_extra),
+    multfsusie.obj$L_max,
+    multfsusie.obj$P
+  )
+  if (L_target <= L_old) {
     return(multfsusie.obj)
   }
 
+  lbf_trait_is_aligned <- length(multfsusie.obj$lBF_per_trait) == L_old
+  lfsr_wc_is_aligned <- !is.null(multfsusie.obj$lfsr_wc) &&
+    length(multfsusie.obj$lfsr_wc) == L_old
+  lfsr_u_is_aligned <- !is.null(multfsusie.obj$lfsr_u) &&
+    length(multfsusie.obj$lfsr_u) == L_old
+
+  multfsusie.obj$L <- L_target
+  for (l in seq.int(L_old + 1L, L_target)) {
+    if (!is.null(multfsusie.obj$fitted_wc)) {
+      multfsusie.obj$fitted_wc[[l]] <- lapply(
+        multfsusie.obj$n_wac,
+        function(n_coefficient) {
+          matrix(0, ncol = n_coefficient, nrow = multfsusie.obj$P)
+        }
+      )
+      multfsusie.obj$fitted_wc2[[l]] <- lapply(
+        multfsusie.obj$n_wac,
+        function(n_coefficient) {
+          matrix(1, ncol = n_coefficient, nrow = multfsusie.obj$P)
+        }
+      )
+    }
+    if (!is.null(multfsusie.obj$fitted_u)) {
+      multfsusie.obj$fitted_u[[l]] <- 0 * multfsusie.obj$fitted_u[[1]]
+      multfsusie.obj$fitted_u2[[l]] <- 0 * multfsusie.obj$fitted_u2[[1]]
+    }
+
+    multfsusie.obj$alpha[[l]] <- rep(0, multfsusie.obj$P)
+    multfsusie.obj$cs[[l]] <- integer(0)
+    multfsusie.obj$est_pi[[l]] <- multfsusie.obj$est_pi[[1]]
+    multfsusie.obj$lBF[[l]] <- rep(NA_real_, multfsusie.obj$P)
+    if (lbf_trait_is_aligned) {
+      multfsusie.obj$lBF_per_trait[[l]] <- list()
+    }
+    if (lfsr_wc_is_aligned) {
+      multfsusie.obj$lfsr_wc[[l]] <- lapply(
+        multfsusie.obj$n_wac,
+        function(n_coefficient) rep(1, n_coefficient)
+      )
+    }
+    if (lfsr_u_is_aligned) {
+      multfsusie.obj$lfsr_u[[l]] <- rep(1, multfsusie.obj$n_univ)
+    }
+  }
+
+  multfsusie.obj$KL <- rep(NA_real_, multfsusie.obj$L)
+  multfsusie.obj$ELBO <- numeric(0)
+  multfsusie.obj$n_expand <- multfsusie.obj$n_expand + 1L
+  multfsusie.obj$greedy_backfit_update <- TRUE
+  if (multfsusie.obj$L == min(multfsusie.obj$L_max, multfsusie.obj$P)) {
+    multfsusie.obj$greedy <- FALSE
+  }
+  .mvf_validate_effect_alignment(multfsusie.obj)
+  multfsusie.obj
 }
 
 #'@title Compute refined estimate using HMM regression
@@ -1444,6 +1470,11 @@ name_cs.multfsusie <- function(multfsusie.obj,X,...){
 #'  active in a post-hoc configuration.
 #'@param posthoc_variant_prior optional prior probabilities over covariates for
 #'  post-hoc configuration Bayes factors. Defaults to a uniform prior.
+#'@param tidx original positions of X columns excluded from fitting
+#'@param kept_index original positions of X columns retained for fitting
+#'@param original_P number of columns in the user-supplied X
+#'@param names_colX original column names of X, if present
+#'@param original_mean_X column means of the user-supplied X
 #' @export
 #' @keywords internal
 out_prep <- function(multfsusie.obj,
@@ -1458,9 +1489,14 @@ out_prep <- function(multfsusie.obj,
                      family ,
                      ind_analysis ,
                      post_processing,
-                     posthoc=TRUE,
-                     posthoc_prior_active=0.5,
-                     posthoc_variant_prior=NULL, ...)
+                      posthoc=TRUE,
+                      posthoc_prior_active=0.5,
+                      posthoc_variant_prior=NULL,
+                      tidx=integer(),
+                      kept_index=NULL,
+                      original_P=NULL,
+                      names_colX=NULL,
+                      original_mean_X=NULL, ...)
 UseMethod("out_prep")
 
 #' @rdname out_prep
@@ -1487,10 +1523,15 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                 ind_analysis ,
                                 post_processing="smash",
                                 verbose=TRUE,
-                                posthoc=TRUE,
-                                posthoc_prior_active=0.5,
-                                posthoc_variant_prior=NULL,
-                                ... )
+                                 posthoc=TRUE,
+                                 posthoc_prior_active=0.5,
+                                 posthoc_variant_prior=NULL,
+                                 tidx=integer(),
+                                 kept_index=NULL,
+                                 original_P=NULL,
+                                 names_colX=NULL,
+                                 original_mean_X=NULL,
+                                 ... )
 {
   multfsusie.obj <-  update_cal_fit_u(multfsusie.obj )
 
@@ -1571,7 +1612,256 @@ out_prep.multfsusie <- function(multfsusie.obj,
     )
   }
 
+  multfsusie.obj <- restore_original_columns_multfsusie(
+    multfsusie.obj,
+    kept_index=kept_index,
+    original_P=original_P,
+    removed_index=tidx,
+    variable_names=names_colX,
+    original_mean_X=original_mean_X
+  )
+
   return( multfsusie.obj)
+}
+
+
+.mvf_expand_snp_vector <- function(x, kept_index, original_P, fill=0,
+                                   variable_names=NULL) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+  if (length(x) != length(kept_index)) {
+    stop("Internal error: SNP vector is not aligned with the fitted columns")
+  }
+  out <- rep(fill, original_P)
+  out[kept_index] <- x
+  if (!is.null(variable_names)) {
+    names(out) <- variable_names
+  }
+  out
+}
+
+
+.mvf_expand_snp_matrix_rows <- function(x, kept_index, original_P, fill=0,
+                                        variable_names=NULL) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+  x <- as.matrix(x)
+  if (nrow(x) != length(kept_index)) {
+    stop("Internal error: SNP matrix rows are not aligned with the fitted columns")
+  }
+  out <- matrix(
+    fill,
+    nrow=original_P,
+    ncol=ncol(x),
+    dimnames=list(variable_names, colnames(x))
+  )
+  out[kept_index, ] <- x
+  out
+}
+
+
+.mvf_expand_snp_matrix_columns <- function(x, kept_index, original_P,
+                                           fill=-Inf,
+                                           variable_names=NULL) {
+  if (is.null(x)) {
+    return(NULL)
+  }
+  x <- as.matrix(x)
+  if (ncol(x) != length(kept_index)) {
+    stop("Internal error: SNP matrix columns are not aligned with the fitted columns")
+  }
+  out <- matrix(
+    fill,
+    nrow=nrow(x),
+    ncol=original_P,
+    dimnames=list(rownames(x), variable_names)
+  )
+  out[, kept_index] <- x
+  out
+}
+
+
+.mvf_map_cs_to_original <- function(cs, kept_index, variable_names=NULL) {
+  lapply(cs, function(index) {
+    index <- as.integer(index)
+    if (length(index) == 0L) {
+      return(index)
+    }
+    if (anyNA(index) || any(index < 1L | index > length(kept_index))) {
+      stop("Internal error: credible-set index is outside the fitted columns")
+    }
+    mapped <- kept_index[index]
+    if (!is.null(variable_names)) {
+      names(mapped) <- variable_names[mapped]
+    }
+    mapped
+  })
+}
+
+
+restore_original_columns_multfsusie <- function(
+    multfsusie.obj,
+    kept_index=NULL,
+    original_P=NULL,
+    removed_index=integer(),
+    variable_names=NULL,
+    original_mean_X=NULL) {
+  if (identical(multfsusie.obj$column_index_space, "original")) {
+    return(multfsusie.obj)
+  }
+  if (is.null(original_P)) {
+    original_P <- multfsusie.obj$P + length(removed_index)
+  }
+  if (is.null(kept_index)) {
+    kept_index <- setdiff(seq_len(original_P), removed_index)
+  }
+  kept_index <- as.integer(kept_index)
+  fitted_P <- length(kept_index)
+  if (multfsusie.obj$P != fitted_P ||
+      anyNA(kept_index) ||
+      anyDuplicated(kept_index) ||
+      any(kept_index < 1L | kept_index > original_P)) {
+    stop("Internal error: fitted object and covariate-column map disagree")
+  }
+  if (!is.null(variable_names) && length(variable_names) != original_P) {
+    stop("Internal error: X column names and original column count disagree")
+  }
+  .mvf_validate_effect_alignment(multfsusie.obj)
+
+  expand_vector <- function(x, fill=0) {
+    .mvf_expand_snp_vector(
+      x, kept_index, original_P, fill, variable_names
+    )
+  }
+  expand_rows <- function(x, fill=0) {
+    .mvf_expand_snp_matrix_rows(
+      x, kept_index, original_P, fill, variable_names
+    )
+  }
+
+  original_cs <- .mvf_map_cs_to_original(
+    multfsusie.obj$cs,
+    kept_index,
+    variable_names
+  )
+  multfsusie.obj$alpha <- lapply(
+    multfsusie.obj$alpha, expand_vector, fill=0
+  )
+  multfsusie.obj$pip <- expand_vector(multfsusie.obj$pip, fill=0)
+  multfsusie.obj$lBF <- lapply(
+    multfsusie.obj$lBF, expand_vector, fill=-Inf
+  )
+
+  # update_cal_fit_u() has already collapsed fitted_u[[l]] over variants, so
+  # each entry is a per-univariate-trait effect vector at this point. Only
+  # fitted_u2 remains variant-indexed and needs its rows restored.
+  for (field in "fitted_u2") {
+    if (!is.null(multfsusie.obj[[field]])) {
+      multfsusie.obj[[field]] <- lapply(
+        multfsusie.obj[[field]], expand_rows, fill=0
+      )
+    }
+  }
+  for (field in c("fitted_wc", "fitted_wc2")) {
+    if (!is.null(multfsusie.obj[[field]])) {
+      multfsusie.obj[[field]] <- lapply(
+        multfsusie.obj[[field]],
+        function(effect) lapply(effect, expand_rows, fill=0)
+      )
+    }
+  }
+
+  if (!is.null(multfsusie.obj$lBF_per_trait)) {
+    multfsusie.obj$lBF_per_trait <- lapply(
+      multfsusie.obj$lBF_per_trait,
+      function(effect) {
+        lapply(effect, function(log_bf) {
+          .mvf_expand_snp_matrix_columns(
+            log_bf,
+            kept_index,
+            original_P,
+            fill=-Inf,
+            variable_names=variable_names
+          )
+        })
+      }
+    )
+  }
+
+  if (!is.null(multfsusie.obj$alpha_hist)) {
+    multfsusie.obj$alpha_hist <- lapply(
+      multfsusie.obj$alpha_hist,
+      function(snapshot) {
+        if (is.list(snapshot)) {
+          lapply(snapshot, function(x) {
+            if (is.numeric(x) && length(x) == fitted_P) {
+              expand_vector(x, fill=0)
+            } else {
+              x
+            }
+          })
+        } else if (is.numeric(snapshot) && length(snapshot) == fitted_P) {
+          expand_vector(snapshot, fill=0)
+        } else {
+          snapshot
+        }
+      }
+    )
+  }
+
+  if (!is.null(multfsusie.obj$posthoc)) {
+    multfsusie.obj$posthoc <- lapply(
+      multfsusie.obj$posthoc,
+      function(effect) {
+        if (!is.null(effect) && !is.null(effect$variant_prior)) {
+          effect$variant_prior <- expand_vector(
+            effect$variant_prior,
+            fill=0
+          )
+        }
+        effect
+      }
+    )
+  }
+
+  multfsusie.obj$cs <- original_cs
+  if (!is.null(original_mean_X)) {
+    if (length(original_mean_X) != original_P) {
+      stop("Internal error: original X means and column count disagree")
+    }
+    multfsusie.obj$mean_X <- original_mean_X
+    if (!is.null(variable_names)) {
+      names(multfsusie.obj$mean_X) <- variable_names
+    }
+  } else if (!is.null(multfsusie.obj$mean_X)) {
+    multfsusie.obj$mean_X <- expand_vector(
+      multfsusie.obj$mean_X,
+      fill=0
+    )
+  }
+  if (!is.null(multfsusie.obj$csd_X)) {
+    multfsusie.obj$csd_X <- expand_vector(
+      multfsusie.obj$csd_X,
+      fill=1
+    )
+  }
+
+  multfsusie.obj$fitted_P <- fitted_P
+  multfsusie.obj$P <- original_P
+  multfsusie.obj$original_P <- original_P
+  multfsusie.obj$variable_index <- kept_index
+  multfsusie.obj$removed_variable_index <- setdiff(
+    seq_len(original_P),
+    kept_index
+  )
+  multfsusie.obj$variable_names <- variable_names
+  multfsusie.obj$column_index_space <- "original"
+  multfsusie.obj$n_cs <- length(multfsusie.obj$cs)
+  multfsusie.obj$cs_size <- lengths(multfsusie.obj$cs)
+  .mvf_validate_effect_alignment(multfsusie.obj)
+  multfsusie.obj
 }
 
 
@@ -1591,7 +1881,7 @@ posthoc_multfsusie <- function(
   for (l in seq_along(alpha_list)) {
 
     if (all(alpha_list[[l]] == 0)) {
-      out[[l]] <- NULL
+      out[l] <- list(NULL)
       next
     }
 
@@ -1613,7 +1903,7 @@ posthoc_multfsusie <- function(
     ## ---- enumerate configurations
     if (S > 20) {
       warning(paste("CS", l, ": too many traits for exact posthoc"))
-      out[[l]] <- NULL
+      out[l] <- list(NULL)
       next
     }
 
@@ -2628,35 +2918,38 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj,
                       l,
                       median_crit=FALSE,
                       lbf_min){
-    if( median_crit){
-      #if( length(multfsusie.obj$cs[[l]] )  < ncol(X)/10) {
-      #  is.dummy.cs <- FALSE
-      #   return(is.dummy.cs )
-      #}
-      if(length(multfsusie.obj$cs[[l]]) <5){
-        if(length(multfsusie.obj$cs[[l]])==0 ){
-
-          is.dummy.cs <- TRUE
-          return( is.dummy.cs)
-        }
-        is.dummy.cs <- FALSE
-      }else{
-        tt <-  stats::cor( X[,multfsusie.obj$cs[[l]]])
-
-        is.dummy.cs <-   stats::median(abs( tt[lower.tri(tt, diag =FALSE)]))  <  min_purity & max(multfsusie.obj$lBF[[l]])<lbf_min
-      }
-
-
-    }else{
-      if(length(multfsusie.obj$cs[[l]])==0 ){
-
-        is.dummy.cs <- TRUE
-        return( is.dummy.cs)
-      }
-      is.dummy.cs <-   min(abs(stats::cor( X[,multfsusie.obj$cs[[l]]]))) <  min_purity & max(multfsusie.obj$lBF[[l]])<lbf_min
+    cs_l <- multfsusie.obj$cs[[l]]
+    if (length(cs_l) == 0L) {
+      return(TRUE)
+    }
+    if (median_crit && length(cs_l) < 5L) {
+      return(FALSE)
     }
 
-    return( is.dummy.cs)
+    if (length(cs_l) == 1L) {
+      purity <- 1
+    } else {
+      correlation <- suppressWarnings(stats::cor(
+        X[, cs_l, drop=FALSE]
+      ))
+      off_diagonal <- abs(correlation[lower.tri(correlation)])
+      if (length(off_diagonal) == 0L ||
+        any(!is.finite(off_diagonal))) {
+        purity <- -Inf
+      } else if (median_crit) {
+        purity <- stats::median(off_diagonal)
+      } else {
+        purity <- min(off_diagonal)
+      }
+    }
+
+    effect_lbf <- multfsusie.obj$lBF[[l]]
+    max_lbf <- if (any(is.finite(effect_lbf))) {
+      max(effect_lbf[is.finite(effect_lbf)])
+    } else {
+      -Inf
+    }
+    isTRUE(purity < min_purity && max_lbf < lbf_min)
   }
 
 
