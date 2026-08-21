@@ -7,7 +7,7 @@
 \usage{
 check_cs(multfsusie.obj, min_purity = 0.5, X, ...)
 
-\method{check_cs}{multfsusie}(multfsusie.obj, min_purity = 0.5, X, ...)
+\method{check_cs}{multfsusie}(multfsusie.obj, min_purity = 0.5, X, allow_empty = TRUE, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object defined by init_multfsusie_obj function}
@@ -15,6 +15,9 @@ check_cs(multfsusie.obj, min_purity = 0.5, X, ...)
 \item{min_purity}{minimal purity within a CS}
 
 \item{X}{matrix of covariate}
+
+\item{allow_empty}{logical; if TRUE, all unsupported effects may be removed
+from the final output.}
 }
 \value{
 a multfsusie.obj without "dummy" credible s

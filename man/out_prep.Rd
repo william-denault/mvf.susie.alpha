@@ -18,7 +18,9 @@ out_prep(
   family,
   ind_analysis,
   post_processing,
-  posthoc,
+  posthoc = TRUE,
+  posthoc_prior_active = 0.5,
+  posthoc_variant_prior = NULL,
   ...
 )
 
@@ -37,6 +39,8 @@ out_prep(
   post_processing = "smash",
   verbose = TRUE,
   posthoc = TRUE,
+  posthoc_prior_active = 0.5,
+  posthoc_variant_prior = NULL,
   ...
 )
 }
@@ -56,6 +60,12 @@ out_prep(
 \item{post_processing}{the chosen postprocessing}
 
 \item{posthoc}{logical , default TRUE if set to TRUE compute post hoc probabilities of causal configurations as in Yuan Nat Gen 2024}
+
+\item{posthoc_prior_active}{prior probability that an individual modality is
+active in a post-hoc configuration.}
+
+\item{posthoc_variant_prior}{optional prior probabilities over covariates for
+post-hoc configuration Bayes factors. Defaults to a uniform prior.}
 
 \item{verbose}{true or false}
 }

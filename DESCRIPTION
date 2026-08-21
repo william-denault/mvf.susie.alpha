@@ -1,8 +1,8 @@
 Encoding: UTF-8
 Type: Package
 Package: mvf.susie.alpha
-Version: 0.1.053
-Date: 2022-02-16
+Version: 0.1.054
+Date: 2026-08-21
 Title: Mutlivariate Sum of Single Functions
 Authors@R: person("William R. P.","Denault",role = c("aut","cre"),
                   email = "wdenault@uchicago.edu")
@@ -10,7 +10,7 @@ URL: https://github.com/stephenslab/mvf.susie.alpha
 BugReports: https://github.com/stephenslab/mvf.susie.alpha
 Description: Implementation of the Multivariate Sum of Single Functions ("MVFSuSiE") method.
 Depends:
-  R (>= 3.1.0),
+  R (>= 4.1.0),
   stats,
   utils (>= 4.1.0)
 Imports:

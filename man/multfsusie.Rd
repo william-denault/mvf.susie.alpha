@@ -38,7 +38,9 @@ multfsusie(
   lbf_min = 0.1,
   posthoc = TRUE,
   max_step = 100,
-  multfsusie.obj = NULL
+  multfsusie.obj = NULL,
+  posthoc_prior_active = 0.5,
+  posthoc_variant_prior = NULL
 )
 }
 \arguments{
@@ -138,6 +140,12 @@ Default value is 0.001.}
 \item{max_step}{number of iteration in a given pass of the multfsusie function, see vignette on large fitting procedure for details}
 
 \item{multfsusie.obj}{a multfsusie object that was previously fitted on the same data the one currently being analysed, see vignette on large fitting procedure for details}
+
+\item{posthoc_prior_active}{prior probability that an individual modality is
+active in a post-hoc configuration. May be a scalar or one value per modality.}
+
+\item{posthoc_variant_prior}{optional prior probabilities over covariates for
+the post-hoc configuration calculation. Defaults to a uniform prior.}
 }
 \description{
 Implementation of the Multi-modal fSuSiE method.

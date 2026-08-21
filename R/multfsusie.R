@@ -98,6 +98,10 @@
 #'  Default value is 0.001.
 #' @param lbf_min numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value
 #' @param posthoc logical , default TRUE if set to TRUE compute post hoc probabilities of causal configurations as in Yuan Nat Gen 2024
+#' @param posthoc_prior_active prior probability that an individual modality is
+#' active in a post-hoc configuration. May be a scalar or one value per modality.
+#' @param posthoc_variant_prior optional prior probabilities over covariates for
+#' the post-hoc configuration calculation. Defaults to a uniform prior.
 #' @param  max_step number of iteration in a given pass of the multfsusie function, see vignette on large fitting procedure for details
 #' @param multfsusie.obj a multfsusie object that was previously fitted on the same data the one currently being analysed, see vignette on large fitting procedure for details
 #' @export
@@ -205,7 +209,9 @@ multfsusie <- function(Y, X, L = 2,
                        posthoc=TRUE,
 
                        max_step =100,
-                       multfsusie.obj=NULL)
+                       multfsusie.obj=NULL,
+                       posthoc_prior_active=0.5,
+                       posthoc_variant_prior=NULL)
 
 
 {
@@ -621,7 +627,9 @@ multfsusie <- function(Y, X, L = 2,
                               ind_analysis    = ind_analysis,
                               post_processing = post_processing,
                               verbose         = verbose,
-                              posthoc         = posthoc
+                              posthoc         = posthoc,
+                              posthoc_prior_active = posthoc_prior_active,
+                              posthoc_variant_prior = posthoc_variant_prior
 
     )
    multfsusie.obj$runtime <- multfsusie.obj$runtime+ proc.time()-pt

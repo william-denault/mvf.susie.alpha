@@ -250,24 +250,23 @@ create_null_thresh <- function(type_mark ){
  return(out)
 }
 
-Quantile_transform  <- function(x)
+Quantile_transform <- function(x, ties.method = "average")
 {
-
-  if(length(which(is.na(x)))>0){
-    pos_na= which(is.na(x))
-    set.seed(1)
-    x.rank = rank(x, ties.method="random")
-    #x.rank = rank(x, ties.method="average")
-    out= qqnorm(x.rank,plot.it = F)$x
-    out[pos_na]=NA
-    return(out)
-  }else{
-    set.seed(1)
-    x.rank = rank(x, ties.method="random")
-    #x.rank = rank(x, ties.method="average")
-    return(qqnorm(x.rank,plot.it = F)$x)
+  if (!ties.method %in% c("average", "random", "max", "min", "first", "last")) {
+    stop("Unsupported ties.method for the quantile transformation")
   }
 
+  observed <- !is.na(x)
+  out <- rep(NA_real_, length(x))
+  n_observed <- sum(observed)
+
+  if (n_observed == 0L) {
+    return(out)
+  }
+
+  x_rank <- rank(x[observed], ties.method = ties.method)
+  out[observed] <- stats::qnorm((x_rank - 0.5) / n_observed)
+  return(out)
 }
 
 mfsusie_Quantile_transform=function(Y){
@@ -429,7 +428,34 @@ init_var_multf <- function(Y){
 
 
 
-get_cs_logBF_multfsusie <- function(alpha_l, logBF_trait_snp) {
+.log_sum_exp <- function(x) {
+  max_x <- max(x)
+  if (!is.finite(max_x)) {
+    return(max_x)
+  }
+  max_x + log(sum(exp(x - max_x)))
+}
 
-  drop(logBF_trait_snp %*% alpha_l)
+.normalize_variant_prior <- function(variant_prior, n_variant) {
+  if (is.null(variant_prior)) {
+    return(rep(1 / n_variant, n_variant))
+  }
+  if (!is.numeric(variant_prior) || length(variant_prior) != n_variant ||
+      anyNA(variant_prior) || any(!is.finite(variant_prior)) ||
+      any(variant_prior < 0) ||
+      sum(variant_prior) <= 0) {
+    stop("variant_prior must be a non-negative numeric vector with one value per covariate")
+  }
+  variant_prior / sum(variant_prior)
+}
+
+get_cs_logBF_multfsusie <- function(alpha_l = NULL, logBF_trait_snp,
+                                    variant_prior = NULL) {
+  logBF_trait_snp <- as.matrix(logBF_trait_snp)
+  variant_prior <- .normalize_variant_prior(variant_prior,
+                                            ncol(logBF_trait_snp))
+  log_variant_prior <- log(variant_prior)
+
+  apply(logBF_trait_snp, 1L,
+        function(x) .log_sum_exp(log_variant_prior + x))
 }

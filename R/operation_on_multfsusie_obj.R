@@ -169,6 +169,8 @@ cal_partial_resid_sub <- function( multfsusie.obj, l, X, D, C, indx_lst,cord){
 #' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #' @param min_purity minimal purity within a CS
 #' @param X matrix of covariate
+#' @param allow_empty logical; if TRUE, all unsupported effects may be removed
+#'   from the final output.
 #' @return a multfsusie.obj without "dummy" credible s
 #
 #' @export
@@ -189,21 +191,21 @@ check_cs <- function(multfsusie.obj, min_purity=0.5,X,...)
 #' @keywords internal
 
 
-check_cs.multfsusie <- function(multfsusie.obj, min_purity=0.5,X, ... )
+check_cs.multfsusie <- function(multfsusie.obj, min_purity=0.5, X,
+                                allow_empty=TRUE, ... )
 {
 
 
-  dummy.cs <- which_dummy_cs(multfsusie.obj, min_purity=min_purity,X)
+  dummy.cs <- which_dummy_cs(multfsusie.obj,
+                             min_purity=min_purity,
+                             X=X,
+                             allow_empty=allow_empty)
 
 
   if( length(dummy.cs)==0)
   {
     return(multfsusie.obj)
   }else{
-    if(length(dummy.cs)==multfsusie.obj$L) #avoid returning empty results
-    {
-      dummy.cs <- dummy.cs[-length(dummy.cs)]
-    }
     multfsusie.obj <- discard_cs( multfsusie.obj,cs=dummy.cs, out_prep= TRUE)
     return(multfsusie.obj)
   }
@@ -267,16 +269,24 @@ discard_cs <- function(multfsusie.obj, cs,...)
 
 discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE, ...)
 {
-
-  if( length(cs)==multfsusie.obj$L){
-    cs <- cs[-1]
-    if(length(cs)==0){
-      return(multfsusie.obj)
-    }
+  cs <- sort(unique(as.integer(cs)))
+  if (anyNA(cs) || any(cs < 1L | cs > multfsusie.obj$L)) {
+    stop("cs contains an invalid effect index")
   }
-  if( length(cs)>0){
+
+  # During fitting, retain one working effect because several IBSS routines
+  # assume L >= 1. Final output preparation may discard every unsupported
+  # effect and report a genuine null result.
+  if (length(cs) == multfsusie.obj$L && !out_prep) {
+    cs <- cs[-1L]
+  }
+
+  if (length(cs) > 0L) {
   multfsusie.obj$alpha       <-  multfsusie.obj$alpha[ -cs]
   multfsusie.obj$lBF         <-  multfsusie.obj$lBF[ -cs]
+  if (!is.null(multfsusie.obj$lBF_per_trait)) {
+    multfsusie.obj$lBF_per_trait <- multfsusie.obj$lBF_per_trait[-cs]
+  }
   if(!is.null(multfsusie.obj$G_prior$G_prior_f)){
     multfsusie.obj$fitted_wc   <-  multfsusie.obj$fitted_wc[ -cs]
     multfsusie.obj$fitted_wc2  <-  multfsusie.obj$fitted_wc2[ -cs]
@@ -287,12 +297,16 @@ discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE, ...)
   }
 
 
-  if(out_prep){
-    #multfsusie.obj$fitted_func <-  multfsusie.obj$fitted_func[ -cs]
-  }else{
+  if (!out_prep) {
     multfsusie.obj$greedy_backfit_update <- TRUE
-    multfsusie.obj$KL                    <- multfsusie.obj$KL[ -cs]
     multfsusie.obj$ELBO                  <- -Inf
+  }
+
+  for (field in c("KL", "lfsr_wc", "lfsr_u", "lfsr",
+                  "fitted_func", "cred_band")) {
+    if (!is.null(multfsusie.obj[[field]])) {
+      multfsusie.obj[[field]] <- multfsusie.obj[[field]][-cs]
+    }
   }
 
   multfsusie.obj$cs          <-  multfsusie.obj$cs[ -cs]
@@ -300,6 +314,17 @@ discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE, ...)
   multfsusie.obj$est_pi           <-  multfsusie.obj$est_pi[ -cs]
   multfsusie.obj$L                <-  multfsusie.obj$L -length(cs)
 }
+
+  if (out_prep) {
+    if (multfsusie.obj$L == 0L) {
+      multfsusie.obj$pip <- rep(0, multfsusie.obj$P)
+      multfsusie.obj$fitted_func <- list()
+      multfsusie.obj$cred_band <- list()
+      multfsusie.obj$posthoc <- list()
+    } else {
+      multfsusie.obj <- update_cal_pip(multfsusie.obj)
+    }
+  }
 
   return(multfsusie.obj)
 }
@@ -724,7 +749,7 @@ get_pi0.multfsusie <-function(multfsusie.obj, l, ... ){
         }else{
           pi0_u <- lapply( 1: multfsusie.obj$n_univ ,
                            function(k)
-                             multfsusie.obj$est_pi[[l]]$est_pi_u[[k]]
+                             multfsusie.obj$est_pi[[l]]$est_pi_u[[k]][1]
           )
         }
 
@@ -751,7 +776,7 @@ get_pi0.multfsusie <-function(multfsusie.obj, l, ... ){
     }else{
       pi0_u <- lapply( 1: multfsusie.obj$n_univ ,
                        function(k)
-                         multfsusie.obj$est_pi[[l]]$est_pi_u[[k]]
+                         multfsusie.obj$est_pi[[l]]$est_pi_u[[k]][1]
       )
     }
 
@@ -1043,55 +1068,71 @@ get_ER2  <- function(multfsusie.obj,Y,X, ...)
 #' @export
 #' @keywords internal
 
-get_ER2.multfsusie = function (  multfsusie.obj,Y, X,ind_analysis, ... ) {
-  postF <- get_post_F(multfsusie.obj )# J by N matrix
-  #Xr_L = t(X%*% postF)
-  postF2 <- get_post_F2(multfsusie.obj ) # Posterior second moment.
+get_ER2.multfsusie <- function(multfsusie.obj, Y, X, ind_analysis, ...) {
+  has_ind_analysis <- !missing(ind_analysis)
+  effect_mean <- lapply(seq_len(multfsusie.obj$L),
+                        function(l) get_post_F(multfsusie.obj, l = l))
+  effect_second_moment <- lapply(seq_len(multfsusie.obj$L),
+                                 function(l) get_post_F2(multfsusie.obj, l = l))
 
-  ER2 <-  list()
-  if(! is.null(Y$Y_u)){
-
-    if( missing(ind_analysis)){
-      ER2$uni <-  do.call( c,
-                           lapply(1:ncol( Y$Y_u),
-                                  function(k) sum((Y$Y_u[,k] - X%*%postF$post_u[,k] )^2) - sum( postF$post_u[,k]^2) + sum( postF2$post_u_sd2[,k])
-                           )
-      )
-    }else{
-      ER2$uni <-  do.call( c,
-                           lapply(1:ncol( Y$Y_u),
-                                  function(k) sum((Y$Y_u[ind_analysis$idx_u[[k]],k] - X[ind_analysis$idx_u[[k]],,drop=FALSE]%*%postF$post_u[,k] )^2) - sum( postF$post_u[,k]^2) + sum( postF2$post_u_sd2[,k])
-                           )
-      )
+  expected_rss <- function(y, x, mean_by_effect, second_by_effect) {
+    if (length(mean_by_effect) == 0L) {
+      return(sum(y^2))
     }
 
+    posterior_mean <- Reduce("+", mean_by_effect)
+    rss_at_mean <- sum((y - x %*% posterior_mean)^2)
+    d <- colSums(x^2)
 
+    variance_correction <- sum(vapply(
+      seq_along(mean_by_effect),
+      function(l) {
+        second_l <- second_by_effect[[l]]
+        weighted_second_moment <- if (is.null(dim(second_l))) {
+          sum(d * second_l)
+        } else {
+          sum(d * rowSums(second_l))
+        }
 
+        weighted_second_moment - sum((x %*% mean_by_effect[[l]])^2)
+      },
+      numeric(1)
+    ))
 
-  }else
-  {
+    rss_at_mean + variance_correction
+  }
+
+  ER2 <- list()
+
+  if (!is.null(Y$Y_u)) {
+    ER2$uni <- vapply(seq_len(ncol(Y$Y_u)), function(k) {
+      idx <- if (!has_ind_analysis) seq_len(nrow(X)) else ind_analysis$idx_u[[k]]
+      mean_by_effect <- lapply(effect_mean, function(z) z$post_u[, k])
+      second_by_effect <- lapply(effect_second_moment,
+                                 function(z) z$post_u_sd2[, k])
+
+      expected_rss(Y$Y_u[idx, k], X[idx, , drop = FALSE],
+                   mean_by_effect, second_by_effect)
+    }, numeric(1))
+  } else {
     ER2$uni <- NULL
   }
-  if( !is.null(Y$Y_f))
-  {
-    if( missing(ind_analysis)){
-      ER2$f <-  do.call( c,
-                         lapply(1:length( Y$Y_f),
-                                function(k) sum((Y$Y_f[[k]] - X%*%postF$post_f[[k]])^2)  -sum(postF$post_f[[k]]^2) + sum( postF2$post_f_sd2 [[k]])
-                         )
-      )
-    }else{
-      ER2$f <-  do.call( c,
-                         lapply(1:length( Y$Y_f),
-                                function(k) sum((Y$Y_f[[k]][ind_analysis$idx_f[[k]],] - X[ind_analysis$idx_f[[k]],, drop=FALSE]%*%postF$post_f[[k]])^2)  -sum(postF$post_f[[k]]^2) + sum( postF2$post_f_sd2 [[k]])
-                         )
-      )
-    }
 
+  if (!is.null(Y$Y_f)) {
+    ER2$f <- vapply(seq_along(Y$Y_f), function(k) {
+      idx <- if (!has_ind_analysis) seq_len(nrow(X)) else ind_analysis$idx_f[[k]]
+      mean_by_effect <- lapply(effect_mean, function(z) z$post_f[[k]])
+      second_by_effect <- lapply(effect_second_moment,
+                                 function(z) z$post_f_sd2[[k]])
 
-  }else{
+      expected_rss(Y$Y_f[[k]][idx, , drop = FALSE],
+                   X[idx, , drop = FALSE],
+                   mean_by_effect, second_by_effect)
+    }, numeric(1))
+  } else {
     ER2$f <- NULL
   }
+
   return(ER2)
 }
 
@@ -1371,9 +1412,13 @@ name_cs <- function(multfsusie.obj,X,...)
 
 name_cs.multfsusie <- function(multfsusie.obj,X,...){
 
+  if (length(multfsusie.obj$cs) == 0L) {
+    return(multfsusie.obj)
+  }
+
   if( length(colnames(X))==ncol(X)){
 
-    for (l in 1: length(multfsusie.obj$cs)){
+    for (l in seq_along(multfsusie.obj$cs)){
       names(multfsusie.obj$cs[[l]]) <- colnames(X)[multfsusie.obj$cs[[l]]]
     }
 
@@ -1398,6 +1443,10 @@ name_cs.multfsusie <- function(multfsusie.obj,X,...){
 #'@param post_processing the chosen postprocessing
 #'@param verbose  true or false
 #'@param posthoc logical , default TRUE if set to TRUE compute post hoc probabilities of causal configurations as in Yuan Nat Gen 2024
+#'@param posthoc_prior_active prior probability that an individual modality is
+#'  active in a post-hoc configuration.
+#'@param posthoc_variant_prior optional prior probabilities over covariates for
+#'  post-hoc configuration Bayes factors. Defaults to a uniform prior.
 #' @export
 #' @keywords internal
 out_prep <- function(multfsusie.obj,
@@ -1412,7 +1461,9 @@ out_prep <- function(multfsusie.obj,
                      family ,
                      ind_analysis ,
                      post_processing,
-                     posthoc,...)
+                     posthoc=TRUE,
+                     posthoc_prior_active=0.5,
+                     posthoc_variant_prior=NULL, ...)
 UseMethod("out_prep")
 
 #' @rdname out_prep
@@ -1440,6 +1491,8 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                 post_processing="smash",
                                 verbose=TRUE,
                                 posthoc=TRUE,
+                                posthoc_prior_active=0.5,
+                                posthoc_variant_prior=NULL,
                                 ... )
 {
   multfsusie.obj <-  update_cal_fit_u(multfsusie.obj )
@@ -1451,14 +1504,22 @@ out_prep.multfsusie <- function(multfsusie.obj,
   {
     multfsusie.obj <- check_cs(multfsusie.obj,min_purity=0.5,X=X)
     multfsusie.obj<-  merge_effect( multfsusie.obj)
+    multfsusie.obj$pip <- if (multfsusie.obj$L == 0L) {
+      rep(0, multfsusie.obj$P)
+    } else {
+      update_cal_pip(multfsusie.obj)$pip
+    }
   }
 
-  if(post_processing== "none"){
+  has_reported_effect <- multfsusie.obj$L > 0L &&
+    length(multfsusie.obj$cs) > 0L
+
+  if(has_reported_effect && post_processing== "none"){
     multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
 
   }
  # browser()
-  if( post_processing== "smash"){
+  if(has_reported_effect && post_processing== "smash"){
 
     multfsusie.obj <-  smash_regression(multfsusie.obj = multfsusie.obj,
                                      Y              = interpolated_Y,
@@ -1468,7 +1529,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                      filter.number  = filter.number,
                                      family         = family)
   }
-  if( post_processing== "TI"){
+  if(has_reported_effect && post_processing== "TI"){
 
     multfsusie.obj <-  TI_regression(multfsusie.obj = multfsusie.obj,
                                      Y              = interpolated_Y,
@@ -1478,7 +1539,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                      filter.number  = filter.number,
                                      family         = family)
   }
-  if(post_processing=="HMM") {
+  if(has_reported_effect && post_processing=="HMM") {
     multfsusie.obj <-  HMM_regression(multfsusie.obj = multfsusie.obj,
                                       Y               = interpolated_Y,
                                       ind_analysis    = ind_analysis,
@@ -1499,10 +1560,18 @@ out_prep.multfsusie <- function(multfsusie.obj,
 
     multfsusie.obj$outing_grid <- outing_grid
   }
-  multfsusie.obj$purity      <- fsusieR::cal_purity(l_cs= multfsusie.obj$cs, X=X)
+  multfsusie.obj$purity <- if (has_reported_effect) {
+    fsusieR::cal_purity(l_cs=multfsusie.obj$cs, X=X)
+  } else {
+    list()
+  }
 
   if(posthoc){
-    multfsusie.obj$posthoc <-  posthoc_multfsusie  (multfsusie.obj)
+    multfsusie.obj$posthoc <- posthoc_multfsusie(
+      multfsusie.obj,
+      prior_active=posthoc_prior_active,
+      variant_prior=posthoc_variant_prior
+    )
   }
 
   return( multfsusie.obj)
@@ -1513,7 +1582,9 @@ out_prep.multfsusie <- function(multfsusie.obj,
 
 posthoc_multfsusie <- function(
     multfsusie.obj,
-    prob_thresh=0.8
+    prob_thresh=0.8,
+    prior_active=0.5,
+    variant_prior=NULL
 ){
   alpha_list <- multfsusie.obj$alpha
 
@@ -1522,8 +1593,7 @@ posthoc_multfsusie <- function(
 
   for (l in seq_along(alpha_list)) {
 
-    alpha_l <- alpha_list[[l]]
-    if (all(alpha_l == 0)) {
+    if (all(alpha_list[[l]] == 0)) {
       out[[l]] <- NULL
       next
     }
@@ -1539,11 +1609,10 @@ posthoc_multfsusie <- function(
     }
 
 
-    ## ---- per-trait log BF for this CS
-    logBF_l <- get_cs_logBF_multfsusie(alpha_l,
-                                       logBF_trait_snp = temp
-    )
-    S <-length(logBF_l)
+    temp <- as.matrix(temp)
+    S <- nrow(temp)
+    P <- ncol(temp)
+
     ## ---- enumerate configurations
     if (S > 20) {
       warning(paste("CS", l, ": too many traits for exact posthoc"))
@@ -1554,23 +1623,62 @@ posthoc_multfsusie <- function(
     configs <- as.matrix(expand.grid(rep(list(c(0,1)), S)))
     colnames(configs) <- paste0("trait", seq_len(S))
 
-    ## ---- configuration log BF
-    logBF_conf <- as.vector(configs %*%  logBF_l )
+    prior_active_l <- if (length(prior_active) == 1L) {
+      rep(prior_active, S)
+    } else {
+      prior_active
+    }
+    if (!is.numeric(prior_active_l) || length(prior_active_l) != S ||
+        anyNA(prior_active_l) || any(!is.finite(prior_active_l)) ||
+        any(prior_active_l < 0) ||
+        any(prior_active_l > 1)) {
+      stop("prior_active must be a probability or one probability per modality")
+    }
+
+    variant_prior_l <- .normalize_variant_prior(variant_prior, P)
+    log_variant_prior <- log(variant_prior_l)
+
+    ## Integrate over the shared causal covariate separately within every
+    ## configuration. This is a log-sum-exp over SNPs, not an alpha-weighted
+    ## average of per-SNP log Bayes factors.
+    logBF_conf <- vapply(seq_len(nrow(configs)), function(a) {
+      active_traits <- which(configs[a, ] == 1L)
+      logBF_by_variant <- if (length(active_traits) == 0L) {
+        rep(0, P)
+      } else {
+        colSums(temp[active_traits, , drop=FALSE])
+      }
+      .log_sum_exp(log_variant_prior + logBF_by_variant)
+    }, numeric(1))
+
+    log_prior_conf <- rowSums(vapply(seq_len(S), function(s) {
+      ifelse(configs[, s] == 1L,
+             log(prior_active_l[s]),
+             log1p(-prior_active_l[s]))
+    }, numeric(nrow(configs))))
 
     ## ---- normalize (stable)
-    maxlog <- max(logBF_conf)
-    prob_conf <- exp(logBF_conf - maxlog)
+    log_posterior_conf <- logBF_conf + log_prior_conf
+    maxlog <- max(log_posterior_conf)
+    prob_conf <- exp(log_posterior_conf - maxlog)
     prob_conf <- prob_conf / sum(prob_conf)
 
     ## ---- marginal per-trait posterior prob
     posthoc_trait <- colSums(configs * prob_conf)
 
     out[[l]] <- list(
-      logBF_trait = logBF_l,
+      logBF_trait = get_cs_logBF_multfsusie(
+        logBF_trait_snp=temp,
+        variant_prior=variant_prior_l
+      ),
       posthoc     = posthoc_trait,
       active      = posthoc_trait >= prob_thresh,
       configs     = configs,
-      config_prob = prob_conf
+      config_prob = prob_conf,
+      configuration_logBF = logBF_conf,
+      configuration_prior = exp(log_prior_conf),
+      prior_active = prior_active_l,
+      variant_prior = variant_prior_l
     )
   }
 
@@ -2487,6 +2595,8 @@ smash_regression.multfsusie<- function(multfsusie.obj,
 #' @param min_purity minimal purity within a CS
 #' @param X matrix of covariate
 #' @param lbf_min numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value
+#' @param allow_empty logical; if TRUE, a single or final unsupported effect
+#'   may be marked as dummy. Keep FALSE during IBSS fitting.
 #' @return a list of index corresponding the the dummy effect
 #
 #' @export
@@ -2510,9 +2620,11 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj,
                                        min_purity =0.5,
                                        X,
                                        median_crit=FALSE,
-                                       lbf_min,... ){
+                                       lbf_min,
+                                       allow_empty=FALSE, ... ){
   dummy.cs<- c()
-  if(  multfsusie.obj$L==1){
+  if (multfsusie.obj$L == 0L ||
+      (multfsusie.obj$L == 1L && !allow_empty)) {
     return(dummy.cs)
   }
   if(missing(lbf_min)){
@@ -2556,7 +2668,7 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj,
 
 
 
-  for (l in 1:multfsusie.obj$L )
+  for (l in seq_len(multfsusie.obj$L))
   {
 
     if (length(multfsusie.obj$cs[[l]])==1)
@@ -2593,11 +2705,9 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj,
   {
     return(dummy.cs)
   }else{
-    if(length(dummy.cs)==multfsusie.obj$L) #avoid returning empty results
-    {
+    if (length(dummy.cs) == multfsusie.obj$L && !allow_empty) {
       dummy.cs <- dummy.cs[-length(dummy.cs)]
     }
-
     return(dummy.cs)
   }
 

@@ -275,7 +275,7 @@ log_BF.multfsusie_prior <- function( G_prior,
                             Bhat     = effect_estimate$res_f[[k]]$Bhat,
                             Shat     = effect_estimate$res_f[[k]]$Shat,
                             indx_lst = list_indx_lst[[k]],
-                            lowc_wc  = low_trait$lowc_wc[[k]]
+                            lowc_wc  = low_trait$low_wc[[k]]
         )
       )
       f_logBF <- do.call(rbind, f_logBF)
@@ -307,7 +307,7 @@ log_BF.multfsusie_prior <- function( G_prior,
                             Bhat     = effect_estimate$res_f[[k]]$Bhat,
                             Shat     = effect_estimate$res_f[[k]]$Shat,
                             indx_lst = list_indx_lst[[k]],
-                            lowc_wc  = low_trait$lowc_wc[[k]],
+                            lowc_wc  = low_trait$low_wc[[k]],
                             df       = df$Y_f[k]
         )
       )
