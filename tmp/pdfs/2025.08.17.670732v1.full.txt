@@ -1,0 +1,4251 @@
+
+===== PDF PAGE 1 =====
+fSuSiE enables fine-mapping of QTLs from genome-scale molecular
+profiles
+William R. P . Denault1,†,*, Hao Sun 2,3,†, Peter Carbonetto 1, Anjing Liu 2, Philip L. De Jager 4,5,6, David
+Bennett7, The Alzheimer’s Disease Functional Genomics Consortium , Gao Wang 2,6,*, and Matthew
+Stephens1,8,*
+1Department of Human Genetics, University of Chicago, Chicago, IL, USA
+2Center for Statistical Genetics, The Gertrude H. Sergievsky Center, Columbia University, New Y ork, NY ,
+USA
+3Graduate School of Biomedical Sciences, Icahn School of Medicine at Mount Sinai, New Y ork, NY , USA
+4Center for Translational & Computational Neuroimmunology, Columbia University, New Y ork, NY , USA
+5Taub Institute for Research on Alzheimer’s Disease and the Aging Brain, Columbia University, New Y ork,
+NY , USA
+6Department of Neurology, Columbia University, New Y ork, NY , USA
+7Rush Alzheimer’s Disease Center and Department of Neurological Sciences, Rush University Medical
+Center, Chicago, IL, USA
+8Department of Statistics, University of Chicago, Chicago, IL, USA
+†Equally significant contributions
+*Correspondence: William R.P . Denault wdenault@uchicago.edu; Gao Wang, wang.gao@columbia.edu;
+Matthew Stephens, mstephens@uchicago.edu
+Abstract.
+Molecular quantitative trait locus (QTL) studies seek to identify the causal variants affecting molecular
+traits like DNA methylation and histone modifications. However, existing fine-mapping tools are not well
+suited to molecular traits, and so molecular QTL analyses typically proceed by considering each variant
+and each molecular measurement independently, ignoring the LD among variants and the spatial cor-
+relation in effects between nearby sites. This severely limits accuracy in identifying causal variants and
+quantifying their molecular trait effects. Here, we introduce fSuSiE (“functional Sum of Single Effects”), a
+fine-mapping method that addresses these challenges by explicitly modeling the spatial structure of ge-
+netic effects on molecular traits. fSuSiE integrates wavelet-based functional regression with the computa-
+tionally efficient “Sum of Single Effects” framework to simultaneously finemap causal variants and identify
+the molecular traits they affect. In simulations, fSuSiE identified causal variants and affected CpGs more
+accurately than methods that ignore spatial structure. In applications to DNA methylation and histone
+acetylation (H3K9ac) data from the ROSMAP study of the dorsolateral prefrontal cortex, fSuSiE achieved
+dramatically higher resolution than existing methods (e.g., identifying 6,355 single-variant methylation
+credible sets compared to only 328 from an existing approach). Applied to Alzheimer’s disease (AD) risk
+loci, fSuSiE identified potential causal variants colocalizing with AD GWAS signals for established genes,
+including CASS4 and CR1/CR2, suggesting specific potential regulatory mechanisms underlying these
+AD risk loci.
+Introduction
+Molecular quantitative trait locus (QTL) mapping [1] aims to identify genetic variants associated with
+a wide variety of molecular traits measured across the genome, including RNA expression [2, 3], protein
+expression [4, 5], DNA methylation [6–11], chromatin accessibility [12, 13], transcription-factor binding
+[14, 15] and histone modification [16, 17]. A critical next step, known as fine-mapping, is to pinpoint
+the individual causal variants, determine how many act independently, and estimate their effects on the
+(typically large number of) molecular traits [18–30]. While sophisticated fine-mapping methods exist
+to handle these challenges for single traits, they are ill-suited to molecular traits, which are inherently
+high-dimensional. Consequently, the most common approach in practice remains large-scale univariate
+testing, where each SNP is tested for association with a single molecular trait one at a time. This
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 2 =====
+2 W. Denault et al.
+approach identifies many trait associations with non-causal SNPs due to linkage disequilibrium (LD)
+with causal SNPs. It also fails to leverage the fact that causal SNPs may often affect multiple nearby
+molecular traits in a coordinated way (e.g., methylation QTLs frequently affect multiple CpGs within
+regions spanning several kb [7, 10, 31]) and this limits power to detect such effects. These limitations
+of existing analysis tools greatly hinder progress in understanding the way that genetic variants impact
+molecular traits. Furthermore, since most genetic effects on complex disease risk are likely mediated
+through effects on molecular traits, these limitations of existing analysis tools also hinder progress in
+understanding the genetics of complex disease.
+To address these limitations, we introduce functional SuSiE (fSuSiE), a new method for fine-
+mapping spatially structured molecular traits. fSuSiE models the effects of each putative causal
+SNP as a function that varies along the genome so as to capture the coordinated changes across
+multiple molecular traits, drawing on ideas from functional data analysis [32–46]. It overcomes the
+high computational burden of fine-mapping high-dimensional molecular traits by building on the “Sum
+of Single Effects” (SuSiE) model [23, 24], which decomposes the complex multi-SNP computations
+into a series of simpler single-SNP computations. The resulting method is computationally practical
+for fine-mapping molecular measurements made across moderately large genetic regions containing
+hundreds or thousands of trait measurements and thousands of genetic variants.
+We validate fSuSiE’s performance using simulated methylation QTL datasets, where it simultane-
+ously identifies causal variants and affected CpGs more accurately than methods ignoring spatial struc-
+ture. To demonstrate its potential for biological discovery, we applied fSuSiE genome-wide to DNA
+methylation (DNAm) and H3K9ac data [47] from the ROSMAP study [48], analyzing over 400,000
+CpG sites and 90,000 histone peaks. Applied to Alzheimer’s disease risk loci, fSuSiE pinpointed pu-
+tative causal variants that colocalized with AD GWAS signals for established genes including CASS4
+and CR1/CR2, suggesting biologically coherent regulatory mechanisms underlying genetic risk. While
+we showcase fSuSiE using DNAm and H3K9ac, it is widely applicable to any trait that varies along
+the genome, such as other histone marks, chromatin accessibility, expression level variation among
+exons and introns, and other traits measured by high-throughput sequencing technologies.
+Results
+Overview of fSuSiE
+fSuSiE takes as input an N ×T matrix, Y, containing molecular trait data on N samples at T genomic
+locations, and an N ×J matrix, X of genotypes for the same N samples at J genetic variants (typically
+SNPs). It then attempts to identify which SNPs affect which molecular traits by fitting a multivariate
+linear model:
+Y = XB + E (1)
+where B is a J × T matrix of effects whose element bjt represents the effect of SNP j on molecular
+trait t, and E is a matrix of residuals.
+Like most fine-mapping methods, fSuSiE assumes that only a few genetic variants affect the trait:
+that is, most rows of B are zero. It does this by modelling B using a “sum of single effects” (SuSiE)
+model [23, 24], B = B(1) + · · · + B(L), where each matrix B(l) is assumed to capture the effect of a
+single SNP, and so has exactly one non-zero row. (One or more B(l) may be entirely zero if the data
+support fewer than L effects.) fSuSiE uses a wavelet-based model [36, 42, 49, 50] for the effects of each
+causal SNP, that is, for the non-zero row in each B(l). Wavelets make the assumption that the effects
+on molecular traits are spatially correlated along the genome. In practice, this is achieved by applying
+a wavelet transform to (1), then applying sparse prior distributions to the wavelet-transformed effects
+to impose shrinkage. (The wavelet-transformed molecular trait measurements and effects are denoted,
+respectively, as D and F in Fig. 1.) This induces spatial correlation on the original effects, B. We
+implemented two different priors: a simple “independent shrinkage” (IS) prior that applies the same
+prior to all wavelet-transformed effects; and a more flexible “shrinkage-per-scale” (SPS) prior that uses
+a different prior for each wavelet scale. The more flexible SPS prior is expected to perform better, but
+at an increased computational cost.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 3 =====
+Fine-mapping molecular QTLs using fSuSiE 3
+b. genotypes
+SNPs
+individuals measurement measurement
+c. apply wavelet
+transform
+location
+d. wavelet coefficientsscale
+location
+scale
+individual 1
+individual 2
+a. molecular trait profiles
+individual 1
+individual 2
+genomic location
+genomic location
+e. fit fSuSiE
+model
+mixture componentscale × location
+scale
+SNP
+g. effect priors
+f. posterior estimates of
+SNP effects on WCs
+h. CSs and PIPs
+i. Effects of SNPs on the molecular trait
+g. compute
+posterior
+statistics
+SNP
+PIP
+CS 2CS 1
+SNP SNP
+effect on trait
+effect on trait
+Fig. 1. Overview of fine-mapping of molecular traits using fSuSiE.The inputs to fSuSiE are anN ×T matrix,
+Y, containing N samples of the molecular trait measured atT locations (a), and an N ×J genotype matrix, X (b).
+First, the wavelet transform is applied to Y (c), resulting in an N × T matrix of wavelet coefficients (WCs), D (d).
+The fSuSiE model is fit to X, D (e); this model fitting includes estimating the effects of the SNPs on the WCs—a
+J × T matrix, F (f)—and fitting the adaptive shrinkage priors for the effects F (g). Key fSuSiE outputs include:
+credible sets (h), each of which is intended to capture a distinct causal SNP; a posterior inclusion probability
+(PIP) for each SNP giving the probability that the SNP is causal for at least one trait (h); and posterior estimates
+of the SNP effects on Y, credible bands, and estimates of affected locations (i). These quantities are defined in
+the Online Methods.
+The key analysis questions answered by fSuSiE are: (i) which SNPs are causally affecting the
+observed molecular phenotypes? (ii) which molecular phenotypes are affected by each causal SNP? In
+terms of the model above, question (i) asks which rows of B (or rows of B(l)) are non-zero, whereas
+question (ii) relates to the values of the effect estimates in these non-zero rows. To answer (i), fSuSiE
+outputs a posterior inclusion probability (PIP) for each SNP and a “credible set” (CS) [20, 23] for
+each non-zero B(l). The PIP for SNP j is the probability that the jth row of B is non-zero. The
+CS for each B(l) is a subset of (highly correlated) SNPs that has high probability (e.g., >0.95) of
+containing the non-zero row. Within each CS, we refer to the SNP with the highest PIP as the
+“sentinel SNP”. To answer (ii), fSuSiE outputs, for each sentinel SNP, an estimate of its effect on
+each molecular trait, along with an assessment of its uncertainty: a pointwise credible band that is
+designed to have high probability (e.g., >0.95) of containing the effect at each location. If the credible
+band for a particular molecular phenotype excludes zero then we say that the CS containing that
+sentinel SNP is“significant” for that molecular phenotype.
+Fig. 1 summarizes the overall fSuSiE pipeline and Fig. 2 illustrates fSuSiE in a simple simulated
+example, and contrasts it with a standard QTL mapping approach (univariate SNP-trait association
+testing). This simple simulated example illustrates how fSuSiE directly addresses the key questions of
+which SNPs are impacting the molecular traits (D), and which traits are impacted by each SNP (E),
+whereas standard QTL mapping does not (B and C). Further details of the fSuSiE implementation, and
+guidance on applying fSuSiE to genome-scale molecular trait data, are given in the Online Methods
+and in the Supplementary Note.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 4 =====
+4 W. Denault et al.
+0
+2
+4
+6
+1
+3
+5
+7
+1 4 8 12 16 20 24 28 32
+CpG
+0
+2
+1
+4
+6
+3
+5
+7
+1 2 3 4 5 6 7 8 9 101112
+SNP
+−log10 p-value
+−log10 p-value
+true SNP-
+CpG effect
+no
+yes
+true SNP-
+CpG effect
+no
+yes
+0
+0.5
+1
+1 2 3 4 5 6 7 8 9 10 11 12
+SNP
+PIP 1
+2
+3
+D
+ECB
+A
+1 4 8 12 16 20 24 28 32
+−2
+0
+2
+change in methylation level
+−2
+0
+2
+CS 2
+CS 1
+CS 3
+−1
+0
+1
+2
+3
+CpG
+0
+5
+10
+15
+20
+1 4 8 12 16 20 24 28 32
+CpG
+methylation level
+genotype
+of SNP 3 CS
+0
+1
+2
+Fig. 2. Molecular QTL mapping vs. fine-mapping with fSuSiE: an illustration. In this simulated example,
+methylation levels, Y, of N = 100 samples are measured at 32 CpGs within a locus of interest (A). The methy-
+lation levels at 16 CpGs are affected by the genotypes at 3 of the 12 candidate SNPs. The effect of one of the
+causal SNPs is depicted in A. (The three curves show the mean methylation levels at the three SNP genotypes.)
+To map methylation QTLs, typically one performs an association test for each SNP-CpG pair (e.g., [10, 47, 51]).
+Here we have 32× 12 = 384 association tests. (Thep-values are from two-sidedt-tests, and were not corrected
+for multiple testing.) Then the associations can be examined by SNP (B) or by CpG (C). The 3 causal SNPs
+and corresponding 8 affected CpGs are indicated by△ or ▲. The association tests find signals corresponding to
+2 of the 3 causal SNPs (and perhaps all three with a more careful multiple testing correction; here we just used
+the Bonferroni criterion). In C, the affected CpGs appear to cluster into two continuous regions, but it is less
+clear which CpGs in the clusters are affected. In an fSuSiE fine-mapping analysis of these data (D, E), fSuSiE
+identifies 3 95% credible sets (CSs)—one for each causal SNP—and expresses uncertainty in which SNP is
+causal by the posterior inclusion probabilities, or “PIPs” (D). (Note that SNPs 3 and 4 are strongly correlated,
+so fSuSiE was unable to determine which high certainty that SNP 3 was the causal SNP .) fSuSiE also tells
+us which CpGs are affected by which causal SNPs (E): the 95% credible bands (depicted by the error bars)
+quantify uncertainty in the effects of the “sentinel SNPs” (defined as the SNP with the highest PIP in each CS).
+Locations that do not include zero predict the affected CpGs (•) for each CS. Code implementing this example
+is available at https://stephenslab.github.io/fsusieR/articles/methyl_demo.html.
+Performance assessment in simulated methylation data sets
+To validate fSuSiE we used simulated molecular QTL data sets where we could assess accuracy of the
+estimates by comparing to the true values. We assessed fSuSiE’s ability to perform the two key tasks
+highlighted above: (i) correctly identify the causal SNPs that affect the molecular trait at one or more
+locations; and (ii) correctly identify the molecular locations affected by the causal SNPs.
+We simulated data sets containing both SNP genotypes and CpG methylation levels, in which one
+or more SNPs affected the methylation levels at one or more CpGs. We simulated genotypes with
+realistic patterns of linkage disequilibrium (LD) using sim1000G [52], with genotype data from the
+1000 Genomes Phase 3 whole-genome sequencing [53] as the input source. The simulations varied
+in size of genomic region (median: ∼1 Mb), number of SNPs (1,500–4,000 SNPs), and LD patterns.
+Consistent with real patterns of LD, simulated SNPs were often very strongly correlated with each
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 5 =====
+Fine-mapping molecular QTLs using fSuSiE 5
+other, and sometimes perfectly correlated, and therefore one should not expect 100% accuracy in
+identifying the causal SNPs, even in the simulation settings that were most favorable to fSuSiE.
+We simulated realistic whole-genome bisulfite sequencing (WGBS) methylation levels using WGB-
+SSuite [54], with different types of spatial structure in the methylation changes that might be motivated
+by different epigenetic mechanisms: constant changes in methylation across contiguous windows, with
+abrupt changes between windows (“WGBS block”); and changes that varied smoothly within the
+locus (“WGBS decay”). To benchmark fSuSiE in the “ideal” setting in which the data conformed
+to fSuSiE’s modeling assumptions, we performed a third set of simulations in which the methylation
+levels were simulated from the wavelet model assumed by fSuSiE (“wavelet simulations”). We varied
+the number of CpGs ( T ), the number of SNPs ( J), the number of causal SNPs, and the total amount
+of variation explained by the SNPs. Detailed descriptions of the simulation procedures are given in
+the Online Methods.
+As far as we are aware, fSuSiE is the first available tool to perform statistical fine mapping of
+functional traits. Among existing approaches, perhaps the most obvious fine-mapping competitors
+are approaches that first reduce the high-dimensional trait to a single dimension, e.g. using the top
+principal component (PC), and then apply a univariate fine-mapping method (e.g. [55, 56]). Here we
+implemented a version of this approach, “SuSiE-topPC”, by running SuSiE on the top PC computed
+from the column-centered Y. This type of approach has important limitations compared with fSuSiE.
+First, in real applications the top PC may primarily capture non-genetic effects such as experimental
+batch effects or population structure [57, 58]. Second, it only identifies causal SNPs that impact some
+aspect of the high-dimensional trait, without identifying which specific molecular locations (CpGs) are
+affected by these SNPs. Nonetheless, this existing approach may work well for detecting causal SNPs
+that have the biggest effect on a locus, and serves as a helpful benchmark against which to compare
+the ability of fSuSiE to identify causal SNPs.
+Both fSuSiE and SuSiE-topPC produce posterior inclusion probabilities (PIPs) that assess the
+probability of each SNP being a causal SNP, and 95% Credible Sets (CSs) that are designed to contain
+(with probability > 0.95) at least one causal SNP. In fine-mapping applications, due to high LD, it
+may often be impossible to confidently identify the causal SNP, but it may nonetheless be possible
+to identify a small number of SNPs, in high LD with one another (which we call high “purity”), that
+likely contains a causal SNP. That is, while no single SNP may have a PIP near 1, there may be a
+small, high purity, 95% CS. For this reason CSs are perhaps the most relevant fine-mapping output;
+however comparing PIPs is also informative, and so we assessed both PIPs and CSs here.
+Comparing PIPs (Fig. 3A), both variants of fSuSiE (IS prior and SPS prior) achieved higher
+power than SuSiE-topPC at the same false discovery rate. All methods produced well calibrated
+PIPs (Supplementary Fig. 2). Comparing CSs (Fig. 3A, Supplementary Fig. 1), fSuSiE consistently
+achieved better power, with smaller and higher purity CSs, while also maintaining coverage slightly
+closer to the target value (95%). As expected, the performance of fSuSiE also tended to improve
+as the density of the molecular trait measurements increased (i.e., more CpGs), and as the SNPs
+produced larger changes in methylation (Supplementary Figures 3–8). Interestingly, the performance
+gains over SuSiE-topPC were greatest in the WGBS simulations that did not conform to fSuSiE’s
+modeling assumptions.
+One particularly striking result is the increase in the number of single-variant CSs returned by
+fSuSiE vs. SuSiE-topPC (histograms in Fig. 3B). In most cases (5,502 out of about 5,730), these
+single-variant CSs contained the causal SNP, and in many cases single-variant CSs occurred even
+when there were other SNPs in very high LD with the causal SNP (including in cases where the other
+SNP differed from the causal SNP at only a single individual). To confirm this striking result, we
+performed additional simulations to specifically confirm that, given sufficiently strong signals, fSuSiE
+can indeed accurately produce a single-variant CS even in the presence of very strong LD (see Online
+Methods, “Additional simulations to assess single-variant CSs” and Supplementary Fig. 15). These
+results highlight an important general benefit of joint analysis of multiple traits: when a SNP affects
+multiple traits, joint analysis not only increases power to detect effects, but also substantially improves
+the fine-mapping resolution by reducing the typical sizes of CSs (see also [59]).
+As noted above, a limitation of SuSiE-topPC (and related methods) is that it does not identify
+which locations (CpGs) are affected by the causal SNPs identified. One way to address this would be to
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 6 =====
+6 W. Denault et al.
+B Detection of causal SNPs (CSs)
+power coverage
+wavelet WGBSblock WGBSdecay wavelet WGBSblock WGBSdecay
+0.4
+0.5
+0.6
+0.7
+0.8
+0.92
+0.94
+0.96
+0.98
+0
+0.25
+0.50
+0.75
+1
+0
+0.25
+0.50
+0.75
+1
+0
+0.25
+0.50
+0.75
+1
+0 0.01 0.02 0.03 0.04 0.05
+FDR
+0 0.01 0.02 0.03 0.04 0.05
+FDR
+0 0.01 0.02 0.03 0.04 0.05
+FDR
+power
+power
+power
+wavelet simulations WGBS block simulations WGBS decay simulations
+A Detection of causal SNPs (PIPs)
+SuSiE-topPC
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SuSiE-topPC
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SuSiE-topPC
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SNP-CpG tests
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SNP-CpG tests
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+WGBS block simulations WGBS decay simulations
+C Recovery of affected CpGs
+0
+0.25
+0.50
+0.75
+1
+0
+0.25
+0.50
+0.75
+1
+power
+power
+FDR FDR
+0 0.1 0.2 0.3 0.4 0.5 0 0.1 0.2 0.3 0.4 0.5
+D Running times
+running time (s)
+CS size CS sizeCS size
+0.1 1 10 100 1,000
+1
+2
+3
+4
+5number of causal SNPs
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SuSiE-topPC
+IS prior        SPS prior         SuSiE-topPC
+1 2
+3−56−10>10 >10 >101 2
+3−56−10
+1 2
+3−56−10
+0
+500
+1,000
+1,500
+2,000number of CSs
+wavelet WGBS block WGBS decay
+Fig. 3. Performance assessment in simulated data sets. Performance was summarized in two tasks:
+identification of the causal SNPs (A, B) and identification of the affected molecular trait locations (C). In A–C,
+we considered three simulation scenarios. In each of the three simulation scenarios, methylation data sets
+were simulated with N = 100 samples, T = 128 locations (CpGs), J = 1,500–4,000 SNPs, among which 1–20
+were causal, and 10% total variance explained. (In C, there was always 1 causal SNP , so J = 1.) Panels A,
+C show power vs. FDR (i.e., precision-recall with a flipped x-axis) in identifying causal SNPs (A) and affected
+CpGs (C). In each simulation setting, FDR and power were calculated by varying a measure threshold from 0 to
+1 (n = 300 simulations). In A, the measure was PIP for all methods; in C, it wasαmax for fSuSiE, and the p-value
+for the SNP-CpG tests. (See Online Methods for a definition of αmax.) Power and FDR were calculated as
+FDR := FP
+TP+FP and power := TP
+TP+FN, where FP, TP, FN, FN denote, respectively, the number of false positives,
+true positives, false negatives and true negatives. Note that the yellow and red curves (fSuSiE, IS and SPS
+priors) closely overlap in some plots and therefore are not always visible. Panel B evaluates the 95% CSs
+returned by fSuSiE and SuSiE-topPC: power, the proportion of the true causal SNPs included in at least one
+CS; coverage, the proportion of CSs containing a true causal SNP; and CS size, the number of SNPs in a CS.
+The dotted horizontal line shows the target coverage (95%). Error bars capture the range of values in 95%
+of the simulations. Panel D summarizes the running times in all simulated data sets containing exactly 1,000
+SNPs (n = 300). The box plot whiskers depict 1.5× the interquartile range, the box bounds represent the upper
+and lower quartiles (25th and 75th percentiles), the center line represents the median (50th percentile), and
+points represent outliers. See Supplementary Figures 1–9 for additional results.
+follow SuSiE-topPC with simple univariate SNP-CpG tests to determine which CpGs are significantly
+associated with the causal SNPs identified. However, a benefit of functional regression methods, like
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 7 =====
+Fine-mapping molecular QTLs using fSuSiE 7
+fSuSiE, is that they exploit spatial correlations in effects to increase power to detect such associations.
+To demonstrate this, we performed simulations with a single (causal) SNP affecting a subset of CpGs,
+and applied both fSuSiE and standard SNP-CpG tests to detect the associated CpGs. The results
+(Fig. 3C, Supplementary Fig. 9) showed a consistent gain in power for fSuSiE, with the gains being
+greatest in the more challenging WGBS decay simulations. (We did not use the wavelet simulations
+here because in these simulations the causal SNPs produced changes, mostly small, to all CpGs.) This
+illustrates the ability of fSuSiE to combine borderline association signals across spatially-proximal
+affected CpGs to more accurately identify these signals.
+Overall, the two variants of fSuSiE—one with the simpler IS prior, the other with a more flexible
+SPS prior—performed similarly, with a slight power advantage to the SPS prior. The tradeoff is that
+the SPS prior also increases running time (Fig. 3D, Supplementary Fig. 10). Thus, the choice of
+prior depends on weighing the benefits of additional discoveries against the additional computation.
+While both variants of fSuSiE take much longer to run than SuSiE-topPC, they remain quite practical
+for data sets of the scale we expect to analyze in molecular QTL studies (thousands of SNPs and
+thousands of molecular trait measurements).
+Genome-wide fine-mapping of DNA methylation and histone acetylation QTL
+To demonstrate the potential of fSuSiE to generate insights into genetic regulation of molecular
+trait profiles, and to aid in interpretation of disease-associated genetic variants, we applied fSuSiE
+to DNA methylation (DNAm) and histone acetylation (H3K9ac) data from the Religious Orders
+Study/Memory and Aging Project (ROSMAP) with harmonized genotypes from the Alzheimer’s Dis-
+ease Sequencing Project [48, 60, 61]. Array-based DNA methylation profiles of n = 636 donors and
+H3K9ac ChIP-seq profiles of n = 592 donors were obtained from the dorsolateral prefrontal cortex
+(DLPFC), a brain tissue affected by AD. The molecular trait data for fine-mapping with fSuSiE were
+the n = 636 methylation proportions (“β values”) at 413,433 CpGs and the n = 592 read counts at
+92,401 H3K9ac peaks. (H3K9ac peak calling and other data processing steps are detailed in the Online
+Methods.) We used fSuSiE to fine-map SNPs affecting methylation (mSNPs) and H3K9ac (haSNPs),
+as described below. We also performed SuSiE fine-mapping of gene expression and protein abundance
+(from the same DLPFC samples) to obtain a more complete picture of the genetic regulation in this
+brain region.
+To apply fSuSiE genome-wide, we partitioned the genome into large genomic regions, and then (af-
+ter filtering out regions containing too few CpGs or peaks) applied fSuSiE to each region separately,
+using the SNP genotype data and molecular trait data at all SNPs and locations within the region. To
+minimize regulatory interactions between regions, we defined the regions based on topologically asso-
+ciating domains (TAD) [62]. For brevity we refer to these regions as TADs, although they also contain
+boundaries between TADs; see Online Methods. In total, we decomposed the genome (autosomal
+chromosomes only) into 1,329 TADs ranging in size from 2 to 35 Mb (median: 4 Mb) each containing
+18–10,035 CpGs (median: 450 CpGs) and 2–827 H3K9ac peaks (median: 116 peaks). This genome-
+wide approach to fine-mapping implicitly assumes that each region contains at least one molecular
+QTL, which we empirically found to be justified for the molecular traits analyzed (see results below).
+To illustrate the inferences produced by fSuSiE, Fig. 4 presents a detailed example of H3K9ac
+fine-mapping in a 3.7-Mb TAD on chromosome 1. (See also Supplementary Fig. 11 for a detailed
+methylation example.) We used fSuSiE to analyze the genotypes at 16,642 SNPs and H3K9ac mea-
+surements at 269 peaks within this TAD, for n = 592 individuals. fSuSiE produced 4 CSs (Fig. 4A)
+corresponding to 4 independent signals of genetic effects on histone acetylation levels at one or more
+peaks (Fig. 4B). One SNP (rs12757179 in CS 1) was identified as a haSNP with high confidence (PIP
+= 0.99). For the other haSNPs, fSuSiE was less certain about which SNP was causal; this uncer-
+tainty is represented by CSs containing several SNPs each. Some of the haSNPs produce coordinated
+changes in histone acetylation across several sites, where a single variant simultaneously modulates
+histone acetylation levels at multiple nearby peaks in a spatially-correlated pattern; for example, the
+CS1 haSNP (rs12757179) affects histone acetylation (in both directions) at 17 H3K9ac peaks (that is,
+their 95% credible bands did not include zero). Interestingly, all inferred changes occur at peaks near
+an haSNP. (The CS3 haSNP produces the longest-range changes, but they remain within 200 kb of
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 8 =====
+8 W. Denault et al.
+CS 1
+CS 2
+CS 3
+CS 4
+0
+0.5
+1
+haSNP PIP
+2
+1
+4
+CS size
+3
+3
+1
+34
+15
+sentinel SNP
+rs9438393
+rs12757179
+rs35184657
+rs11392366
+CS 2CS 1
+CS 4
+CS 3
+−12
+−8
+−4
+0
+2
+205.5 206 206.5 207 207.5 208 208.5
+205.5 206 206.5 207 207.5 208 208.5
+base-pair position on chromosome 1 (Mb)
+effect on H3K9ac
+A
+B
+Fig. 4. Example fSuSiE fine-mapping of H3K9ac. Panel A shows the posterior inclusion probabilities (PIPs)
+for all SNPs analyzed in the TAD (chromosome 1, 205.1–208.8 Mb, 16,642 SNPs, 269 H3K9ac peaks). The
+PIP is an estimate of the probability that the SNP affects H3K9ac levels at one or more peaks within the TAD.
+The colors indicate the different haSNPs, and the uncertainty in which SNP is the haSNP is represented by
+the 95% credible set (CS): each SNP in the CS is a candidate haSNP , with probability of being causal given
+by the PIP .CS size is the number of SNPs in the CS; sentinel SNP is the SNP with the highest PIP in the
+CS. Panel B shows the effect of each haSNP on H3K9ac levels at each of the peaks analyzed in the TAD.
+(When the CS contains more than one SNP , the effect of the sentinel SNP is shown.) Since the effects were
+estimated at different scales in this analysis, to show the effect estimates in a single plot, we divided the effects
+by the credible band sizes. Base-pair positions are based on Genome Reference Consortium human genome
+assembly 38 (hg38). The results within the blue-shaded region are examined in more detail in Fig. 6.
+the SNP.) We also observed this tendency genome-wide in both methylation and H3K9ac (Fig. 5B).
+Since the fSuSiE model does not take location of SNPs into account, the fact that it identified mostly
+short-range effects provides some independent support that these effects are likely real rather than
+false positives.
+Fig. 5 summarizes the genome-wide results from applying fSuSiE to all the methylation and H3K9ac
+data. Consistent with the increases in power shown in the simulations, fSuSiE identified many more
+putative causal SNPs than SuSiE-topPC, and at a much higher resolution; for example, fSuSiE identi-
+fied 1,372 single-variant CSs for H3K9ac and 6,355 single-variant CSs for DNA methylation, compared
+to just 56 and 328, respectively, from SuSiE-topPC (Fig. 5A; see also Supplementary Fig. 12A, B).
+Among the SNPs in single-variant CSs, 55 were identified as affecting both histone acetylation and
+methylation. Furthermore, 50 of the mSNPs and 27 of the haSNPs affect transcript levels of one or
+more genes. These observations suggest potential coordinated cis-regulatory effects (Supplementary
+Fig. 13). fSuSiE also produced a much higher proportion of single-variant CSs compared to SuSiE
+fine-mapping analysis of RNA and protein expression (Fig. 5A), again highlighting the benefits of
+joint analysis of multiple traits [59]. (Although the increase in single-variant CSs outputted by fSuSiE
+in the real data is consistent with results in the simulations, and consistent with the expectation
+that joint analysis will improve fine-mapping resolution, it is also prudent to point out a limitation of
+fSuSiE: fSuSiE assumes that, once genetic effects are accounted for, the molecular trait data at dif-
+ferent locations are independent. Deviations from this assumption in real data could plausibly cause
+fSuSiE to be overconfident in its inferences, and potentially produce CSs that are too small.)
+The many more additional haSNPs and mSNPs discovered by fSuSiE tend to be located close to
+the inferred affected peaks/CpGs, and remain concentrated near gene TSSs (Fig. 5B). This provides
+evidence that the additional effects detected are mostly real signals rather than false positives. More
+generally, enrichments of haSNPs and mSNPs in predefined functional annotations [64, 65] were largely
+consistent between fSuSiE and SuSiE-topPC, suggesting that the additional discoveries of fSuSiE
+maintain similar functional characteristics (Supplementary Fig. 14). One exception was the stronger
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 9 =====
+Fine-mapping molecular QTLs using fSuSiE 9
+1 2
+3–56–1011–20>20 1 2
+3–56–1011–20>20
+number of CSs (eSNPs)
+number of CSs (pSNPs)
+CS size CS size
+1 2
+3–56–1011–20>20
+CS size
+1 2
+3–56–1011–20>20
+CS size
+protein expressionH3K9ac DNA methylation RNA expression
+0
+1,000
+2,000
+3,000
+4,000
+0
+250
+500
+750
+1,000
+3401,420
+0
+250
+500
+750
+1,000
+1,250num. CSs (haSNPs)
+fSuSiE
+SuSiE-topPC
+SuSiE SuSiE
+0
+1,000
+2,000
+3,000
+4,000
+5,000
+6,000num. CSs (mSNPs)
+fSuSiE
+SuSiE-topPC
+A Fine-mapping discovery and resolution
+56
+1,372
+328
+6,355
+0
+2.5
+5.0
+7.5
+1 2 3 4 5 6 7 8 9 10
+affected H3K9ac peaks
+number of SNPs
+SNP-peak assoc. tests
+0
+100
+200
+300
+400
+0 10 20 30 40
+affected H3K9ac peaks
+number of CSs
+fSuSiE
+0
+3
+6
+9
+0 5 10 15 20 25
+affected CpGs
+number of SNPs
+SNP-CpG assoc. tests
+0
+500
+1,000
+1,500
+0 50 100 150
+affected CpGs
+number of CSs
+fSuSiE
+C Recovery of affected molecular locations
+×105 ×105
+0
+100
+200
+300
+400
+500
+−2 −1 0 1 2
+H3K9ac peak – haSNP (Mb)
+number of haSNPs
+H3K9ac
+0
+0.1
+0.2
+0.3
+0.4
+-400 -200 0 200 400
+distance to TSS (kb) distance to TSS (kb)
+proportion of SNPs
+DNA methylation
+0
+0.05
+0.10
+0.15
+0.20
+0.25
+-200 -100 0 100 200
+proportion of SNPs0
+1,000
+2,000
+3,000
+−100 −50 0 50 100
+CpG − mSNP (kb)
+number of mSNPs
+fSuSiE haSNPs fSuSiE mSNPs
+B Functional enrichment of causal SNPs and affected molecular locations
+SNP-CpG
+tests
+fSuSiE
+SuSiE-topPC
+SNP-CpG
+tests
+fSuSiE
+SuSiE-topPC
+Fig. 5. Fine-mapping of mSNPs (n = 636) and haSNPs (n = 592) in DLPFC. Panel A compares: the number
+of CSs returned by SuSiE-topPC, fSuSiE (for H3K9ac and DNA methylation) and SuSiE (for RNA and protein
+expression, also in DLPFC; n = 777 and 416, respectively); and the fine-mapping resolution (“CS size” is
+the number of SNPs included in the 95% CS). In Panel B, functional enrichment of the mSNPs and haSNPs is
+assessed by distance between fine-mapped SNP and the nearest affected molecular location (for single-variant
+CSs only), and by distance to the nearest gene transcription start site (TSS). Panel C compares the number
+of affected molecular locations per SNP from fSuSiE and the association tests. Notes: in C, a small fraction
+of SNPs and CSs (<2%) with a larger number of affected locations were not included in the histograms; in
+the distance-to-TSS plots, the SuSiE-topPC and fSuSiE SNP counts were weighted by the PIPs; the TSSs are
+obtained from the annotated gene transcripts in the GENCODE combined Ensembl/HAVANA database [63]; all
+the CS statistics do not double-count CSs that overlap in different (overlapping) TADs. See Supplementary Fig.
+12 for additional supporting results.
+enrichments of SuSiE-topPC mSNPs in regions involved more directly in gene transcription (TSS, 5’
+UTR, promoters and coding regions). This may be because the strongest methylation signals (the
+top methylation PC) tend to occur near regions of direct transcriptional regulation. In comparison,
+fSuSiE, by looking beyond the strongest methylation signals, provides a more balanced picture of
+mSNPs involved in both direct and indirect gene regulation.
+As a fine-mapping method, fSuSiE provides a much more parsimonious explanation for observed
+associations than does conventional (univariate or “SNP-by-SNP”) QTL association testing (Fig. 5C).
+Conventional QTL testing results in large numbers of SNPs, many in high LD with one other, being
+associated with a (usually) small number of peaks/CpGs; in contrast, fSuSiE identifies a much smaller
+number of potentially-causal SNPs associated with (usually) a larger number of peaks/CpGs. In other
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 10 =====
+10 W. Denault et al.
+words, fSuSiE finds many more large coordinated changes in methylation and histone acetylation;
+some mSNPs are estimated to affect methylation levels at more than 100 CpGs). The vast majority of
+mSNPs and haSNPs identified by fSuSiE are associated with methylation and histone acetylation at
+locations very close to the SNP; for 96% mSNPs and and 54% haSNPs, the nearest affected location
+is within 100 kb (Fig. 5B).
+fSuSiE reveals epigenetic regulatory mechanisms colocalizing with Alzheimer’s disease risk loci
+Alzheimer’s disease (AD) is a complex neurodegenerative disorder with substantial genetic heritability.
+Recent large-scale genome-wide association studies have identified hundreds of AD risk loci [66, 67], but
+the molecular mechanisms underlying most genetic associations remain unclear. Since GWAS variants
+typically affect gene regulation rather than protein coding sequences, integration of molecular QTL
+data with GWAS through colocalization analysis offers a powerful approach to identify regulatory
+mechanisms and target genes underlying disease associations. To demonstrate this, we performed
+colocalization analysis using COLOC (version 5) [68] between our fSuSiE fine-mapping results for
+methylation and histone acetylation and AD GWAS summary statistics from two large-scale meta-
+analysis involving 788,989 (111,326 cases and 677,663 controls) [66] and 455,258 (71,880 cases, 383,378
+controls) [67].
+This genome-wide colocalization analysis identified 14 methylation and 4 histone acetylation loci
+colocalizing with AD risk variants in 95% colocalization credible sets. These colocalized variants in-
+volved 231 genes (25 from haQTL and 226 from mQTL) located within 500 kb of the top colocalized
+variants, suggesting potential regulatory targets for AD-associated epigenetic changes. In an attempt
+to pinpoint the specific genes regulated by these epigenetic changes, we integrated our results with
+eQTL data from the same ROSMAP DLPFC samples. This multi-modal integration provides sub-
+stantial advantages over eQTL analysis alone: while eQTL colocalization with GWAS can identify
+genes affected by disease variants, the association itself does not provide mechanistic insights into how
+the disease variants may operate through regulation. To illustrate how integrating epigenomic QTL
+data can help address this, we show results for two well-studied AD risk loci, near genes CASS4 and
+CR1/CR2), where the fSuSiE fine-mapping results provide mechanistic insights into disease-associated
+genetic variants.
+CASS4 is a potential AD risk gene supported by association analyses [66, 69, 70] and colocalization
+of AD SNPs with CASS4 expression SNPs [70, 71]. Previous colocalization and fine-mapping analyses
+have suggested rs6014724 and rs17462136 in the 5’ UTR of CASS4 as putative causal variants [71].
+The fSuSiE methylation fine-mapping suggests another potential causal variant: rs1884913 (PIP >
+0.99, MAF = 23.2%), an mSNP that lies within the CS for AD, and affects methylation levels at 6
+CpGs near the CASS4 TSS (Fig. 6A, Supplementary Fig. 11). Notably, rs1884913 shows moderate
+correlation with the previously reported variant rs6014724 (r = 0.51, r2 = 0.26) but high correlation
+with rs17462136 ( r = 0.94, r2 = 0.88). This finding, supported by convergent evidence from multi-
+ple molecular QTL analyses, suggests that rs1884913 as a potential causal variant may contribute to
+understanding regulatory mechanisms underlying disease-associated genetic variants, and illustrates
+how multivariate functional analysis of molecular phenotypes may achieve higher fine-mapping reso-
+lution than univariate analysis of complex disease phenotypes by distinguishing between functionally
+distinct variants (rs17462136 and rs1884913 are separated by 11.3 kb) that remain indistinguishable
+using GWAS data alone due to high linkage disequilibrium.
+The CR1/CR2 AD risk locus [70, 72, 73] has also been intensely investigated [74–77], including
+in a recent proteome-wide association study that suggested both CR1 and CR2 as causal proteins
+[78]. However, none of these studies have pinpointed the causal variant. Our SuSiE and fSuSiE
+analyses suggest that the top association for AD, rs679515 ( p = 5.6 × 10−33, MAF = 20.0%) is a solid
+candidate causal variant: first, rs679515 is the only SNP that overlaps CSs for both CR1 expression
+and CR2 expression; second, this SNP is one of the top SNPs in a CS for H3K9ac, with PIP =
+0.14 (Fig. 6B, Supplementary Fig. 11). Furthermore, fSuSiE results suggest rs679515 has moderately
+long-range effects on histone acetylation, including at H3K9ac peaks near the TSSs of both CR1 and
+CR2 (Fig. 6B). Therefore, the fSuSiE H3K9ac results not only nominates a potential causal variant
+(rs679515), but also implicate both CR1 and CR2 via histone modification associations. This finding
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 11 =====
+Fine-mapping molecular QTLs using fSuSiE 11
+rs1884913
+rs6014724 
+(p = 8.9×10-9)
+0
+5
+10
+A B
+13 SNPs
+95% CS
+11 SNPs
+95% CS
+rs1884913
+rs6014730
+0
+2
+4
+6
+−0.004
+−0.002
+0.000
+6 CpGs
+effect of C allele on methylation (rs1884913)
+FAM210B
+AURKA
+CSTF1
+CASS4 RTF2
+GCNT7
+FAM209A FAM209B
+56.35 56.40 56.45 56.50 56.55
+base-pair position on chromosome 20 (Mb)
+PIP
+rs8118732
+(3 SNPs)
+chr20:56,393,188
+(2 SNPs)
+rs1884913
+0
+0.5
+1
+log10 p-value log10 p-value
+mSNPs in DLPFC
+CASS4 eQTL in DLPFC
+Alzheimer’s disease
+5
+10
+15
+20
+25read count
+rs679515
+genotype
+CC
+CT
+TT
+−0.10
+−0.05
+0.00
+effect of C allele on H3K9ac (rs679515)
+CR2
+CR1
+CR1L
+207.4 207.5 207.6 207.6 207.7 207.7 207.8
+base-pair position on chromosome 1 (Mb)
+rs679515
+rs11392366
+rs869302047
+0.0
+0.1
+0.2
+0.3
+0.4PIP
+rs12037841
+rs679515 (p = 5.6×10-33)
+rs10863417
+rs10863418 rs4844610
+0
+10
+20
+30
+40
+Alzheimer’s disease
+log10p-value
+5 SNPs
+95% CS
+rs679515
+0
+20
+40
+60
+CR1 eQTL in DLPFC
+log10p-valuelog10p-value
+8 SNPs
+12 SNPs
+95% CS
+rs679515
+0
+5
+10
+CR2 eQTL in DLPFC
+haSNPs in DLPFC
+20 SNPs
+95% CS
+15 SNPs
+95% CS
+Fig. 6. Results of methylation fine-mapping at the CASS4 AD locus (A) and H3K9ac fine-mapping at the
+CR1/CR2 AD locus (B). AD (top) plots: association p-values (two-sided t-test, n = 487,511) from Alzheimer’s
+disease (AD) GWAS [66, 67], and 95% CS from SuSiE fine-mapping using the AD GWAS summary statistics
+[23, 24]. eQTL plots: association p-values (two-sided t-test, n = 777) from eQTL analysis and 95% CS from
+SuSiE fine-mapping. The top SNPs for AD and gene expression are labeled. PIP plots: PIPs obtained from
+fSuSiE fine-mapping of methylation or histone acetylation . Effect plots: SNP effects on methylation or histone
+acetylation estimated by fSuSiE. CpGs or peaks unaffected by the SNP are drawn on the y = 0 line. Error bars
+depict 95% credible bands (n = 636). For each CS, the sentinel SNP (the SNP with the highest PIP in the CS)
+is labeled. If the CS contains more than 1 SNP , the total number of SNPs in the 95% CS is given. For the gene
+trascript annotations, the arrow indicates the direction of transcription (source: GENCODE Ensembl/HAVANA
+[63]). Read count plot (B only): the “raw” ChIP-seq peaks (average read counts) for each genotype at SNP
+rs679515. Average read counts less than 2 are not shown.
+is further supported by multi-trait colocalization analysis through other FunGen-xQTL efforts, where
+rs679515 showed colocalization with CR2 in DLPFC bulk eQTLs, YOD1 in oligodendrocytes, and CR1
+across multiple cortical contexts, demonstrating the complex regulatory architecture at this locus [79].
+Discussion
+We have introduced fSuSiE, a method that extends SuSiE to high-dimensional, spatially structured
+traits by borrowing ideas from functional regression. In simulated and real data sets, we demonstrated
+the benefits of fSuSiE for fine-mapping molecular traits; most notably, fSuSiE is the only method
+that can simultaneously estimate the genetic variants affecting the molecular trait and the specific
+changes to the molecular trait that are produced by the genetic variants. Although fSuSiE is more
+computationally demanding than conventional QTL association analysis, or than fine-mapping of a
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 12 =====
+12 W. Denault et al.
+univariate trait (e.g., SuSiE-topPC), as we have shown here it remains practical for data sets containing
+hundreds of samples, thousands of molecular locations, and thousands of SNPs.
+The molecular data sets we considered here consist of measurements made at predefined genomic
+locations (CpGs or peaks called by MACS). However, fSuSiE does not require predefined molecular
+features; for sequencing data (e.g., RNA-seq, ChIP-seq, WGBS), fSuSiE could instead be applied
+directly to the base-pair-level sequencing data (or data combined into small bins), in which case
+the relevant molecular features would be inferred from the fSuSiE effect estimates and credible bands.
+Applying fSuSiE to high-resolution sequencing data has the potential to quantify gene regulatory effects
+in greater detail and discover additional gene regulatory effects in regions outside the called peaks,
+opening new avenues for analyzing and integrating multiome data. In fact, beyond the ROSMAP
+methylation and histone modification analyses presented here, we have deployed fSuSiE across diverse
+molecular contexts within the FunGen-xQTL consortium, including integration with methylation data
+from multiple cohorts and analysis of single-nucleus ATAC-seq data from six major brain cell types
+for chromatin accessibility using recently published data on ROSMAP individuals [80].
+fSuSiE is also a very flexible model framework, and includes additional modeling features we did
+not highlight in this paper. For example, one could incorporate functional annotations to guide
+discovery of the causal variants and affected molecular features. Second, fSuSiE is not limited to
+using wavelet-based functional regression; our implementation also includes hidden Markov model
+(HMM) alternatives that, while computationally slower, can sometimes offer more refined results
+for certain data types, and other functional regression approaches might be better suited to certain
+types of molecular data. A key advantage of embedding our approach within the SuSiE framework
+is the seamless integration with numerous available downstream analytical methods based on SuSiE.
+This design choice makes fSuSiE readily available for data integration pipelines, as demonstrated
+through our colocalization analysis using SuSiE-based COLOC methods [68] in Alzheimer’s disease
+GWAS applications. Additionally, fSuSiE-estimated effect sizes can be directly incorporated into
+transcriptome-wide association studies (TWAS) to combine multiple genetic regulatory effects across
+molecular profile regions with GWAS signals.
+Our work has several limitations representing directions for future research. First, the current
+methods do not handle missing data: the molecular trait needs to be measured at every location in
+every sample. When some measurements are missing, they could potentially be imputed provided that
+the imputation is accurate and/or there are not too many missing measurements. Second, the current
+framework requires analyzing one molecular context at a time. Future work includes developing joint
+modeling approaches for multiple molecular contexts to fine-map shared effects without requiring sepa-
+rate colocalization analyses. This would be particularly valuable for multiome data where both single-
+nucleus RNA-seq and single-nucleus ATAC-seq data are available, enabling simultaneous analysis of
+gene expression and chromatin accessibility as spatially structured molecular profiles. Third, while
+fSuSiE can handle both normalized and count-based data, our applications focused on normalized
+molecular phenotypes (pre-processed methylation proportions and normalized histone modification
+peak intensities from the FunGen-xQTL project). Although our method and software implementation
+includes count-based models specifically designed for high-throughput sequencing data that could be
+beneficial for other applications, we did not apply these alternatives in the current work.
+The fSuSiE methods are implemented in an R package, fsusieR, available on GitHub and distributed
+via the MIT Open Source license. The R package includes detailed documentation, examples, and
+guidance on applying the methods in practice.
+References
+[1] Aguet, F., K. Alasoo, Y. I. Li, A. Battle, H. K. Im, S. B. Montgomery, and T. Lappalainen (2023).
+Molecular quantitative trait loci. Nature Reviews Methods Primers 3 , 4.
+[2] Mortazavi, A., B. A. Williams, K. McCue, L. Schaeffer, and B. Wold (2008). Mapping and
+quantifying mammalian transcriptomes by RNA-Seq. Nature Methods 5 (7), 621–628.
+[3] Pickrell, J. K. (2014). Joint analysis of functional genomic data and genome-wide association
+studies of 18 human traits. American Journal of Human Genetics 94 (4), 559–573.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 13 =====
+Fine-mapping molecular QTLs using fSuSiE 13
+[4] Ferkingstad, E., P. Sulem, B. A. Atlason, G. Sveinbjornsson, M. I. Magnusson, E. L. Styrmisdottir,
+et al. (2021). Large-scale integration of the plasma proteome with genetics and disease. Nature
+Genetics 53 (12), 1712–1721.
+[5] Sun, B. B., J. Chiou, M. Traylor, C. Benner, Y.-H. Hsu, T. G. Richardson, et al. (2023). Plasma
+proteomic associations with genetics and health in the UK Biobank. Nature 622 (7982), 329–338.
+[6] Lister, R., M. Pelizzola, R. H. Dowen, R. D. Hawkins, G. Hon, J. Tonti-Filippini, et al.
+(2009). Human DNA methylomes at base resolution show widespread epigenomic differences. Na-
+ture 462 (7271), 315–322.
+[7] Bock, C. (2012). Analysing and interpreting DNA methylation data. Nature Reviews Genet-
+ics 13 (10), 705–719.
+[8] Banovich, N. E., X. Lan, G. McVicker, B. van de Geijn, J. F. Degner, J. D. Blischak, J. Roux,
+J. K. Pritchard, and Y. Gilad (2014). Methylation QTLs are associated with coordinated changes in
+transcription factor binding, histone modifications, and gene expression levels.PLoS Genetics 10 (9),
+e1004663.
+[9] Teschendorff, A. E. and C. L. Relton (2018). Statistical and integrative system-level analysis of
+DNA methylation data. Nature Reviews Genetics 19 (3), 129–147.
+[10] Oliva, M., K. Demanelis, Y. Lu, M. Chernoff, F. Jasmine, H. Ahsan, M. G. Kibriya, L. S. Chen,
+and B. L. Pierce (2023). DNA methylation QTL mapping across diverse human tissues provides
+molecular links between genetic variation and complex traits. Nature Genetics 55, 112–122.
+[11] Perzel Mandell, K. A., N. J. Eagles, R. Wilton, A. J. Price, S. A. Semick, L. Collado-Torres,
+W. S. Ulrich, R. Tao, S. Han, A. S. Szalay, T. M. Hyde, J. E. Kleinman, D. R. Weinberger, and
+A. E. Jaffe (2021). Genome-wide sequencing-based identification of methylation quantitative trait
+loci and their role in schizophrenia risk. Nature Communications 12, 5251.
+[12] Buenrostro, J. D., B. Wu, H. Y. Chang, and W. J. Greenleaf (2015). ATAC-seq: a method for
+assaying chromatin accessibility genome-wide. Current Protocols in Molecular Biology 109, 21.29.1–
+21.29.9.
+[13] Degner, J. F., A. A. Pai, R. Pique-Regi, J.-B. Veyrieras, D. J. Gaffney, J. K. Pickrell, S. De Leon,
+K. Michelini, N. Lewellen, G. E. Crawford, M. Stephens, Y. Gilad, and J. K. Pritchard (2012). DNase
+I sensitivity QTLs are a major determinant of human expression variation. Nature 482 (7385), 390–
+394.
+[14] Spitz, F. and E. E. M. Furlong (2012). Transcription factors: from enhancer binding to develop-
+mental control. Nature Reviews Genetics 13 (9), 613–626.
+[15] Yan, J., Y. Qiu, A. M. Ribeiro dos Santos, Y. Yin, Y. E. Li, N. Vinckier, et al. (2021). Systematic
+analysis of binding of transcription factors to noncoding variants. Nature 591 (7848), 147–151.
+[16] Zhou, V. W., A. Goren, and B. E. Bernstein (2011). Charting histone modifications and the
+functional organization of mammalian genomes. Nature Reviews Genetics 12, 7–18.
+[17] Morgan, M. A. J. and A. Shilatifard (2020). Reevaluating the roles of histone-modifying enzymes
+and their associated chromatin modifications in transcriptional regulation. Nature Genetics 52 (12),
+1271–1281.
+[18] Hutchinson, A., J. Asimit, and C. Wallace (2020). Fine-mapping genetic associations. Human
+Molecular Genetics 29 (R1), R81–R88.
+[19] Schaid, D. J., W. Chen, and N. B. Larson (2018). From genome-wide associations to candidate
+causal variants by statistical fine-mapping. Nature Reviews Genetics 19 (8), 491–504.
+[20] Maller, J. B., G. McVean, J. Byrnes, D. Vukcevic, K. Palin, Z. Su, et al. (2012). Bayesian
+refinement of association signals for 14 loci in 3 common diseases. Nature Genetics 44 (12), 1294–
+1301.
+[21] Kote-Jarai, Z., E. J. Saunders, D. A. Leongamornlert, M. Tymrakiewicz, T. Dadaev,
+S. Jugurnauth-Little, et al. (2013). Fine-mapping identifies multiple prostate cancer risk loci at
+5p15, one of which associates with TERT expression. Human Molecular Genetics 22 (12), 2520–
+2528.
+[22] Spain, S. L. and J. C. Barrett (2015). Strategies for fine-mapping complex traits.Human Molecular
+Genetics 24 (R1), R111–R119.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 14 =====
+14 W. Denault et al.
+[23] Wang, G., A. Sarkar, P. Carbonetto, and M. Stephens (2020). A simple new approach to variable
+selection in regression, with application to genetic fine mapping. Journal of the Royal Statistical
+Society, Series B 82 (5), 1273–1300.
+[24] Zou, Y., P. Carbonetto, G. Wang, and M. Stephens (2022). Fine-mapping from summary data
+with the “Sum of Single Effects” model. PLoS Genetics 18 (7), e1010299.
+[25] Servin, B. and M. Stephens (2007). Imputation-based analysis of association studies: candidate
+regions and quantitative traits. PLoS Genetics 3 (7), e114.
+[26] Wallace, C., A. J. Cutler, N. Pontikos, M. L. Pekalski, O. S. Burren, J. D. Cooper, et al. (2015).
+Dissection of a complex disease susceptibility region using a Bayesian stochastic search approach to
+fine mapping. PLoS Genetics 11 (6), e1005272.
+[27] Benner, C., A. S. Havulinna, M.-R. J¨ arvelin, V. Salomaa, S. Ripatti, and M. Pirinen (2017).
+Prospects of fine-mapping trait-associated genomic regions by using summary statistics from
+genome-wide association studies. American Journal of Human Genetics 101 (4), 539–551.
+[28] Kichaev, G., M. Roytman, R. Johnson, E. Eskin, S. Lindstr¨ om, P. Kraft, and B. Pasaniuc (2017).
+Improved methods for multi-trait fine mapping of pleiotropic risk loci. Bioinformatics 33 (2), 248–
+255.
+[29] Lewin, A., H. Saadi, J. E. Peters, A. Moreno-Moral, J. C. Lee, K. G. C. Smith, E. Petretto,
+L. Bottolo, and S. Richardson (2016). MT-HESS: an efficient Bayesian approach for simultaneous
+association detection in OMICS datasets, with application to eQTL mapping in multiple tissues.
+Bioinformatics 32 (4), 523–532.
+[30] Arvanitis, M., K. Tayeb, B. J. Strober, and A. Battle (2022). Redefining tissue specificity of
+genetic regulation of gene expression in the presence of allelic heterogeneity. American Journal of
+Human Genetics 109 (2), 223–239.
+[31] Liu, Y., X. Li, M. J. Aryee, T. J. Ekstr¨ om, L. Padyukov, L. Klareskog, A. Vandiver, A. Z.
+Moore, T. Tanaka, L. Ferrucci, M. D. Fallin, and A. P. Feinberg (2014). GeMes, clusters of DNA
+methylation under genetic control, can inform genetic and epigenetic analysis of disease. American
+Journal of Human Genetics 94 (4), 485–495.
+[32] Jaffe, A. E., P. Murakami, H. Lee, J. T. Leek, M. D. Fallin, A. P. Feinberg, and R. A. Irizarry
+(2012). Bump hunting to identify differentially methylated regions in epigenetic epidemiology stud-
+ies. International Journal of Epidemiology 41 (1), 200–209.
+[33] Pedersen, B. S., D. A. Schwartz, I. V. Yang, and K. J. Kechris (2012). Comb-p: software for
+combining, analyzing, grouping and correcting spatially correlated P-values. Bioinformatics 28 (22),
+2986–2988.
+[34] Lent, S., H. Xu, L. Wang, Z. Wang, C. Sarnowski, M.-F. Hivert, and J. Dupuis (2018). Com-
+parison of novel and existing methods for detecting differentially methylated regions. BMC Genet-
+ics 19 (Suppl 1), 84.
+[35] Peters, T. J., M. J. Buckley, A. L. Statham, R. Pidsley, K. Samaras, R. V Lord, S. J. Clark,
+and P. L. Molloy (2015). De novo identification of differentially methylated regions in the human
+genome. Epigenetics & Chromatin 8, 6.
+[36] Shim, H. and M. Stephens (2015). Wavelet-based genetic association analysis of functional pheno-
+types arising from high-throughput sequencing assays. Annals of Applied Statistics 9 (2), 665–686.
+[37] Yu, X. and S. Sun (2016). HMM-DM: identifying differentially methylated regions using a hidden
+Markov model. Statistical Applications in Genetics and Molecular Biology 15 (1), 69–81.
+[38] Shen, L., J. Zhu, S.-Y. Robert Li, and X. Fan (2017). Detect differentially methylated regions
+using non-homogeneous hidden Markov model for methylation array data. Bioinformatics 33 (23),
+3701–3708.
+[39] Shim, H., Z. Xing, E. Pantaleo, F. Luca, R. Pique-Regi, and M. Stephens (2024). Multiscale Pois-
+son process approaches for detecting and estimating differences from high-throughput sequencing
+assays. Annals of Applied Statistics 18 (3), 1773–1788.
+[40] Fern´ andez, L., M. P´ erez, R. Olanda, J. M. Ordu˜ na, and J. Marquez-Molins (2020). HPG-DHunter:
+an ultrafast, friendly tool for DMR detection and visualization. BMC Bioinformatics 21, 287.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 15 =====
+Fine-mapping molecular QTLs using fSuSiE 15
+[41] Denault, W. R. P. and A. Jugessur (2021). Detecting differentially methylated regions using a
+fast wavelet-based approach to functional association analysis. BMC Bioinformatics 22, 61.
+[42] Lee, W. and J. S. Morris (2016). Identification of differentially methylated loci using wavelet-based
+functional mixed models. Bioinformatics 32 (5), 664–672.
+[43] Schor, I. E., J. F. Degner, D. Harnett, E. Cannav` o, F. P. Casale, H. Shim, D. A. Garfield,
+E. Birney, M. Stephens, O. Stegle, and E. E. M. Furlong (2017). Promoter shape varies across
+populations and affects promoter evolution and expression noise. Nature Genetics 49 (4), 550–558.
+[44] Fusi, N. and J. Listgarten (2017). Flexible modeling of genetic effects on function-valued traits.
+Journal of Computational Biology 24 (6), 524–535.
+[45] Collado-Torres, L., A. Nellore, A. C. Frazee, C. Wilks, M. I. Love, B. Langmead, R. A. Irizarry,
+J. T. Leek, and A. E. Jaffe (2016). Flexible expressed region analysis for RNA-seq with derfinder.
+Nucleic Acids Research 45 (2), e9.
+[46] Collado-Torres, L., A. Nellore, K. Kammers, S. E. Ellis, M. A. Taub, K. D. Hansen, A. E. Jaffe,
+B. Langmead, and J. T. Leek (2017). Reproducible RNA-seq analysis using recount2. Nature
+Biotechnology 35 (4), 319–321.
+[47] Ng, B., C. C. White, H.-U. Klein, S. K. Sieberts, C. McCabe, E. Patrick, J. Xu, L. Yu, C. Gaiteri,
+D. A. Bennett, S. Mostafavi, and P. L. De Jager (2017). An xQTL map integrates the genetic
+architecture of the human brain’s transcriptome and epigenome. Nature Neuroscience 20 (10),
+1418–1426.
+[48] Bennett, D. A., A. S. Buchman, P. A. Boyle, L. L. Barnes, R. S. Wilson, and J. A. Schneider
+(2018). Religious Orders Study and Rush Memory and Aging Project. Journal of Alzheimer’s
+disease 64 (Suppl 1), S161–S189.
+[49] Mallat, S. (1989). A theory for multiresolution signal decomposition: the wavelet representation.
+IEEE Transactions on Pattern Analysis and Machine Intelligence 11 (7), 674–693.
+[50] Mallat, S. G. (2009). A wavelet tour of signal processing: the sparse way (3rd ed.). Boston, MA:
+Elsevier/Academic Press.
+[51] Bell, J. T., A. A. Pai, J. K. Pickrell, D. J. Gaffney, R. Pique-Regi, J. F. Degner, Y. Gilad,
+and J. K. Pritchard (2011). DNA methylation patterns associate with genetic and gene expression
+variation in HapMap cell lines. Genome Biology 12, R10.
+[52] Dimitromanolakis, A., J. Xu, A. Krol, and L. Briollais (2019). sim1000G: a user-friendly genetic
+variant simulator in R for unrelated individuals and family-based designs. BMC Bioinformatics 20 ,
+26.
+[53] The 1000 Genomes Project Consortium (2015). A global reference for human genetic variation.
+Nature 526 (7571), 68–74.
+[54] Rackham, O. J. L., P. Dellaportas, E. Petretto, and L. Bottolo (2015). WGBSSuite: simulating
+whole-genome bisulphite sequencing data and benchmarking differential DNA methylation analysis
+tools. Bioinformatics 31 (14), 2371–2373.
+[55] Eulalio, T., M. W. Sun, O. Gevaert, M. D. Greicius, T. J. Montine, D. Nachun, and S. B.
+Montgomery (2025). regionalpcs improve discovery of DNA methylation associations with complex
+traits. Nature Communications 16, 368.
+[56] Yuan, D. and N. Mancuso (2023). SuSiE PCA: a scalable Bayesian variable selection technique
+for principal component analysis. iScience 26 (11), 108181.
+[57] Dahl, A., V. Guillemot, J. Mefford, H. Aschard, and N. Zaitlen (2019). Adjusting for principal
+components of molecular phenotypes induces replicating false positives.Genetics 211 (4), 1179–1189.
+[58] Zhou, H. J., L. Li, Y. Li, W. Li, and J. J. Li (2022). PCA outperforms popular hidden variable
+inference methods for molecular QTL mapping. Genome Biology 23 (1), 210.
+[59] Zou, Y., P. Carbonetto, D. Xie, G. Wang, and M. Stephens (2023). Fast and flex-
+ible joint fine-mapping of multiple traits via the Sum of Single Effects model. bioRxiv,
+doi:10.1101/2023.04.14.536893.
+[60] De Jager, P. L., Y. Ma, C. McCabe, J. Xu, B. N. Vardarajan, D. Felsky, H.-U. Klein, C. C. White,
+M. A. Peters, B. Lodgson, P. Nejad, A. Tang, L. M. Mangravite, L. Yu, C. Gaiteri, S. Mostafavi,
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 16 =====
+16 W. Denault et al.
+J. A. Schneider, and D. A. Bennett (2018). A multi-omic atlas of the human frontal cortex for aging
+and Alzheimer’s disease research. Scientific Data 5 , 180142.
+[61] Ng, B., C. C. White, H. U. Klein, et al. (2017). An xqtl map integrates the genetic architecture
+of the human brain’s transcriptome and epigenome. Nature Neuroscience 20 (10), 1418–1426.
+[62] McArthur, E. and J. A. Capra (2021). Topologically associating domain boundaries that are
+stable across diverse cell types are evolutionarily constrained and enriched for heritability.American
+Journal of Human Genetics 108 (2), 269–283.
+[63] Frankish, A., M. Diekhans, A.-M. Ferreira, R. Johnson, I. Jungreis, J. Loveland, et al.
+(2019). GENCODE reference annotation for the human and mouse genomes. Nucleic Acids Re-
+search 47 (D1), D766–D773.
+[64] Finucane, H. K., B. Bulik-Sullivan, A. Gusev, G. Trynka, Y. Reshef, P.-R. Loh, et al. (2015).
+Partitioning heritability by functional annotation using genome-wide association summary statistics.
+Nature Genetics 47 (11), 1228–1235.
+[65] Gazal, S., H. K. Finucane, N. A. Furlotte, P.-R. Loh, P. F. Palamara, X. Liu, A. Schoech,
+B. Bulik-Sullivan, B. M. Neale, A. Gusev, and A. L. Price (2017). Linkage disequilibrium–dependent
+architecture of human complex traits shows action of negative selection. Nature Genetics 49 (10),
+1421–1427.
+[66] Bellenguez, C., F. K¨ u¸ c¨ ukali, I. E. Jansen, L. Kleineidam, S. Moreno-Grau, N. Amin, et al. (2022).
+New insights into the genetic etiology of Alzheimer’s disease and related dementias. Nature Genet-
+ics 54 (4), 412–436.
+[67] Jansen, I. E., J. E. Savage, K. Watanabe, J. Bryois, D. M. Williams, S. Steinberg, et al. (2019).
+Genome-wide meta-analysis identifies new loci and functional pathways influencing Alzheimer’s
+disease risk. Nature Genetics 51 (3), 404–413.
+[68] Wallace, C. (2021). A more accurate method for colocalisation analysis allowing for multiple
+causal variants. PLoS Genetics 17 (9), e1009440.
+[69] Lambert, J.-C., C. A. Ibrahim-Verbaas, D. Harold, A. C. Naj, R. Sims, C. Bellenguez, et al.
+(2013). Meta-analysis of 74,046 individuals identifies 11 new susceptibility loci for alzheimer’s
+disease. Nature Genetics 45 (12), 1452–1458.
+[70] Wightman, D. P., I. E. Jansen, J. E. Savage, A. A. Shadrin, S. Bahrami, D. Holland, et al. (2021).
+A genome-wide association study with 1,126,563 individuals identifies new risk loci for Alzheimer’s
+disease. Nature Genetics 53 (9), 1276–1282.
+[71] Schwartzentruber, J., S. Cooper, J. Z. Liu, I. Barrio-Hernandez, E. Bello, N. Kumasaka, A. M. H.
+Young, R. J. M. Franklin, T. Johnson, K. Estrada, D. J. Gaffney, P. Beltrao, and A. Bassett (2021).
+Genome-wide meta-analysis, fine-mapping and integrative prioritization implicate new Alzheimer’s
+disease risk genes. Nature Genetics 53 (3), 392–402.
+[72] Lambert, J.-C., S. Heath, G. Even, D. Campion, K. Sleegers, M. Hiltunen, et al. (2009). Genome-
+wide association study identifies variants at CLU and CR1 associated with Alzheimer’s disease.
+Nature Genetics 41 (10), 1094–1099.
+[73] Jun, G., A. C. Naj, G. W. Beecham, L.-S. Wang, J. Buros, P. J. Gallins, et al. (2010). Meta-
+analysis confirms CR1, CLU, and PICALM as Alzheimer Disease risk loci and reveals interactions
+with APOE genotypes. Archives of Neurology 67 (12), 1473–1484.
+[74] Belbasis, L., S. Morris, C. van Duijn, D. Bennett, and R. Walters (2025). Mendelian randomization
+identifies proteins involved in neurodegenerative diseases. Brain 148 (7), 2412–2428.
+[75] Fonseca, M. I., S. Chu, A. L. Pierce, W. D. Brubaker, R. E. Hauhart, D. Mastroeni, E. V.
+Clarke, J. Rogers, J. P. Atkinson, and A. J. Tenner (2016). Analysis of the putative role of CR1 in
+Alzheimer’s disease: genetic association, expression and function. PLoS ONE 11 (2), e0149792.
+[76] Kucukkilic, E., K. Brookes, I. Barber, T. Guetta-Baranes, K. Morgan, E. J. Hollox, and
+ARUK Consortium (2018). Complement receptor 1 gene (CR1) intragenic duplication and risk
+of Alzheimer’s disease. Human Genetics 137 (4), 305–314.
+[77] Brouwers, N., C. Van Cauwenberghe, S. Engelborghs, J.-C. Lambert, K. Bettens, N. Le Bastard,
+F. Pasquier, A. G. Montoya, K. Peeters, M. Mattheijssens, R. Vandenberghe, P. P. De Deyn,
+M. Cruts, P. Amouyel, K. Sleegers, and C. Van Broeckhoven (2012). Alzheimer risk associated with
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 17 =====
+Fine-mapping molecular QTLs using fSuSiE 17
+a copy number variation in the complement receptor 1 increasing C3b/C4b binding sites. Molecular
+Psychiatry 17 (2), 223–233.
+[78] Western, D., J. Timsina, L. Wang, C. Wang, C. Yang, B. Phillips, et al. (2024). Proteogenomic
+analysis of human cerebrospinal fluid identifies neurologically relevant regulation and implicates
+causal proteins for Alzheimer’s disease. Nature Genetics 56 (12), 2672–2684.
+[79] Cao, X., H. Sun, R. Feng, R. Mazumder, C. F. Buen Abad Najar, Y. I. Li, P. L. de Jager,
+D. Bennett, K. K. Dey, and G. Wang (2025). Integrative multi-omics QTL colocalization maps
+regulatory architecture in aging human brain. medRxiv, 10.1101/2025.04.17.25326042.
+[80] Xiong, X., B. T. James, C. A. Boix, Y. P. Park, K. Galani, M. B. Victor, N. Sun, L. Hou, L.-L.
+Ho, J. Mantero, A. N. Scannail, V. Dileep, W. Dong, H. Mathys, D. A. Bennett, L.-H. Tsai, and
+M. Kellis (2023). Epigenomic dissection of Alzheimer’s disease pinpoints causal variants and reveals
+epigenome erosion. Cell 186 (20), 4422–4437.e21.
+[81] Stephens, M. (2017). False discovery rates: a new deal. Biostatistics 18 (2), 275–294.
+[82] Donoho, D. L. and I. M. Johnstone (1994). Ideal spatial adaptation by wavelet shrinkage.
+Biometrika 81 (3), 425–455.
+[83] Sniekers, S. and A. van der Vaart (2020). Adaptive Bayesian credible bands in regression with a
+Gaussian process prior. Sankhya A 82 (2), 386–425.
+[84] Barber, S., G. P. Nason, and B. W. Silverman (2002). Posterior probability intervals for wavelet
+thresholding. Journal of the Royal Statistical Society, Series B 64 (2), 189–205.
+[85] Cruchaga, C. (2022). ADSP functional genomics: from gene, to function to mechanisms and
+targets. Alzheimer’s & Dementia 18 (S4), e066436.
+[86] Leung, Y. Y., W.-P. Lee, A. B. Kuzma, H. Nicaretta, O. Valladares, P. Gangadharan, et al. (2025).
+Alzheimer’s Disease Sequencing Project release 4 whole genome sequencing dataset. Alzheimer’s &
+Dementia 21 (5), e70237.
+[87] Leung, Y. Y., O. Valladares, Y.-F. Chou, H.-J. Lin, A. B. Kuzma, L. Cantwell, L. Qu, P. Gan-
+gadharan, W. J. Salerno, G. D. Schellenberg, and L.-S. Wang (2019). VCPA: genomic variant
+calling pipeline and data management tool for Alzheimer’s Disease Sequencing Project. Bioinfor-
+matics 35 (10), 1768–1770.
+[88] Taylor-Weiner, A., F. Aguet, N. J. Haradhvala, S. Gosai, S. Anand, J. Kim, K. Ardlie, E. M.
+Van Allen, and G. Getz (2019). Scaling computational genomics to millions of individuals with
+GPUs. Genome Biology 20, 228.
+[89] Heintzman, N. D., R. K. Stuart, G. Hon, Y. Fu, C. W. Ching, R. D. Hawkins, L. O. Barrera,
+S. Van Calcar, C. Qu, K. A. Ching, W. Wang, Z. Weng, R. D. Green, G. E. Crawford, and B. Ren
+(2007). Distinct and predictive chromatin signatures of transcriptional promoters and enhancers in
+the human genome. Nature Genetics 39 (3), 311–318.
+[90] Denault, W. R., P. Carbonetto, R. Li, The Alzheimer’s Disease Functional Genomics Con-
+sortium, G. Wang, and M. Stephens (2025). Accounting for uncertainty in residual vari-
+ances improves calibration of the Sum of Single Effects model for small sample sizes. bioRxiv,
+doi:10.1101/2025.05.16.654543.
+[91] Bibikova, M., B. Barnes, C. Tsan, V. Ho, B. Klotzle, J. M. Le, D. Delano, L. Zhang, G. P.
+Schroth, K. L. Gunderson, J.-B. Fan, and R. Shen (2011). High density DNA methylation array
+with single CpG site resolution. Genomics 98 (4), 288–295.
+[92] Morris, J. S. (2015). Functional regression. Annual Review of Statistics and its Application 2 ,
+321–359.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 18 =====
+18 W. Denault et al.
+Online Methods
+fSuSiE
+Wavelet regression. Consider a data set consisting of N samples of a molecular trait measured at T
+locations. The measurements are stored in an N × T matrix Y with matrix elements yit, in which
+i ∈ {1, . . . , N } indexes samples and t ∈ {1, . . . , T } indexes locations. Let x = (x 1, . . . , xN)⊺ be a
+covariate of interest (e.g., a genotype) measured in the N samples.
+We begin with a standard multivariate linear regression model of Y given x,
+Y = xb⊺ + Em, (2)
+where b = (b1, . . . , bT )⊺ is a column vector of regression coefficients (“effects”) to be estimated, and
+Em is an N × T matrix of residuals (which we will assume are normally distributed). The “m” in the
+superscript here refers to the fact that the residuals are defined in “measurement space” (as opposed
+to “wavelet space”; see below).
+Transforming Y to the wavelet space involves a simple linear transformation [49, 50], written as
+D = YW, where W is the T × T wavelet projection matrix. The resulting transformed data, D,
+also an N × T matrix, is called the matrix of “wavelet coefficients” (WCs). The wavelet projection
+matrix W has the property that it is an orthogonal matrix, and therefore it is invertible. This
+orthogonality property is very useful; for example, it makes it easy to recover statistical quantities on
+the measurement scale after they have been estimated on the wavelet scale. See the Supplementary
+Note for additional background on wavelet regression.
+Applying the D = YW identity to the multivariate linear regression (2) results in a wavelet
+regression model,
+D = xf ⊺ + Ew, (3)
+where f = Wb is the vector of effects in the wavelet space, and Ew is an N × T matrix of residuals in
+the wavelet space. We make the standard assumption these residuals are independent and normally
+distributed with mean zero and variances σ2
+t , ew
+it ∼ N(0, σ2
+t ). The independence of the residuals ew
+it
+across locations t (conditional on the variances σ2
+t ) can be motivated by the “whitening” property
+of the wavelet transform [49, 50]. By contrast, assuming independence of the residuals em
+it in the
+measurement space would be entirely inappropriate due to the spatial structure.
+Next we extend these ideas to a multiple linear regression model,
+Y = XB + Em, (4)
+where X is an N × J containing N observations xij about J covariates of interest (e.g., genotypes
+measured at J SNPs), and B is the J × T matrix of effects bjt to be estimated. The corresponding
+multiple wavelet regression model is
+D = XF + Ew, (5)
+where F = BW is the matrix of effects fjt in the wavelet space. fSusiE is developed using this model.
+(To simplify notation, in the equations below we drop the “w” superscript from Ew when it is clear
+from the context that these are the residuals in the wavelet space.)
+Multiple wavelet regression model with an intercept and additional covariates.In practice, we augment
+the multiple wavelet regression model (5) to include an intercept, and we often include additional
+covariates (e.g., sex, age, batch effects, genotype PCs):
+D = 1N µ⊺ + ZW + XF + E, (6)
+where 1N is a vector of ones of length N, Z is an N × nz matrix containing data about nz ≥ 0
+additional covariates, µ = ( µ1, . . . , µT )⊺ is the (unknown) intercept, and W is the nz × T matrix
+of (unknown) coefficients corresponding to the additional covariates Z. To simplify presentation, we
+store the intercept µ in the first row B, and set the first column of Z to be all ones, so the same model
+can be written more simply as
+D = ZW + XF + E. (7)
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 19 =====
+Fine-mapping molecular QTLs using fSuSiE 19
+This model can be reduced to the previous model (5) if we remove the linear effects of Z on X and D
+by making the substitutions D ← ˜D, X ← ˜X, in which we define
+˜X := X − Z(Z⊺Z)−1Z⊺X (8)
+˜D := D − Z(Z⊺Z)−1Z⊺D. (9)
+This is an extension the reduction used for univariate linear regression [93]. Note that we have
+sometimes found it more convenient to remove the linear effects of Z from Y instead of from D, then
+compute D = YW, but this is equivalent to (9) because W is orthogonal.
+Standardization. In practice, we scale each column of Y to have unit variance before computing the
+wavelet transform (this is often called “standardization”). This simplifies modeling because it allows
+us to reasonably assume that the wavelet coefficients have homoskedastic residual variances; consider
+that em
+it
+i.i.d.
+∼ N(0, σ2) ⇒ ew
+it
+i.i.d.
+∼ N(0, σ2). Therefore, in fSuSiE we make the additional modeling
+assumption that the residual variances do not depend on location; ew
+it
+i.i.d.
+∼ N(0, σ2).
+Also, although not necessary, in practice we also standardize ˜X before running fSuSiE. This simpli-
+fies many of the underlying statistical computations in fSuSiE. Standardizing ˜X is common practice
+in QTL mapping analyses, and can be justified in some settings [81] [94].
+Single function regression model. The “single function regression” (SFR) model is the functional
+counterpart of the “single effect regression” (SER) model [23]. The SFR model is a multiple wavelet
+regression model (5) with the constraint that exactly one of the covariatesj ∈ {1, . . . , J} has a nonzero
+effect on the wavelet coefficients:
+F = diag(γ) × F1
+γ ∼ Multinom(1, p)
+f 1
+jt ∼ gt,
+(10)
+where γ = (γ1, . . . , γJ)⊺, F1 is a J ×T matrix with entries f 1
+jt, Multinom(n, p) denotes the multinomial
+distribution with sample size n and multinomial probabilities p = (p 1, . . . , pJ), gt denotes the prior
+distribution for the effects at location t (specified in greater detail below), and diag(x) denotes the
+N × N diagonal matrix in which the diagonal elements are given by the vector x = (x1, . . . , xN).
+Defined in this way, the SFR model has the following properties: (i) γ is a binary vector in which
+exactly one of the elements is one and the rest are zeros; (ii) at most one of the rows of the F contains
+nonzero values; and (iii) the f 1
+jt’s are a priori independent across locations t (again motivated by the
+“whitening” property of the wavelet transform).
+Elements of p are the prior probabilities that each covariate has a nonzero effect on the wavelet
+coefficients D. Unless otherwise stated, the prior probabilities are the same for all covariates (SNPs);
+pj = 1/J, j = 1, . . . , J.
+fSuSiE model. The fSuSiE model extends the SFR model to allow at most R ≥ 1 nonzero effects. It is
+the functional counterpart to the Sum of Single Effects (SuSiE) model [23], so we call it the “functional
+Sum of Single Effects model” (fSuSiE) model. The fSuSiE model is the wavelet regression model (5)
+together with the following prior on F:
+F =
+RX
+r=1
+F(r)
+F(r) = diag(γ(r)) × Fr
+γ(r) ∼ Multinom(1, p)
+f r
+jt ∼ gr
+t .
+(11)
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 20 =====
+20 W. Denault et al.
+Since each binary vector γ(r) = (γ(r)
+1 , . . . , γ(r)
+J ) contains exactly one 1, by contruction at most R rows
+of F contain nonzeros. The fSuSiE model reduces to the SFR model when R = 1. Note that this
+model allows for a different prior on the effects f r
+jt for each r; these priors are automatically adapted
+to the data using the algorithms described below.
+Scale-dependent mixture priors for fSuSiE. Above, we did not specify the exact form of the priors gt
+and gr
+t in the SFR and fSuSiE models. To define a prior, we expand on a detail that was previously
+hidden: the location t represents a wavelet scale and location. Our convention is to use s to index
+scales and l to index locations.
+Previous wavelet regression approaches have exploited the scale-dependent sparsity of the wavelet
+coefficients [49, 82] [95, 96]. One of these approaches used a spike-and-slab prior [95, 96]. Building on
+this spike-and-slab prior as well as our recent work on adaptive shrinkage methods [81] [97, 98], we
+extend this scale-dependent spike-and-slab prior to a scale-dependent mixture prior, which we refer to
+as the “shrinkage-per-scale” (SPS) prior:
+gr
+sl =
+KX
+k=0
+πr
+ksN(0, σ2
+ks). (12)
+Here, the πr
+ks denote the mixture weights (πr
+ks ≥ 0,PK
+k=0 πr
+ks = 1) for each single function r = 1, . . . , R,
+and the σ2
+ks denote the variances of the mixture components. The number of mixture components, K,
+and the component variances σ2
+ks are fixed, user-specified quantities, whereas the mixture weights πr
+ks
+are estimated. Note that this prior depends on the scale s but not on the location l.
+The component variances σ2
+ks are assumed to be increasing ( σ2
+k,s > σ 2
+k−1,s, k = 1, . . . , K), and the
+first component is assumed to be a Dirac “delta” mass at zero, denoted here by a normal distribution
+with zero variance, N(0, 0). We use procedures similar to those implemented in the ashr R package
+[81] to automatically determine a suitable K as well as the components variances σ2
+ks.
+We also consider a special case of the SPS prior in which the mixture proportions πks and variances
+σ2
+ks do not depend on the scale, s [97]; that is, gr
+sl =PK
+k=0 πr
+kN(0, σ2
+k). We call this the “independent
+shrinkage” (IS) prior. While clearly less flexible than the SPS prior, the IS prior reduces the number
+of parameters to estimate and reduces overall computational effort, and therefore is sometimes more
+convenient in practice. We empirically assess the benefits of the SPS and IS priors in simulations.
+Posterior statistics. Here we define the key posterior quantities used in an fSuSiE analysis (Fig. 1). We
+do not explain here how these quantities are computed; these details are given in the Supplementary
+Note.
+As we briefly explained in the Methods overview, we have three main inference aims:
+• Variable selection: identify the causal SNPs.
+• Feature annotation: identify the molecular features and locations that are affected by one or
+more SNPs.
+• Feature selection: identify the molecular features and locations that are affected by a given causal
+SNP.
+For variable selection, we compute credible sets (CSs): a CS is defined as a subset of {1, . . . , J}
+containing an effect SNP with high probability [20, 23]. More precisely, a level- ρ CS is defined as a
+set of SNPs that is as small as possible such that it has probability at least ρ of containing an effect
+SNP (a row of F containing at least one non-zero). The number of CSs should reflect the number of
+causal SNPs, and the size of a CS should reflect the number of plausible candidate effects SNPs. We
+calculate CSs as described in [23].
+To determine which SNPs within a CS are the strongest candidates for being an effect SNP, we
+compute a posterior inclusion probability (PIP) for each SNP. The PIP for SNP j is defined as the
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 21 =====
+Fine-mapping molecular QTLs using fSuSiE 21
+posterior probability that at least one of the entries in the jth row of F is nonzero:
+PIP(j) = Pr(f1j ̸= 0, . . . , fT j ̸= 0 | X, D)
+= 1 −
+RY
+r=1
+ 
+1 − PIPr
+j
+
+, (13)
+in which PIP r
+j denotes the posterior probability that the rth single effect is nonzero for SNP j,
+PIPr
+j := Pr(γ(r)
+j = 1 | X, D). (14)
+See 2D for an illustration of PIPs and CSs.
+The estimates of the SNPs on the molecular features in wavelet space are given by the posterior
+mean of F, ¯F := E[F | X, D]. The SNP effects in measurement space are given by the posterior mean
+of B, ¯B := E[B | X, Y]. By elementary properties of expectations, this is simply
+¯B = ¯F × W−1, (15)
+where W−1 denotes the inverse wavelet transform.
+To identify affected features and locations, we compute 1 − α pointwise Bayesian credible intervals
+[83, 84] for elements fjt and bjt at selected SNPs j. We define “affected” as those elements in which
+the interval does not include zero. We refer to these intervals as “credible bands.” See Fig. 2E giving
+an example of the posterior means and the credible bands of bjt for all locations (CpGs) t = 1, . . . , T
+and for all sentinel SNPs j. The affected locations t are defined as the locations in which at least one
+of the credible bands for the sentinel SNPs at t does not contain a zero.
+Outline of an fSuSiE analysis. Briefly, the minimal requirements for performing an fSuSiE analysis
+are:
+i) An N × T matrix, ˜Y, containing N molecular trait measurements at T locations after the linear
+effects of selected covariates are removed. The specific steps that were taken to prepare ˜Y for
+the molecular data sets analyzed in this paper are detailed below.
+ii) An N × J matrix, ˜X, containing the genotype information for the J SNPs to be fine-mapped
+after removing the linear effects of the selected covariates.
+iii) Rmax, an upper limit on R, the number of single functions in the fSuSiE model. Unless specifically
+mentioned, we set Rmax = 10.
+iv) The prior for the wavelet effects. In this paper, we considered two priors: the independent
+shrinkage (IS) prior and the shrinkage-per-scale (SPS) prior (see “Scale-dependent mixture priors
+for fSuSiE” for explanations). We used the IS prior unless otherwise mentioned.
+An additional input is optional but recommended:
+v) The positions (e.g., base-pair positions) ϕ1, . . . , ϕT ∈ R corresponding to the locations 1, . . . , T .
+If not specified, the positions are assumed to be evenly spaced. Molecular traits are typically not
+measured at evenly spaced positions, so providing this information will produce more accurate
+results.
+Beyond this, the fSuSiE software includes many other settings and tuning parameters which may be
+adjusted as needed.
+The basic steps of an fSuSiE analysis are as follows:
+1. Compute the wavelet coefficients. Compute the WCs, ˜D, from the molecular trait data, ˜Y. For
+computational efficiency, ˜D is obtained using the standard discrete wavelet transform (DWT). (In
+later steps, a second set of WCs are computed using the translation-invariant wavelet transform
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 22 =====
+22 W. Denault et al.
+to improve accuracy.) For all the results presented in this paper, we used the (undecimated)
+wavelet transform with Daubechies least-asymmetric orthonormal compactly supported wavelets
+and with 10 vanishing moments (see Chapter 2 of [99]). Note that the fSuSiE software currently
+supports any wavelet transform that is implemented in the wavethresh R package [99].
+2. Search for a good upper limit on R (optional). R determines the number of single functions
+and, correspondingly, the number of causal SNPs. If R is too small, fSuSiE may miss some
+causal SNPs; on the other hand, if R is too large, fSuSiE may take a long time to run. We have
+implemented an ad hoc procedure to find a reasonable initial estimate of R. By default, this
+procedure starts by fitting an fSuSiE model with R = 3. If all R = 3 single functions are kept,
+R is increased by one. This procedure iterates until one or more single functions are pruned, or
+if the upper limit, Rmax, is reached.
+3. Fit fSuSiE model. We use an iterative algorithm, described below, to fit the fSuSiE model to the
+data ˜X, ˜D. This includes estimating the priors gr
+t and the residual variance σ2. During estimation
+of the priors, some single functions may be pruned, and therefore R is an upper bound on the
+final number of single functions (and CSs).
+4. Compute SNP-level posterior quantities: CSs and PIPs. Compute CSs and PIPs from the fSuSiE
+model fitted in the previous step.
+5. Filter credible sets (optional). One may filter out the CSs with low “purity” (purity is defined as
+the smallest absolute correlation among all pairs of SNPs in the CS). This often improves quality
+or interpretability of the fine-mapping results.
+6. Compute posterior effect estimates and credible bands. The final step is to compute posterior
+mean estimates of bjt, and corresponding 1 − α pointwise credible bands, α ∈ [0, 1], for each
+location t and sentinel SNP j (the SNP with the largest PIP in each CS). To address possible
+inaccuracies with the DWT (see Chapter 9 of [50]), we compute a new WC matrix ˜D using the
+translation-invariant wavelet transform (TIWT), also known as the stationary wavelet transform.
+(In brief, the TIWT modifies the original DWT by applying it to shifted copies of the signal, then
+the WCs are averaged across the shifted copies.) Since the TIWT greatly increases computational
+effort, we use this TIWT only in this final step.
+All these steps are implemented by the susiF function of the fsusieR R package.
+Molecular QTL simulations
+Simulation of genotype data. The fine-mapping regions for the simulations were selected uniformly at
+random from 94 breast cancer loci on autosomal chromosomes reported in [100] (see Supplementary
+Table 1 of that paper). The median size of a fine-mapping reagion was about 1 Mb.
+Similar to [101], we used sim1000G [52] to simulate genotypes of unrelated individuals based on the
+genotypes from the 1000 Genomes Phase 3 whole-genome sequencing [53]. First, we randomly selected
+a continent-of-origin label (EUR, AMR, AFR, EAS, SAS), then we simulated SNP genotypes using
+N = 100 individuals chosen uniformly at random from the 1000 Genomes samples with the selected
+continent-of-origin label.
+Within the fine-mapping region, we kept all biallelic SNPs with minor allele frequencies (MAFs)
+of 5% or greater; that is, SNPs in which the minor allele was observed at least 10 times out of the
+2N = 200 chromosomes).
+For a single simulation, the genotype matrix, X, was a matrix with N = 100 rows (individuals)
+and J columns (SNPs), in which J ranged from approximation 1,500 to 4,000.
+Simulation of molecular trait data—wavelet simulations. In these simulations, the molecular trait data
+were simulated from an fSuSiE model (more precisely, a multiple wavelet regression model with an
+SPS prior for the causal SNP effects). This involved the following steps: the effects of all causal SNPs
+j (on the wavelet scale) were simulated from an SPS prior, fjt ∼ PK
+k=0 πksN(0, σ2
+ks), in which the
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 23 =====
+Fine-mapping molecular QTLs using fSuSiE 23
+first mixture component was always a “spike” at zero (σ 0s = 0); the effects of all non-causal SNPs j
+were set to zero, fjt = 0; the effects in the measurement space were then obtained as B = FW−1;
+and then the molecular trait data, Y, were simulated from the multiple regression model (4), with
+em
+it ∼ N(0, σ2). The residual variance σ2 was chosen so that X explained a specified total variance in
+Y.
+Similar to [49] [95, 96], we simulated molecular trait data with different levels of smoothness: first,
+we drew a “smoothness parameter”, µ, uniformly at random between 0 and 1; then we set the k = 0
+(“spike”) mixture component at each scale s to be π0s = 1 − 2−µs. The intuition is that settings of µ
+closer to 1 produce “smoother” signals (larger effects at the largest scales), while settings of µ closer
+to 0 produce effects of similar size across all scales.
+Simulation of molecular trait data—WGBS block and WGBS decay simulations. In these simulations,
+we simulated methylation data from WGBS similar to [54]. The methylation profiles, Y, were simu-
+lated using the following logistic regression model:
+yit = sigmoid(zit)
+zit =PJ
+j=1 xijbjt + probit(βt) + eit
+eit ∼ NT (0, σ2),
+(16)
+where βt denotes a baseline methylation level (a “Beta value” [102]) simulated using OmicsSIMLA
+[103], sigmoid(x) = 1/(1 + e−x) denotes the sigmoid function, probit(x) = Φ −1(x) denotes the probit
+link function in which Φ(x) is the cumulative density function (CDF) of the standard normal distribu-
+tion, Nd(x; µ, Σ) denotes the multivariate normal distribution on x ∈ Rd with mean µ and covariance
+matrix Σ, and the other notation was defined above. We transform the Beta values using the probit
+as this makes the data approximately homoskedastic with a Gaussian noise distribution [102]. The
+residual variance σ2 was chosen so that X explained a specified total variance in the unobserved Z.
+The effects bj ∈ RT of the causal SNPs j were simulated from a multivariate normal distribution,
+bj ∈ NT (0, C), in which C is a T × T correlation matrix. (The effects of the non-causal SNPs j were
+set to zero, bjt = 0.) The correlation matrix C determines the spatial structure of the methylation
+changes. We considered two different designs of C that resulted in two different sets of WGBS
+simulations, which we referred to as “WGBS block” and “WGBS decay” in the text.
+WGBS block simulations. In a “WGBS block” simulation, the fine-mapping region was divided
+into 5 blocks with the same number of CpGs in each block. The SNP effects were the same within a
+block: ctt′ = 1 if CpGs t, t′ were in the same block; otherwise, ctt′ = 0.
+WGBS decay simulations. In a “WGBS decay” simulation, the fine-mapping region was divided
+into 5 blocks of the same size (same number of CpGs). The SNP effects were similar within a block,
+but differed more as the CpGs were more distant within the block: ctt′ = ρ|t−t′| if CpGs t, t′ were in
+the same block, otherwise ctt′ = 0, with ρ = 0.9.
+Methods compared in the simulations.
+fSuSiE. We ran two variants of fSuSiE: one using the IS prior, and another using the SPS prior. fSuSiE
+was applied as described above (“Outline of an fSuSiE analysis”) by calling the susiF() function from
+the fsusieR R package with the following settings: L = 20, which sets the upper limit on the number
+of CSs to X; prior = "mixture
+normal" for the IS prior or prior = "mixture normal per scale"
+for the SPS prior; and all other options were kept at their defaults.
+For a given CpG, we defined αmax as the largest confidence level α for which the corresponding
+credible band at that CpG did not include zero. For a given αmax threshold, a CpG was defined as
+“affected” if αmax was less than this threshold.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 24 =====
+24 W. Denault et al.
+SuSiE-topPC. The top PC, denoted here by y, was obtained from the methylation data, Y, after
+centering the columns of Y. (Note that the columns of Y were not scaled to unit variance.) Then
+we ran function susie() from the susieR R package [23] on the data X, y with the following settings:
+standardize = TRUE; L = X, which sets the upper limit on the number of CSs to X; and all other
+options were kept at their defaults. Note that SuSiE-topPC was not used to identify affected CpGs.
+SNP-CpG association tests. The SNP-CpG association tests were implemented using the lm() func-
+tion in R. For a given p-value threshold, a CpG t was defined as “affected” if the (two-sided) p-value
+from the association test for that CpG was less than the threshold.
+Additional simulations to assess single-variant CSs. In the mSNP fine-mapping and haSNP fine-
+mapping, fSuSiE reported a large number of CSs with 1 SNP, a surprisingly high number based on our
+previous experience with fine-mapping other quantitative traits such as RNA and protein expression.
+Furthermore, we found that some of these single-variant CSs identified a SNP that was in very high
+LD with another SNP that was not in the CS. We wondered whether fSuSiE might be incorrectly
+generating CSs that were too small and/or incorrectly identifying the causal SNP, and therefore we
+performed an additional experiment to check this. Specifically, we examined the extreme case of fine-
+mapping two SNPs, one of which is causal, and the genotypes of the two SNPs differ in only a single
+individual. This is the strongest LD one can observe between two SNPs without being in perfect LD
+(i.e., a correlation of 1).
+In these simulations, we chose the causal SNP at random from European ancestry WGS samples
+in 1000 Genomes phase 3 (n = 503). The second SNP was identical to the first except for a single
+individual chosen at random; for this individual, we set x2i ̸= x1i ∈ {0, 1, 2}. SNP 1 affected molecular
+locations t = 20, . . . ,30, and had no effect on all other locations (in total, there were 128 locations,
+t = 1, . . . ,128). The effects of SNP 1, b = (b1, . . . , b128)⊺, were the same for all affected locations, and
+were varied from simulation to simulation from 0.01 to 1. The molecular trait for individual i was
+simulated as yi = x1ib + ei, with eit i.i.d. standard normal. We performed 100 simulations at each
+setting of the effect, 0.01, 0.02, . . . ,1, for a total of 10,000 simulations.
+We compared the results from SuSiE and fSuSiE in these simualtions. For SuSiE, we used as
+a univariate trait the most associated location; that is, the location t with the smallest association
+p-value when testing for association between the location t and SNP 1.
+In each simulation, we recorded the CS configuration: SNP 1 only; SNP 2 only; or both SNPs 1
+and 2. The results of these simulations are summarized in Supplementary Fig. 15. Note that both
+SuSiE and fSuSiE rarely returned a CS containing the wrong SNP only (SNP 2): out of the 10,000
+simulations, SuSiE returned this result in just 8 simulations, and fSuSiE returned this result in just
+36 simulations.
+Fine-mapping of molecular traits and Alzheimer’s disease
+Data sources overview. We analyzed molecular trait data—DNA methylation and histone acetylation
+(H3K9ac)—in DLPFC donors from the ROSMAP cohort [48]. We also analyzed DLPFC RNA and
+protein expression data generated by the ADSP Functional Genomics Consortium xQTL Project
+(FunGen-xQTL) [85, 86]. SNP genotypes were obtained in the DLPFC donors by WGS [86]. Fine-
+mapping of AD risk loci was performed using data from two recent AD GWASs [66, 67].
+WGS genotype data. Whole-genome sequencing data for ROSMAP subjects were obtained from the
+Alzheimer’s Disease Sequencing Project (ADSP) release 4 (R4), comprising a subset of the NIAGADS
+NG00067 dataset [86]. All sequencing data in ADSP R4 were centrally processed by the Genome
+Center for Alzheimer’s Disease (GCAD) using the variant calling pipeline and data management
+tool (VCPA), a standardized pipeline functionally equivalent to the CCDG/TOPMed workflow [87].
+VCPA, implemented in Workflow Description Language (WDL) and optimized for the Amazon EC2
+cloud environment, accepts sequencing data in FASTQ, BAM, or CRAM formats.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 25 =====
+Fine-mapping molecular QTLs using fSuSiE 25
+Sequence reads were aligned to GRC human genome assembly 38 (hg38) using BWA-MEM [104],
+followed by variant calling of single nucleotide variants (SNVs) and short insertion-deletions (indels) us-
+ing GATK HaplotypeCaller [105], with joint calling workflows for improved alignment quality through
+local realignment of insertions/deletions and base quality score recalibration using GATK modules.
+Genotype-level quality control (QC) set each genotype to missing if the read depth (DP) was less
+than 10 or the genotype quality (GQ) score was less than 20. Variant-level QC flags were applied in
+the following order: variants in GATK low sequence quality tranches (lacking FILTER “PASS” value
+above 99.8% VQSR Tranche); monomorphic variants; variants with high missing rate; and variants
+with high depth. ABHet annotation estimated whether biallelic variants matched expected allelic
+ratios, with ideal heterozygous variants having values near 0.5. For downstream analysis, variants
+were retained if they were not assigned any of these QC flags: ABHet between 0.25 and 0.75; missing
+rate <5%; MAF ≥ 1%; and no significant deviation from Hardy-Weinberg equilibrium (p ≥ 10−6).
+Additional sample-level quality control steps included: verifying genetic sex; flagging duplicated and
+related individuals; outliers identified by heterozygosity levels and genotype call rates. The final data
+set contained approximately 30 million biallelic SNVs and 3.5 million indels.
+To control for population stratification, PCA was performed on LD-pruned common variants using
+PLINK (MAF > 5%, r2 < 0.2). We retained the first 15 PCs for use in subsequent analyses.
+Defining regions for cis-eQTL mapping and fine-mapping of molecular traits. Since methylation and
+H3K9ac lack gene-centric reference points, we adopted a unified approach using topologically associ-
+ating domains (TADs) and their boundaries to define regions for QTL mapping and fine-mapping for
+all molecular traits analyzed. The TADs and their boundaries were derived from combined brain and
+blood Hi-C data [62]. In total, we defined 1,449 “extended TADs” for our analyses ranging in size
+from 1 to 17 Mb. For fine-mapping of methylation and H3K9ac, we used these extended TADs as
+the fine-mapping regions. For QTL mapping and fine-mapping of RNA and protein expression, the
+analysis region was defined as the extended TAD containing the gene, plus any additional part of the
+chromosome needed to include ±1 Mb from the gene’s transcription start and end sites.
+RNA-seq data and analyses of RNA expression. The DLPFC bulk RNA-seq came in three different
+batches (n = 638, 252, 251). Total RNA ( ≥50µg) from DLPFC was used for library preparation
+via poly(A) selection (strand-specific dUTP protocol, n = 638) or rRNA depletion (KAPA Stranded
+RNA-Seq Kit with RiboErase, n = 252, RiboGold n = 251). Libraries were sequenced at 30–50 million
+paired-end reads per donor with exact depth varying by batch as described in [47]. Following standard
+QC via FastQC adapter trimming using fastp [106], reads were aligned to the human reference genome
+(hg38) using STAR [107] with WASP correction to reduce reference bias [108], with further quality
+control via Picard [109]. Gene-level RNA expression was quantified with RNA-SeQC [110], removing
+genes if over 20% samples had TPM expression level of 10% or less. Sample-level RNA QC was
+performed following from methods outlined by GTEx V8 [111] using three metrics to remove outliers:
+relative log expression; Mahalanobis distance to hierarchical clustering of samples; and D-statistics
+quantifying average correlation between pairs of samples. After these QC steps, a total of n = 777
+samples were retained for subsequent analyses of RNA expression in DLPFC.
+After these quality control steps, the transcript abundance (TPM) matrices were quantile-normalized.
+Technical factors (batch, RNA integrity number, post-mortem interval) and biological covariates (sex,
+age at death) were included as covariates in QTL analyses, along with the top 15 genotype PCs to
+account for population stratification. Additional hidden confounders included as covariates were es-
+timated by PCA performed on the quantile-normalized RNA expression matrix, with the number of
+PCs (34) determined by the Marchenko-Pastur limit [112].
+QTL mapping for each gene was performed using TensorQTL [88]. Fine-mapping for each gene was
+performed using SuSiE [23] after removing the linear effects of aforementioned covariates from both
+the phenotype and genotype matrices. We took an adaptive approach to determine L, the number
+of CSs, for each gene: starting with L = 5, we iteratively increased L by 2 if all the single effect
+regressions (SERs) in the fitted model had a prior variance greater than zero. We continued in this
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 26 =====
+26 W. Denault et al.
+way until at least one SER had a prior variance of zero. This adaptive strategy increased detection of
+causal SNPs while avoiding an unnecessarily large setting of L (which increases computation). Using
+this adaptive approach, the largest setting of L for a gene was 12. We filtered the CSs returned by
+SuSiE in two ways: we removed a CS if the “purity” [23]—the smallest absolute correlation (Pearson’s
+r) among all pairs of SNPs in the CS—was less than 0.8; and we removed a CS if the sentinel SNP
+had a MAF less than 5%. (See below for the rationale for filtering based on MAF.)
+Proteomic data and analyses of protein abundance. DLPFC protein abundance was quantified using
+selected reaction monitoring (SRM) proteomics [113–116]. Gray matter tissue from DLPFC was ho-
+mogenized and proteins were extracted, followed by trypsin digestion. Targeted peptides were selected
+based on prior discovery proteomics experiments, and SRM assays were performed with manual in-
+spection to ensure correct peak assignment and peak boundaries. After QC and filtering for proteins
+quantified in at least 50% of samples, n = 416 subjects with matched genotype and protein abun-
+dance data of 7,710 proteins were retained for association analysis and fine-mapping. Peptide relative
+abundances were (base-2) log-transformed, and centered at the median, then imputation of missing
+protein levels was performed using grouped empirical Bayes matrix factorization (gEBMF) [117]. QTL
+mapping and fine-mapping was performed as described for RNA expression (see above).
+H3K9ac ChIP-seq data, association analysis and fine-mapping. H3K9ac ChIP-seq [89] was performed
+on DLPFC donors using a well validated H3K9ac antibody (Millipore #06-942). Approximately 50
+mg of gray matter tissue was dissected, cross-linked with 1% formaldehyde, and sonicated prior to
+overnight immunoprecipitation. Purified DNA was used to construct libraries (including end repair,
+adapter ligation and size selection), and single-end 36-bp reads were generated. Reads were aligned to
+human genome assembly hg38, and broad peaks were called with MACS [118, 119] ( q < 0.05, broad
+cutoff = 0.1). Stringent per-sample quality control criteria were also applied ( ≥15 × 106 unique reads,
+non-redundant fraction ≥ 0.3, fraction of reads in peaks ≥ 0.05). A union peak set of 92,401 peaks was
+established to leverage information across donors. Peak counts were computed for the final set of n =
+592 donors, then normalized using a limma-voom pipeline [120, 121]. Batch effects for 62 libraries were
+removed using ComBat [122, 123]. Other technical factors (RNA integrity number, post-mortem inter-
+val) and biological covariates (sex, age at death), along with the top 15 genotype PCs, were included
+as covariates the association and fine-mapping analyses. Additional hidden confounders included as
+covariates in these analyses were estimated from PCA applied to the normalized methylation matrix.
+The number of hidden confounders, 113, was determined by the Marchenko-Pastur limit based on the
+input methylation matrix.
+SNP-peak association testing was performed using TensorQTL [88]. Significance of the SNP-peak
+associations was determined by computing q-values [124] across all tested variants, separately for each
+H3K9ac peak.
+For fine-mapping, SuSiE-topPC and fSuSiE with the IS prior were applied to the data from each
+fine-mapping region (the TADs) in the same way as in the simulations, except that we set L = 20.
+Since fSuSiE requires a minimum of 16 peaks, we did not finemap the TADs that had fewer than than
+16 peaks. We also did not consider SNPs with minor allele count (MAC) ≤ 5 (which corresponds to
+MAF ≤ MAC/2n = 0.4%).
+In examining the fSuSiE CSs, we found that many of the single-variant CSs (i.e., the predicted
+haSNPs) affected H3K9c peaks that were far away (>100 kb) from the haSNP. These long-range
+SNP-peak interactions were heavily concentrated on lower frequency SNPs; in particular, we observed
+a strong excess of SNPs with MAF < 5%. This strongly suggests that the fSuSiE results for low-
+frequency SNPs contain a high proportion of false positives. (These results align with our independent
+findings that SuSiE is poorly calibrated and fails to achieve good coverage at very small sample sizes
+or with low-frequency SNPs [90].) In light of these observations, we removed all single-variant SuSiE-
+topPC and fSuSiE CSs in which the SNP had a MAF < 5%. For CSs with more than one SNP, we
+removed the CS if the sentinel SNP had a MAF < 5%. For consistency, we also removed all SNP-peak
+associations in which the SNP had a MAF < 5%.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 27 =====
+Fine-mapping molecular QTLs using fSuSiE 27
+DNA methylation data, association analysis and fine-mapping. DNA methylation was assayed us-
+ing the Illumina 450K array [47, 91] and processed via the SeSAMe pipeline [125]. SeSAMe applies
+NOOB background correction, nonlinear dye-bias normalization, and pOOBAH-based probe filtering
+to generate high-quality methylation proportions ( β values) [125]. The resulting β values were then
+transformed using a logit transformation. Missing data in the transformed matrix were imputed using
+flashier, a factor analysis method that estimates latent factors from the observed methylation data and
+predicts missing entries. As with other molecular datasets, additional hidden confounders were esti-
+mated by applying PCA to the imputed methylation matrix, with the number of hidden confounders
+(38) determined by the Marchenko-Pastur limit. Technical covariates and biological covariates were
+included as covariates in the association and fine-mapping analyses. Association analysis (TensorQTL)
+and fine-mapping (SuSiE-topPC, fSuSiE) were performed as described for the H3K9ac ChIP-seq data.
+An additional issue specific to the Illumina 450K array is that SNPs within CpG probe sequences
+can create false methylation signals [126, 127]. Such polymorphisms can interfere with probe hy-
+bridization or affect signal detection, particularly when located within the CpG dinucleotide or the
+adjacent single base extension site, producing false intermediate methylation values often misinter-
+preted as epigenetic differences. To address this issue, we removed all all SuSiE-topPC and fSuSiE
+CSs in which one or more of the SNPs overlapped with a CpG probe in the Illumina 450K array
+(source: IlluminaHumanMethylation450K.rda from https://github.com/Yang9704/MethylCallR/
+[128]). Reassuringly, most of the CpG probes overlapping the methylation CSs were also included in
+a list of “suggested probes for removal” from [127] (specifically, these are the CpG probes flagged as
+“discard” in “Additional file 2”). Most of the mSNPs overlapping with CpG probes had low MAFs so
+were already removed from the previous MAF-filtering step. We also did the same for the SNP-CpG
+associations, although this removed only a very small number of SNP-CpG associations meeting the
+q-value threshold.
+AD GWAS fine-mapping and colocalization. To finemap AD risk loci, we constructed an LD reference
+panel using genotype data from the Alzheimer’s Disease Sequencing Project (ADSP), which consisted
+of approximately 17,000 WGS individuals of European ancestry. QC on two recent AD GWAS meta-
+analysis summary statistics [66, 67] was then performed against this reference panel, including allele
+harmonization and LD mismatch detection using SLALOM [129], which flagged suspicious variants
+and then removed them. We then ran SuSiE-RSS [23, 24] using the z-scores from each of the AD
+GWAS and the LD from the LD reference panel as input data. To prioritize AD risk loci for further
+investigation, we ran COLOC (version 5) [68] to assess colocalization of the putative causal AD SNPs
+with RNA expression, protein expression, DNA methylation and H3K9ac SNPs.
+Excess-of-overlap enrichment analysis. We performed an excess-of-overlap (EOO) enrichment analy-
+sis of the haSNPs and mSNPs using a collection of predefined functional annotations from the Baseline-
+LD v2.2 model among common SNPs (MAF > 0.05) in the 1000 Genomes Project [64, 65]. For each
+molecular trait (H3K9ac, DNA methylation) and method (fSuSiE, SuSiE-topPC), we defined the “pos-
+itive set” for enrichment analysis using variants within 95% credible sets (CSs) that had PIP> 0.5 and
+complete functional annotations available in Baseline-LD v2.2 common SNPs. This filtering process
+yielded 8,264 CS variants from a total of 74,065 variants across DNA methylation and H3K9ac credible
+sets for fSuSiE, and 749 out of 97,595 for SuSiE-topPC. Following [79], we tested whether selected
+SNPs showed greater overlap with functional annotations than expected by chance, with control set
+defined as follows: for each selected SNP, 5 SNPs outside the selected set were chosen to match based
+on LD score and minor allele frequency. For each annotation, enrichment was calculated as the ra-
+tio of the proportion of selected SNPs overlapping the annotation to the proportion of control SNPs
+overlapping the annotation. Statistical significance and confidence intervals were estimated using a
+jackknife resampling procedure, where the enrichment ratio was recalculated after iteratively removing
+each chromosome. Mean and standard error of enrichment estimates were computed from jackknife
+samples; annotations were considered significantly enriched if the 95% jackknife confidence interval
+for the enrichment ratio did not include 1.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 28 =====
+28 W. Denault et al.
+Data availability
+The datasets analyzed, including the ADSP R4 WGS genotype data, are available for application and
+download from the NIAGADS Data Sharing Service, https://dss.niagads.org. The code imple-
+menting the data processing and analysis pipelines for is available at https://statfungen.github.
+io/xqtl-protocol. Data generated from numerical studies and analysis to prepare figures for the
+paper is available at https://github.com/stephenslab/fsusie-experiments/. A subset of fine-
+mapped QTL obtained from our analyses are available for peer review purposes, at https://github.
+com/stephenslab/fsusie-experiments/blob/main/data/README.md. The complete set of QTL
+data and QTL-GWAS integration models will be made publicly available at https://synapse.org
+prior to publication for registered Synapse users, as per the Data Management and Sharing policy of
+the FunGen-xQTL project. Other data sets used include: 1000 Genomes Phase 3 whole-genome se-
+quencing data, https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/; GENCODE
+Ensembl/Havana database, https://useast.ensembl.org/info/genome/genebuild/annotation_
+merge.html; MethylCallR R package, https://github.com/Yang9704/MethylCallR.
+Code availability
+The fsusieR R package is available on GitHub at https://github.com/stephenslab/fsusieR (3-
+clause BSD license). The code used to perform the simulations and generate the manuscript figures is
+available at https://github.com/stephenslab/fsusie-experiments/. Other software and R pack-
+ages used in this work include: VCPA 1.1 (http://www.niagads.org/VCPA/); BWA-MEM 0.7.15
+(https://github.com/lh3/bwa/); GATK 4.1.1 (https://gatk.broadinstitute.org); FastQC 0.12.1
+(http://www.bioinformatics.babraham.ac.uk/projects/fastqc/); fastp 0.23.4 (https://github.
+com/OpenGene/fastp/); STAR 2.7.11b (https://github.com/alexdobin/STAR/); WASP (https://
+github.com/bmvdgeijn/WASP/); Picard 3.1.0 (https://broadinstitute.github.io/picard/); RNA-
+SeQC 2.4.2 (https://github.com/getzlab/rnaseqc/); MACS2 (https://github.com/macs3-project/
+MACS/); ComBat (https://github.com/epigenelabs/pyComBat/); PLINK 1.9 (https://www.cog-genomics.
+org/plink/); TensorQTL 1.0.8 (https://github.com/broadinstitute/tensorqtl/); sim1000G 1.40
+(https://github.com/adimitromanolakis/sim1000G); WGBSSuite 0.4 (https://github.com/SystemsGeneticsSG/
+WGBSSuite/); SeqSIMLA (https://seqsimla.sourceforge.net/); susieR 0.14.7 ( https://github.
+com/stephenslab/susieR/); coloc 5.2.3 (https://github.com/chr1swallace/coloc/); ashr 2.2-63
+(https://github.com/stephens999/ashr/); mixsqp 0.3.18 (https://github.com/stephenslab/mixsqp/);
+wavethresh 4.7.2 ( https://cran.r-project.org/package=wavethresh); limma 3.56.2 (https://
+bioconductor.org/packages/limma/); qvalue 2.32.0 ( https://github.com/StoreyLab/qvalue/);
+flashier 1.0.21 (https://github.com/willwerscheid/flashier/); R 4.3.3 (https://www.r-project.
+org).
+Methods-only references
+[93] George, E. I. and R. E. McCulloch (1997). Approaches to Bayesian variable selection. Statistica
+Sinica 7, 339–373.
+[94] Stephens, M. and D. J. Balding (2009). Bayesian statistical methods for genetic association
+studies. Nature Reviews Genetics 10, 681–690.
+[95] Crouse, M., R. Nowak, and R. Baraniuk (1998). Wavelet-based statistical signal processing using
+hidden Markov models. IEEE Transactions on Signal Processing 46 (4), 886–902.
+[96] Ma, L. and J. Soriano (2018). Efficient functional ANOVA through wavelet-domain Markov
+Groves. Journal of the American Statistical Association 113 (522), 802–818.
+[97] Xing, Z., P. Carbonetto, and M. Stephens (2021). Flexible signal denoising via flexible empirical
+Bayes shrinkage. Journal of Machine Learning Research 22 (93), 1–28.
+[98] Wang, W. and M. Stephens (2021). Empirical Bayes matrix factorization. Journal of Machine
+Learning Research 22 (120), 1–40.
+[99] Nason, G. (2008). Wavelet Methods in Statistics with R. New York, NY: Springer.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 29 =====
+Fine-mapping molecular QTLs using fSuSiE 29
+[100] Fachal, L., H. Aschard, J. Beesley, D. R. Barnes, J. Allen, S. Kar, et al. (2020). Fine-mapping
+of 150 breast cancer risk regions identifies 191 likely target genes. Nature Genetics 52, 56–73.
+[101] Yang, Z., C. Wang, L. Liu, A. Khan, A. Lee, B. Vardarajan, R. Mayeux, K. Kiryluk, and
+I. Ionita-Laza (2023). CARMA is a new Bayesian model for fine-mapping in genome-wide association
+meta-analyses. Nature Genetics 55 (6), 1057–1065.
+[102] Du, P., X. Zhang, C.-C. Huang, N. Jafari, W. A. Kibbe, L. Hou, and S. M. Lin (2010). Compar-
+ison of Beta-value and M-value methods for quantifying methylation levels by microarray analysis.
+BMC Bioinformatics 11, 587.
+[103] Chung, R.-H. and C.-Y. Kang (2019, April). A multi-omics data simulator for complex disease
+studies and its application to evaluate multi-omics data analysis methods for disease classification.
+GigaScience 8 (5).
+[104] Li, H. (2013). Aligning sequence reads, clone sequences and assembly contigs with BWA-MEM.
+arXiv, doi:10.48550/arXiv.1303.3997.
+[105] DePristo, M. A., E. Banks, R. Poplin, K. V. Garimella, J. R. Maguire, C. Hartl, A. A. Philip-
+pakis, G. del Angel, M. A. Rivas, M. Hanna, A. McKenna, T. J. Fennell, A. M. Kernytsky, A. Y.
+Sivachenko, K. Cibulskis, S. B. Gabriel, D. Altshuler, and M. J. Daly (2011). A framework for varia-
+tion discovery and genotyping using next-generation DNA sequencing data. Nature Genetics 43 (5),
+491–498.
+[106] Chen, S., Y. Zhou, Y. Chen, and J. Gu (2018). fastp: an ultra-fast all-in-one FASTQ prepro-
+cessor. Bioinformatics 34 (17), i884–i890.
+[107] Dobin, A., C. A. Davis, F. Schlesinger, J. Drenkow, C. Zaleski, S. Jha, P. Batut, M. Chaisson,
+and T. R. Gingeras (2013). STAR: ultrafast universal RNA-seq aligner. Bioinformatics 29 (1),
+15–21.
+[108] Van de Geijn, B., G. McVicker, Y. Gilad, and J. K. Pritchard (2015). WASP: allele-specific
+software for robust molecular quantitative trait locus discovery. Nature Methods 12 (11), 1061–1063.
+[109] (2019). Picard toolkit. https://broadinstitute.github.io/picard/.
+[110] Graubert, A., F. Aguet, A. Ravi, K. G. Ardlie, and G. Getz (2021). RNA-SeQC 2: efficient
+RNA-seq quality control and quantification for large cohorts. Bioinformatics 37 (18), 3048–3050.
+[111] The GTEx Consortium (2020). The GTEx Consortium atlas of genetic regulatory effects across
+human tissues. Science 369 (6509), 1318–1330.
+[112] Blighe, K. and A. Lun (2024). Pcatools: Pcatools: Everything principal components analysis.
+R package version 2.18.0.
+[113] Johnson, E. C. B., E. B. Dammer, D. M. Duong, L. Yin, M. Thambisetty, J. C. Troncoso,
+J. J. Lah, A. I. Levey, and N. T. Seyfried (2018). Deep proteomic network analysis of Alzheimer’s
+disease brain reveals alterations in RNA binding proteins and RNA splicing associated with disease.
+Molecular Neurodegeneration 13, 52.
+[114] Johnson, E. C. B., E. B. Dammer, D. M. Duong, L. Ping, M. Zhou, L. Yin, et al. (2020). Large-
+scale proteomic analysis of Alzheimer’s disease brain and cerebrospinal fluid reveals early changes
+in energy metabolism associated with microglia and astrocyte activation. Nature Medicine 26,
+769–780.
+[115] Ping, L., D. M. Duong, L. Yin, M. Gearing, J. J. Lah, A. I. Levey, and N. T. Seyfried (2018).
+Global quantitative analysis of the human brain proteome in Alzheimer’s and Parkinson’s disease.
+Scientific Data 5 , 180036.
+[116] Ping, L., S. R. Kundinger, D. M. Duong, L. Yin, M. Gearing, J. J. Lah, A. I. Levey, and N. T.
+Seyfried (2020). Global quantitative analysis of the human brain proteome and phosphoproteome
+in Alzheimer’s disease. Scientific Data 7 , 315.
+[117] Qi, Z., A. Pelletier, J. Willwerscheid, X. Cao, X. Wen, C. Cruchaga, P. D. Jager, T. C. W. Julia,
+and G. Wang (2023). Novel missing data imputation approaches enhance quantitative trait loci
+discovery in multi-omics analysis.
+[118] Zhang, Y., T. Liu, C. A. Meyer, J. Eeckhoute, D. S. Johnson, B. E. Bernstein, C. Nusbaum,
+R. M. Myers, M. Brown, W. Li, and X. S. Liu (2008). Model-based Analysis of ChIP-Seq (MACS).
+Genome Biology 9, R137.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 30 =====
+30 W. Denault et al.
+[119] Feng, J., T. Liu, B. Qin, Y. Zhang, and X. S. Liu (2012). Identifying ChIP-seq enrichment using
+MACS. Nature Protocols 7, 1728–1740.
+[120] Law, C. W., Y. Chen, W. Shi, and G. K. Smyth (2014). voom: precision weights unlock linear
+model analysis tools for RNA-seq read counts. Genome Biology 15, R29.
+[121] Law, C. W., M. Alhamdoosh, S. Su, X. Dong, L. Tian, G. K. Smyth, and M. E. Ritchie (2018).
+Rna-seq analysis is easy as 1-2-3 with limma, Glimma and edgeR [version 3; peer review: 3 approved].
+F1000Research 5 (1408).
+[122] Johnson, W. E., C. Li, and A. Rabinovic (2007). Adjusting batch effects in microarray expression
+data using empirical Bayes methods. Biostatistics 8 (1), 118–127.
+[123] Leek, J. T., W. E. Johnson, H. S. Parker, A. E. Jaffe, and J. D. Storey (2012). The sva
+package for removing batch effects and other unwanted variation in high-throughput experiments.
+Bioinformatics 28 (6), 882–883.
+[124] Storey, J. D. (2003). The positive false discovery rate: a Bayesian interpretation and the q-value.
+Annals of Statistics 31 (6), 2013–2035.
+[125] Zhou, W., J. Triche, Timothy J, P. W. Laird, and H. Shen (2018). SeSAMe: reducing arti-
+factual detection of DNA methylation by infinium beadchips in genomic deletions. Nucleic Acids
+Research 46 (20), e123.
+[126] an Chen, Y., M. Lemire, S. Choufani, D. T. Butcher, D. Grafodatskaya, B. W. Zanke,
+S. Gallinger, T. J. Hudson, and R. W. and (2013). Discovery of cross-reactive probes and polymor-
+phic CpGs in the Illumina Infinium HumanMethylation450 microarray. Epigenetics 8 (2), 203–209.
+[127] Naeem, H., N. C. Wong, Z. Chatterton, M. K. H. Hong, J. S. Pedersen, N. M. Corcoran,
+C. M. Hovens, and G. Macintyre (2014). Reducing the risk of false discovery enabling identification
+of biologically significant genome-wide methylation status using the HumanMethylation450 array.
+BMC Genomics 15 , 51.
+[128] Yang, H.-H. and M.-R. Han (2024). MethylCallR: a comprehensive analysis framework for
+Illumina Methylation Beadchip. Scientific Reports 14, 27026.
+[129] Kanai, M., R. Elzur, and W. Zhou (2022). Meta-analysis fine-mapping is often miscalibrated at
+single-variant resolution. Cell Genomics 2 (12), 100210.
+[130] Nason, G. P., R. V. Sachs, and G. Kroisandt (2000). Wavelet processes and adaptive estimation
+of the evolutionary wavelet spectrum. Journal of the Royal Statistical Society, Series B 62 (2),
+271–292.
+Acknowledgments
+We thank Kevin Luo, Xin He, and members of the Wang and Stephens labs for discussions and support,
+and Yuqi Miao for initial input on simulation study design. We thank the staff at the Research Com-
+puting Center at the University of Chicago for providing the high-performance computing resources
+used to implement the numerical experiments. We thank Angela Helfrich and Mark Bronnimann
+from Amazon Web Services for providing cloud computing support. We also thank the members of
+the Alzheimer’s Disease Sequencing Project Functional Genomics Consortium (FunGen-AD) for pro-
+viding the FunGen-xQTL resource. This work was supported in part by NIH grants R01HG002585
+and R35GM153249 (to M.S.), NIH grants R01AG076901 and R01AG086467 (to G.W., H.S., A.L.),
+U01AF072572 (to P.L.D.) and a grant from the Urbut Family Foundation (to G.W.). This project is
+supported by the Eric and Wendy Schmidt AI in Science Postdoctoral Fellowship, a Schmidt Sciences,
+LLC program. Additional support came from the University of Chicago Data Science Institute through
+the 2024 AI+Science Research Initiative. This research was conducted using data from the Religious
+Orders Study and the Rush Memory and Aging Project (ROSMAP). We thank the participants and
+investigators of these studies.
+Author contributions
+G.W. and M.S. jointly supervised research. W.D. developed the method and algorithm with input from
+G.W. and M.S. W.D., G.W. and M.S. conceived and designed the experiments. W.D. implemented
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 31 =====
+Fine-mapping molecular QTLs using fSuSiE 31
+the methods comparisons in simulations and performed the statistical analyses. W.D., H.S., P.C.,
+and A.L. conducted data applications and interpreted the results. W.D. and P.C. implemented the
+fSuSiE software. P.L.D. and D.B. contributed and supervised molecular QTL data production from the
+ROSMAP cohort. The Alzheimer’s Disease Functional Genomics Consortium contributed additional
+data resources. W.D., P.C., H.S., G.W. and M.S. wrote and revised the manuscript. All authors
+critically reviewed the manuscript, suggested revisions as needed, and approved the final version.
+Competing interests
+The authors declare no competing interests.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 32 =====
+32 W. Denault et al.
+Supplementary text
+Background on wavelet regression
+Wavelet transform and the concept of scale. To introduce the basic ideas, we consider the discrete
+wavelet transform (specifically, the unscaled Haar wavelet transform). Then we present the concept
+of scale (or resolution level), and define notation for the wavelet coefficients. For a more detailed
+introduction, see Nason[99].
+Let f = (f1, . . . , fT ) be a time series such that T = 2S. The wavelet transform of f1, . . . , fT is a set
+of T coefficients, denoted by ds,l, with s ∈ [0, S −1], in which each coefficient summarizes the variation
+of f on an interval of [1 , T]. The index s is the “scale” of a wavelet coefficient (WC); WCs at a small
+s (say, 0, 1 or 2) capture variation of f over large intervals whereas WCs at large s capture variation
+over small intervals of [1, T ].
+To give some intuition for how wavelet coefficients are generated from an observed signal, consider
+the unscaled Haar wavelet transform, a wavelet transform which involves relatively simple calculations.
+The single unscaled WC at scale 0 is a simple sum:
+d0,1 =
+TX
+t=1
+ft. (17)
+This WC is sometimes called the “height” of f. The single WC at scale 1 is
+d1,1 =
+T /2X
+t=1
+ft −
+TX
+t=T /2+1
+ft, (18)
+which is the difference in height between left half and right half. The two WCs at scale 2 are
+d2,1 =
+T /22
+X
+t=1
+ft −
+T ×2/22
+X
+t=T /22+1
+ft (19)
+d2,2 =
+T ×22/22
+X
+t=T ×2/22+1
+ft −
+TX
+t=T ×22/22+1
+ft. (20)
+The d2,1 coefficient is the difference in the height of g between the first and second quarters, and d2,2
+is the contrast in the height of g between the third and fourth quarters.
+The WCs at scales 3 and larger follow a similar logic. By repeating this process at scales s = 3
+up to s = S − 1, we obtain a total of 2 S WCs. This process just described can also be equivalently
+formulated as matrix multiplication with orthogonal projection matrix W. This ability to express the
+wavelet decomposition as a matrix multiplication is a property of all wavelet bases, not just the Haar
+basis [49].
+The undecimated wavelet transform. In the presented work, we assume that the data are evenly
+spaced and have T = 2 S measurements. However, such an assumption is not realistic in practice.
+The problem of applying wavelets to unevenly-spaced data of length n ̸= 2 S has been addressed by
+several authors [50] [130] [131] and is referred to as an undecimated/non-decimated wavelet transform
+or lifting scheme. In our implementation, we used the approach of Kovac and Silverman [131]. The
+approach of Kovac and Silverman [131] for non-decimated (size ̸= 2S) and unevenly-spaced data con-
+sist on interpolating the observed data on a evenly spaced grid of length 2 S. The interpolated data is
+then used as our response variable and we apply fSuSiE directly. We provide an additional description
+of the procedure of Kovac and Silverman [131] is described below.
+Suppose, we observe Y at T ′ unevenly spaced time points τ1, . . . , τT ′ and we assume that T ′ is not
+a power of 2. For simplicity, we consider these time points to be between [0, 1]. Kovac and Silverman
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 33 =====
+Fine-mapping molecular QTLs using fSuSiE 33
+[131] suggested considering a new set of evenly space-time point, t0, ..., tT where T = 2 S, S ∈ N, in
+which ti = (i + 1
+2)2−S and S = min{s ∈ N, 2s, ≥ n}.
+We generate a new matrix of observation Yinter by interpolating each individual curve on this grid
+as follows. For a given individual k we define Yk,inter(t) (the interpolated value of curve of individual
+k at time point t) as:
+Yk,inter(t) =
+
+
+
+
+Yk(τ0)if ti ≤ τ1
+Yk(τi) + (ti − τi) Yk(τi+1)−Yk(τi)
+τi+1−τi
+if τi ≤ ti ≤ τi+1
+Yk(τT ′)if ti ≥ τT ′
+(21)
+The expression can then be written in terms of the matrix as follows:
+Yk,inter = ΩYk (22)
+Where Ω is the matrix corresponding to the interpolation procedure described in equation (21). The
+resulting vector Yk,inter is of length 2S and corresponds to the linear interpolation of Yk on the evenly
+spaced time points t0, ..., tT .
+Elementary posterior expressions used to derive fSuSiE computations
+To derive our VA approximation of the posterior of model (10), we start by computing some key
+quantities of some simpler models. These quantities will serve as building blocks for our estimation
+procedure. Here, we consider that the matrices Y, D (response data) and X (covariates) are centered
+in a column-wise fashion. Similarly the corresponding vectors Y, d (response data) and x (covariates)
+are also assumed to be centered.
+Simple Bayesian functional regression. The most basic building block in our derivations is a wavelet
+regression model in which the effects have independent normal priors. We call this thesimple Bayesian
+functional regression model:
+D = xf ⊺ + E
+eit ∼ N (0, σ2)
+fs,l ∼ N (0, σ2
+0),
+(23)
+where D is a matrix of dimension N × T , x is a vector of length N, f is a vector of length T , and E is
+a matrix of dimension N × T in which the individual entries are denoted by eit. Although not strictly
+needed to describe this simple functional regression model, here we introduce the indices s and l for
+wavelet scale and wavelet location; in this notational convention, each pair ( s, l) corresponds to an
+integer from 1 to T so that fs,l is an element of the vector f. This notation will become moree useful
+below for thee more complex functional regression models.
+The maximum-likelihood estimate of f and its corresponding variance are given by
+ˆfs,l = x⊺d · s,l
+x⊺x (24)
+ˆσ2
+s,l = σ2
+x⊺x , (25)
+in which d · s,l denotes a column of D.
+The posterior distribution of f is given by
+fs,l | x, D ∼ N (µ1,s,l, σ2
+1,s,l), (26)
+where
+σ2
+1,s,l := 1
+1/σ2
+0 + 1/ˆσ2
+s,l
+(27)
+µ1,s,l :=
+σ2
+1,s,l
+ˆσ2
+s,l
+× ˆfs,l. (28)
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 34 =====
+34 W. Denault et al.
+The Bayes factor comparing with the null hypothesis ( f = 0) against the alternative (f ̸= 0) is
+BF(x, D) = p(D | x)
+p(D | x, f = 0) (29)
+=
+Q
+s,l
+R
+p
+ 
+D.s,l|x, fs,l, σ2
+p(fs,l|σ2
+0)d fs,l
+Q
+s,l p(D.,s,l|x, fs,l = 0, σ2, σ2
+0) (30)
+=
+Q
+s,l N ( ˆfs,l, 0, σ2
+0 + σ2
+f)
+Q
+s,l N ( ˆfs,l, 0, σ2
+f)
+(31)
+=
+ 
+σf 2
+σ2
+f + σ2
+0
+! T
+2
+exp
+
+ σ2
+0
+σ2
+f + σ2
+0
+
+X
+s,l
+z2
+s,l
+2
+
+
+
+ , (32)
+in which zs,l := ˆfs,l/ˆσs,l.
+Bayesian simple functional regression with mixture prior. Given the previous derivations, we can now
+compute the full posterior under the SFR model using a scale-dependent mixture prior. As previously,
+we start by establishing the basic result for the simple Bayesian functional regression and then extend
+it to the SFR model. Let’s consider the following simple function regression model with a mixture
+prior:
+D = xf t + E (33)
+Ei,s,l ∼ N (0, σ2) (34)
+fs,l ∼
+KX
+k=0
+πk,sN (0, σ2
+k) (35)
+As mentioned in the main text, to lighten the notation we assume that the grid of ( σ2
+k) is the same for
+every scale; in practice, we use a different grid of sigma for each scale. We start by introducing the
+following latent variables:
+p(κs,l = k) = πk,s (36)
+fs,l|κs,l = k ∼ N (0, σ2
+k) (37)
+Using results from equation (27) and (28), the posterior distribution of fs,l given that κs,l = k is
+fs,l|D.s,l, σ2, σ2
+k, κs,l = k ∼ N (µ1k,s,l, σ2
+1k) (38)
+where (39)
+σ2
+1k = 1
+1
+σ2
+f
++ 1
+σ2
+k
+(40)
+µ1k,s,l = σ2
+1k
+σ2
+f
+ˆfs,l (41)
+(42)
+Thus the posterior first and second moment of f is given by
+E[fs,l] = p(fs,l|D.,s,l, x, σ2, (σ2
+k), (πk,s)) (43)
+=
+KX
+k=0
+µ1k,s,l ˜πk,s,l (44)
+E[f 2
+js,l] = αj(
+X
+k
+˜πk,s,lσ2
+1,k,j +
+X
+k
+µ2
+1k,j ,s,l ˜πk,s,l) (45)
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 35 =====
+Fine-mapping molecular QTLs using fSuSiE 35
+Where ˜πk,s,l is the posterior probability of κs,l
+˜πk,s,l = p(κs,l = k|D.,s,l, x, σ2, (σ2
+k), (πk,s)) (46)
+=
+πk,sBFuni
+
+D.,s,l, x, σ2, σ2
+k
+
+PK
+k′=0 πk′,sBFuni
+
+D.,s,l, x, σ2, σ2
+k′
+ (47)
+Where BFuni is defined as
+BFuni
+
+D.,s,l, x, σ2, σ2
+k
+
+=
+N ( ˆfs,l, 0, σ2
+k + σ2
+f)
+N ( ˆfs,l, 0, σ2
+f)
+(48)
+Finally, the Bayes factor for the simple Bayesian functional regression using a mixture prior can be
+computed as follows:
+BFmix
+
+D, x, σ2, (σ2
+k), (πk,s))
+
+= p(D|x, f , σ2, (σ2
+k))
+p(D|x, f ≡ 0, σ2, (σ2
+k)) (49)
+=
+Q
+s,l
+PK
+k=1 πk,sN ( ˆfs,l, 0, σ2
+k + σ2
+f)
+Q
+s,l N ( ˆfs,l, 0, σ2
+f)
+(50)
+Bayesian simple single functional regression. Let’s extend the SFR model with a simple normal prior
+to a multivariate setting. Here we suppose that only one of the covariate in X is affecting the outcome.
+Our goal is to corner this single covariate by modeling the effect of X as follow,
+D = XF + E (51)
+E ∼ N(0, σ2) (52)
+F = diag(γ)F 1 (53)
+γ ∼ M ult(1,p) (54)
+f 1
+j,s,l ∼ N(0, σ2
+0) (55)
+Where X is a matrix of dimension N × J, F is a matrix of length J × T , where exactly only one row
+is different from 0 T , E is a matrix of dimension N × T , f is a vector of length 2 S = T , p is a vector
+length J, with components between 0 and 1 and the sum of its components sums to 1. This model
+can be fitting using the quantities defined in the previous section as well as the following posterior
+distribution for γ and F . Following the seminal work of Wang and colleagues [23]:
+γ|D, X, σ2
+0, σ2 ∼ M ult(1,α) (56)
+Where the component of the posterior probability of inclusion α can be computed as following
+using Bayes rules
+αj = p(γj = 1|D, X, σ2
+0, σ2) = p(D|γj = 1, X, σ2
+0, σ2)p(γj = 1)PJ
+j′=1 p(D|γj′ = 1X, σ2
+0, σ2)p(γj′ = 1)
+(57)
+= pjBFsimple(D, X.,j, σ2
+0, σ2)PJ
+j′=1 pj′BFsimple(D, X.,j′, σ2
+0, σ2)
+(58)
+Therefore, the posterior first and second moments of the column of the entries of F in model (51) can
+be computed as follow:
+E[fj,s,l] = p(fj,s,l|D.,s,l, Xj, σ2, σ2
+0) (59)
+= p(f 1
+j,s,l|γj = 1, D.,s,l, Xj, σ2, σ2
+0)p(γj = 1|D.,s,l, Xj, σ2, σ2
+0) (60)
+= αjµ1,js,l (61)
+E[f 2
+j,s,l] = αj(σ2
+1,s,l + µ2
+1,js,l) (62)
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 36 =====
+36 W. Denault et al.
+Where σ2
+1,s,l is defined as in (27) and µ1,js,l is defined as in (28).
+Bayesian single functional regression with mixture prior.Finally let’s consider model (10) with mixture
+prior (written below for convenience):
+D = XF + E (63)
+Ei,t ∼ N (0, σ2) (64)
+F = F 1 ⊙ γ (65)
+γ ∼ M ult(1,p) (66)
+f 1
+j,s,l ∼
+KX
+k=0
+πk,sN (0, σ2
+k,s) (67)
+Fitting (10) requires computing the following quantities:
+αj = pjBFmix(D, xj, (σ2
+k)1:K, (πk,s), σ2)PJ
+j′=1 pj′BFmix(D, x′
+j, (σ2
+k)1:K, (πk,s), σ2)
+(68)
+E[fj,s,l] = αj
+X
+k
+µ1k,j ,s,l ˜πk,s,l (69)
+E[f 2
+j,s,l] = αj(
+X
+k
+˜πk,s,lσ2
+1,k,j +
+X
+k
+µ2
+1k,j ,s,l ˜πk,s,l) (70)
+Which is straightforward to compute using results from previous section.
+Estimating the hyperparameters (πk,s). So far for any given SFR we assume that the hyperparameters
+(σ2, (σ2
+k), (πk,s)) are knwon. We estimate σ2 using the residuals (see section 13) and the grid σ2
+k
+is selected in an automatic fashion (see [81]) prior to the estimation procedure. We estimate the
+remaining K × S hyperparameters (πk,s) in a an empirical Bayes way, using an EM algorithm that we
+detail below. First, notice that the log-likelihood of an SFR can be written as
+l(D, X, σ2, (σ2
+k)) = p(D|X, σ2, (σ2
+k)) (71)
+∝
+JX
+j=1
+pjBFmix
+
+D, X.j, σ,(σ2
+k), (πk,s)
+
+(72)
+To lighten the notation let’s denote BFmix
+ 
+D, X.j, σ,(σ2
+k), (πk,s)
+
+as BFj
+ 
+(πk,s)
+
+. Let X be a random
+variable generated from the following mixture:
+X ∼
+JX
+j=1
+p′
+jBFj
+ 
+(πk,s)
+
+(73)
+Where p′
+j is the proportion of the component j in the mixture. Let’s now introduce the latent
+variable Z with value in J1 : JK, such that X|Z = j ∼ BF
+ 
+(πk,s)
+
+and p(Z = j) = p′
+j
+Then the complete log-likelihood can be written.
+l(D, X, F, σ2, σ2
+0) ∝
+JX
+j=1
+I(Z = j)
+h
+log(p′
+j) + log(BFj
+ 
+(πk,s)
+
+)
+i
+(74)
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 37 =====
+Fine-mapping molecular QTLs using fSuSiE 37
+Knowing Z|X, we can maximize the expected log-likelihood
+EZ|X
+h
+l(D, X, F, σ2, σ2
+0)
+i
+∝
+JX
+j=1
+EZ|X
+
+I(Z = j)
+
+log(p′
+j) + BFj
+ 
+(πk,s)
+
+(75)
+E step. Thus E step can be computed as
+EZ|X
+
+I(Z = j)
+
+t+1 = p′
+jBFj
+ 
+(πk,s)
+
+PJ
+j′=1 p′
+jBFj′
+ 
+(πk,s)
+ (76)
+We note ζj,t+1 = EZ|X
+
+I(Z = j)
+
+t+1
+M step. Thus the complete log-likelihood can be written as
+JX
+j=1
+1(z = j)
+
+log(pj) + log
+
+BFj
+ 
+(πk,s)
+
+(77)
+(78)
+Thus the expected value of the complete log-likelihood is proportional (with respect to ( πk,s)) to
+∝
+JX
+j
+ζj,t+1 log
+
+BFj
+ 
+(πk,s)
+
+(79)
+∝
+JX
+j
+ζj,t+1
+X
+s,l
+log
+
+
+KX
+k
+πk,sN ( ˆf 1
+j,s,l, 0, σ2
+k + σ2
+f)
+
+ (80)
+∝ log
+
+
+JY
+j=1
+SY
+s=1
+
+
+2s+1Y
+l=1
+
+
+KX
+k
+πk,sN ( ˆf 1
+j,s,l, 0, σ2
+k + σ2
+f)
+
+
+
+
+ζj,t+1
+
+ (81)
+Equation (81) can be maximised using a weighted EM algorithm to optimise over on set of (πk,s)1:K
+(here s is fixed) so corresponding S independent weighted maximization problems
+JY
+j=1
+
+
+2s+1Y
+l=1
+
+
+KX
+k
+πk,sN ( ˆf 1
+j,s,l, 0, σ2
+k + σ2
+f)
+
+
+
+
+ζj,t+1
+(82)
+Given that the only unknown quantities are the mixture proportions, these problems are convex
+and can be solved efficiently; we use the mixsqp R package to solve these problems [132].
+Note that, in practice when the number of SNPs and/or number of wavelet coefficient is large
+(J > 10, 000 , T > 1000), optimizing (82) may require to allocate a J × (T × K) matrix which can
+lead to requesting very large amount of memory. In practice, we alleviate this problem by optimizing
+(82) only using SNPs with a large value ζj,t+1 (e.g. using the 5000 SNPs which have the ζj,t+1 largest
+values) and limit the number of wavelet coefficient to a maximum of 1024. These parameters can be
+changed by the user, but may require a large amount of memory available.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 38 =====
+38 W. Denault et al.
+Algorithms for fitting the fSuSiE model
+In the line of the work of [23], we show that given F(1), . . . ,F(R−1) are known, estimating effect R,
+(i.e., F(R)) from model (11) corresponds to fitting an SFR model using as response R = D − XFR−1
+where FR−1 = PE−1
+e=1 F (r) (see Appendix section 13). This suggests that model (11) can be fitted
+using an iterative algorithm that estimates each element of F =PR
+r F(r) one at a time using an SFR,
+while holding the other constant. In the vein of [23], we use an Iterative Bayesian stepwise selection
+(IBSS) to fit the fSuSiE model. We detail our IBSS method in Algorithm 1. Similar to the IBSS in
+the univariate case, our algorithm is simple and has a complexity O(N J T L) per outer-loop iteration.
+In particular, the IBSS described in Algorithm 1 is a coordinate ascent algorithm that optimizes a
+VA of the posterior distribution of F(1), . . . ,F(R) under the fSuSiE model (11). The key idea of VA is
+to find an approximation of the posterior distribution ppost(F(1), . . . ,F(R)|Y, X, σ2, (σ2
+k), (πs,k)) that is
+simpler to compute than the actual posterior. This approximation is generally obtained by imposing
+a certain form of the approximation of the posterior; noted:
+q(F(1), . . . ,F(R)|Y, X, σ2, (σ2
+k), (πs,k))
+that makes the problem more tractable. As in most VA [133], we fit the fSuSiE by minimizing the
+Kullback-Leibler ( DKL) divergence between q and ppost.
+DKL(q, ppost) = log(p(Y|X, σ2, (σ2
+k), (πs,k))) − F (q, Y, X, σ2, (σ2
+k), (πs,k)) (83)
+Albeit the DKL(q, ppost) is in general intractable, it can be written as a sum of two terms in which
+only one depends on q (see equation (83) ). Thus minimizing the Kullback-Leibler divergence in terms
+of q is equivalent to minimizing the second term of (83), which is easier to compute. The function F is
+referred to as the ”evidence lower bound” (ELBO). Thus minimizing (83) corresponds to the following
+maximization problem.
+maximize
+q1,...,qR
+F (q1, . . . , qR, Y, X, σ2, (σ2
+k), (πs,k)) (84)
+To make (84) a more tractable problem, we seek to minimize the ELBO given that q can be
+factorized as follow:
+q(F(1), . . . ,F(R)) =
+RY
+e=1
+qr(F(R)) (85)
+Equation (85) imposes independence between the posterior of distribution of F(1), ...,F(R). As
+noted by Wang and colleagues [23] this factorization allows each posterior distribution qr to select
+which are the likely covariates that contain effect e. While the maximization problem (84) can be
+challenging, optimizing (84) for one qr at a time is straightforward. In particular, optimizing (84) for
+one qr corresponds to fitting a SFR model (see the proposition below).
+Proposition 1.
+maximize
+qr
+F (q1, . . . , qR, Y, X, σ2, (σ2
+k), (πs,k) = SF R(X, ¯Rr, G, σ2
+0) (86)
+Where ¯Rr is the expected value of the residual when removing all the effects except effect r. More
+formally
+¯Rr = D − X
+RX
+r′̸=r
+¯F(r′) (87)
+Where ¯F(r′) are the expected value of F(r′) with respect to qr′
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 39 =====
+Fine-mapping molecular QTLs using fSuSiE 39
+Formal arguments to prove Proposition 1 are provided in Appendix section 13. Informally Proposi-
+tion 1 states that the approximate posterior distribution of a given effect can be obtained by subtracting
+all the fitted effects to the response apart from the one we are trying to estimate. It follows the IBSS
+described in Algorithm 1 is a coordinate ascend algorithm that maximizes the ELBO for q belonging
+to the class of distribution defined in (85). Thus providing a simple iterative algorithm to solve (84).
+Algorithm 1: Basic Iterative Bayesian stepwise selection for functional data
+1 Input
+2 Data : D, X
+3 Prior :G
+4 A function: SF R(X, D, G, σ2
+0) → (α, ˜F ∗)
+5 Initialization
+6 Rr ← −D
+7 repeat
+8 for r = 1 to R do
+9 Rr ← D − XP
+r′̸=e ˆF (r′)
+10 (αe, ˜F r, (σe,j,s,l)) ← −SF R(X, Rr, G, σ2
+0)
+11 ˆF (r) ← − ˜F r ⊙ αe
+12 until the convergence criterion is satisfied
+13 Output
+Hyperparemeter estimation. Until now (σ2
+k), (πs,k), σ2 were assumed to be known. In practice, ( σ2
+k) is
+a thin grid of values that are selected in a data-adaptive way. Briefly put, this grid contains values that
+range from 0 to ≈ 10 ∗ M, where M is the largest entry (in absolute value) of ˆFmarg, and where ˆFmarg
+is the matrix corresponding to the marginal association between each covariate and D (see [81], and
+[134] section 1.3.2 for more details). Thus these quantities are not random and are not updated after
+being selected. On the other hand, ( πs,k), σ2 are considered as random quantities and are estimated
+by maximizing the ELBO over ( πs,k) and σ2.
+Optimizing over σ2 is straightforward as it simply requires computing the residual sum of squares
+under variational approximation to then estimate σ2. Optimizing over (π s,k) is done by maximiz-
+ing the marginal likelihood of the SFR model over (π s,k). This step is done using a weighted EM
+algorithm [135]. We provide a detailed description of this step in the Appendix section .
+Derivation of the fSuSiE model fitting algorithms
+In this section, we describe our variational approach to fit the sum of single functions model (see
+equation (11)). Let’s rewrite (11) in the following form form:
+D ∼ p(D|F, X, θ) (88)
+F ∼ g(.) (89)
+Where D is the matrix of the observed data, X is the matrix of the observed covariates, F is the
+latent/unobserved variable of interest, g ∈ G is a prior distribution for F and θ ∈ Θ is the set of the
+additional/nuisance parameters to be estimated. We adopt an Empirical Bayes (EB) approach, by
+first estimating our prior g and the noise parameters θ by maximizing the marginal log-likelihood:
+(ˆg, ˆθ) = argmax
+g∈G,θ∈Θ
+l(g, θ, D, X) (90)
+where (91)
+l(g, θ, D, X) = log
+Z
+p(D|F, θ, X)g(F)dF (92)
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 40 =====
+40 W. Denault et al.
+The we compute the posterior distribution forF using the estimated prior and the nuisance parameters:
+ˆppost(F) = ppost(F|D, X, ˆg, ˆθ) ∝ p(D|F, X, ˆθ)ˆg(F) (93)
+Posterior under the SFR model. Assuming independence between wavelet coefficients (standard as-
+sumption used in several works [36] [92] [136]), the likelihood of model (10) can be written as
+L(D, X, F , U) =
+NY
+i=1
+Y
+s,l
+N(di,s,l, ηis,l, σ2) (94)
+Where N(., η, σ2) corresponds to the density of a Normal distribution with mean η and variance
+σ2. Here ηis,l is the linear predictor of di,s,l and is equal to ηis,l =P
+j xi,jfj,s,lγj. Given that ( πk,s)
+and σ are known, the posterior distribution of F(1) = F1 ⊙ γ under the SFR model is completely
+determined by the following quantities.
+γ|D, X, (σ2
+k), (πs,k), σ2 ∼ M ult(1,α) (95)
+f 1
+j,s,l|D, X, (σ2
+k), (πs,k), σ2, γj = 1 ∼
+KX
+k=0
+˜πk,sN (µ1
+j,s,lσ2
+1,j,s,l) (96)
+Where α = (α1, . . . , αJ) corresponds to the vector of posterior inclusion probability (PIP); ˜ πk,s is
+the posterior mixture weight; µj,s,l, σ2
+1,j,s,l are the posterior mean and posterior variance of fj,s,l under
+the normal prior N (0, σ2
+k,s). All these quantities can be computed using summary statistics from the
+regression of each column of D on each of the columns X (J × T regressions). The derivations to
+obtain these quantities are provided in equation (59). For ease of presentation, we now refer to SFR
+as a function that takes as input X, Y, σ,(σs,l), (πs,l) and returns α, F(1), (σ1,s,l), formally written as :
+SF R(X, Y, σ,(σs,l), (πs,l)) = (α, F1, (σ1,s,l)) (97)
+K-L divergence and the ELBO. As computing the full posterior of model (11) in an intractable problem,
+we use a VA. More precisely, we seek at finding a distribution q that belongs to a certain class of
+function Q (detailed in equation (102)) that minimizes the KL divergence with the true posterior
+of model (11). For the sake of pedagogy, let’s rewrite the KL divergence in terms of evidence and
+evidence lower bound
+KL(q(F) || p(F|D, X, θ)) = EF∼q
+"
+log
+ q(F)
+p(F|D, X, θ)
+#
+= EF∼q
+h
+log
+ 
+q(F)
+i
+− EF∼q
+h
+log
+ 
+p(F|D, X, θ)
+i
+= EF∼q
+h
+log
+ 
+q(F)
+i
+− EF∼q
+"
+log
+ p(D, X, F, θ)
+p(D|X, θ)p(θ)
+#
+= EF∼q
+h
+log
+ 
+q(F)
+i
+− EF∼q
+
+log p(D, X, F, θ)
+
++ EF∼q
+
+log p(D|X, θ)
+
+= log p(D|X, θ) − EF∼q
+"
+log
+ p(D, X, F, θ)
+q(F)
+#
+= log
+Z
+p(D|X, F, θ)g(F)dF − EF∼q
+"
+log
+ p(D, X, F, θ)
+q(F)
+#
+= evidence − ELBO
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 41 =====
+Fine-mapping molecular QTLs using fSuSiE 41
+In particular, the ELBO can be written in two different way:
+ELBO = F (q, g, θ, D, X) = log
+Z
+p(D|F, X, θ)g(F)dF − KL(q(F) || p(F|D, X, θ)) (98)
+= EF∼q
+
+log p(D|F, X, θ)
+
++ EF∼q
+
+log g(F)
+q(F)
+
+(99)
+= EF∼q
+
+log p(D|F, X, θ)
+
+− KL(q(F) || g(F)) (100)
+So the ELBO depends on three ”parameters” g(.), q(.), θ. Our general optimization problem is the
+following:
+(ˆq, ˆg, ˆθ) = argmax
+q∈Q,g,θ
+F (q, g, θ, D, X) (101)
+Maximizing the ELBO with respect to ( g(.), θ) corresponds to our EB procedure (as the first terms
+of eq (98) corresponds to the marginal likelihood); maximizing the ELBO with respect to q ∈ Q is
+the ”standard” variational Bayes (VB) approach. We optimize (86) in a iterative fashion, by keeping
+q(.) constant and maximize over ( g(.), θ). Then by keeping ( g(.), θ) constant and maximize over q(.)
+(using equation (99)). The EB procedure to maximize g is described in Appendix section . Here we
+solely focus on maximizing the ELBO while keeping g and θ constant.
+Form of the variational approximation. As previously mentioned, computing the full posterior of (86) is
+a (likely) intractable problem. Thus, we restrict the form of the “candidatr” posterior ( q) to facilitate
+the optimization. More precisely, we choose a classical mean-field approximation, so Q is defined as
+q(F(1), ..,F(R)) =
+RY
+e=1
+qr(F(r)) (102)
+Analytical expression for the ELBO. For q ∈ Q the ELBO can be written as
+F (q, g, σ2, D, X) = T × N
+2 log(2πσ2) − 1
+2σ2 EF∼q
+
+X
+s
+X
+l
+||ds,l −
+RX
+e=1
+Xf t
+rs,l||2
+
+ (103)
++
+RX
+e=1
+EF∼qr
+"
+log gr(F(r))
+qr(F(r))
+#
+(104)
+Where ||.|| is the euclidean norm and g = (g1, ..., gE) is a collection of mixture prior. In the line of
+Wang and colleagues[23] (proposition A.1) given that we restrict q to (102) the ELBO becomes
+F (q, g, σ2, D, X) =Eq[log(p(D|F, X)] +
+X
+r
+Eqr[log gr(F(r))
+qr(F(r))] (105)
+=Eq[log(p(D|F, X)] −
+X
+r
+KL(qr(F) || gr(F)) (106)
+=Eq[log(p(D|F, X)] +
+X
+r
+Fr(qr, gr, σ2, ˆRr, X) (107)
+−
+X
+r
+Eqr[p( ˆRr|F(r), X)] (108)
+Where ˆRr corresponds to the expected residual without effect e, i.e.:
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 42 =====
+42 W. Denault et al.
+ˆRr = Eq [Rr] = Eq
+
+D −
+X
+r′̸=r
+XF(r′)
+
+ (109)
+Proof for this Proposition in the univariate case is given in [23].
+Expected residual sum of squares. Here we focus on the second term of equation (103), which we
+refer to as the “expected residual sum of squares” (ERSS). To compute this term, we need to compute
+EF∼qr[f r
+j,s,l] and EF∼qr[(f e
+j,s,l)2], given that gr is a scale mixture prior, it is straightforward given to
+compute these quantities using the analytical formula provided in (69) (70). Thus the “expected
+residual sum of squares” (ERSS) can be written as:
+ERSS (D, X, ¯F , ¯F 2) =
+X
+s
+X
+l
+||ds,l −
+RX
+e=1
+X¯Fr
+.,s,l||2 +
+RX
+e=1
+X
+j
+X
+s
+X
+l
+V ar(f r
+j,s,l) (110)
+ELBO for thee-th single effect. Similar to the SuSiE approachFr(qr, gr, σ2, ˆRr, X) is equal to logL(Rr, gr, X, σ2)
+at the maximum ˆqe = argmaxqFr(qr, gr, σ2, ˆRr, X), which can be computed as
+Fr(qr, gr, σ2, ˆRr, X) = log
+
+Y
+s,l,i
+N( ˆRei,sl, 0, σ2)
+
+ + log
+
+X
+j
+πjBFmix( ˆRr, X, σ2, (σ2
+k), (πk,s))
+
+ (111)
+K-L divergence for the e-th effect. Following previous derivations, we have that
+EF∼qr
+"
+log gr(F(r))
+qr(F(r))
+#
+= Fr(qr, gr, σ2, ˆRr, X) + T × N
+2 log(2πσ2) + 1
+2σ2 Eqr
+h
+|| ˆRr − XF(r)||
+i
+(112)
+= −KL(qr(F(r)) || gr(F(r))) (113)
+Supplementary references
+[131] Kovac, A. and B. W. Silverman (2000). Extending the scope of wavelet regression methods
+by coefficient-dependent thresholding. Journal of the American Statistical Association 95 (449),
+172–183.
+[132] Kim, Y., P. Carbonetto, M. Stephens, and M. Anitescu (2020). A fast algorithm for maximum
+likelihood estimation of mixture proportions using sequential quadratic programming. Journal of
+Computational and Graphical Statistics 29 (2), 261–273.
+[133] Blei, D. M., A. Kucukelbir, and J. D. McAuliffe (2017). Variational inference: a review for
+statisticians. Journal of the American Statistical Association 112 (518), 859–877.
+[134] Willwersheid, J. (2021). Empirical Bayes matrix factorization: methods and applications. Ph.
+D. thesis, University of Chicago.
+[135] Dempster, A. P., N. M. Laird, and D. B. Rubin (1977). Maximum likelihood from incomplete
+data via the EM algorithm. Journal of the Royal Statistical Society, Series B 39 (1), 1–38.
+[136] Wang, S.-S., A. Chern, Y. Tsao, J.-W. Hung, X. Lu, Y.-H. Lai, and B. Su (2016). Wavelet speech
+enhancement based on nonnegative matrix factorization. IEEE Signal Processing Letters 23 (8),
+1101–1105.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 43 =====
+Fine-mapping molecular QTLs using fSuSiE 43
+Supplementary figures
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SuSiE-topPC
+wavelet simulations WGBS block simulations WGBS decay simulations
+WGBS decay simulationswavelet simulations WGBS block simulations
+0
+0.25
+0.50
+0.75
+1
+true number of causal SNPs
+power
+0
+0.25
+0.50
+0.75
+1
+power
+0
+0.25
+0.50
+0.75
+1
+power
+1 3 5 7 9 11 13 15 17 19
+true number of causal SNPs
+1 3 5 7 9 11 13 15 17 19
+true number of causal SNPs
+1 3 5 7 9 11 13 15 17 19
+true number of causal SNPs
+1 3 5 7 9 11 13 15 17 19
+true number of causal SNPs
+1 3 5 7 9 11 13 15 17 19
+true number of causal SNPs
+1 3 5 7 9 11 13 15 17 19
+0.7
+0.8
+0.9
+1.0coverage
+0.7
+0.8
+0.9
+1.0coverage
+0.7
+0.8
+0.9
+1.0coverage
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SuSiE-topPC
+Supplementary Figure 1. Additional assessment of SuSiE and fSuSiE CSs in simulated data sets, with
+performance broken down by the true number of causal SNPs. Power is the proportion of the true causal
+SNPs included in at least one CS; coverage is the proportion of CSs containing a true causal SNP . The dotted
+horizontal line shows the target coverage (95%). In all simulation settings, the data sets were simulated withn =
+100 samples, T = 128 CpGs, J = 1,500–4,000 SNPs, and 10% total variance explained. Each plot summarizes
+the results from n = 300 simulations.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 44 =====
+44 W. Denault et al.
+wavelet simulations WGBS block simulations WGBS decay simulations
+fSuSiE (IS prior)
+0
+0.25
+0.50
+0.75
+1
+0 0.25 0.50 0.75 1
+mean PIP
+0 0.25 0.50 0.75 1
+mean PIP
+0 0.25 0.50 0.75 1
+mean PIP
+0 0.25 0.50 0.75 1
+mean PIP
+0 0.25 0.50 0.75 1
+mean PIP
+0 0.25 0.50 0.75 1
+mean PIP
+0 0.25 0.50 0.75 1
+mean PIP
+0 0.25 0.50 0.75 1
+mean PIP
+0 0.25 0.50 0.75 1
+mean PIP
+frequency
+0
+0.25
+0.50
+0.75
+1
+frequency
+0
+0.25
+0.50
+0.75
+1
+frequency
+0
+0.25
+0.50
+0.75
+1
+frequency
+0
+0.25
+0.50
+0.75
+1
+frequency
+0
+0.25
+0.50
+0.75
+1
+frequency
+0
+0.25
+0.50
+0.75
+1
+frequency
+0
+0.25
+0.50
+0.75
+1
+frequency
+0
+0.25
+0.50
+0.75frequency
+fSuSiE (SPS prior)SuSiE-topPC
+Supplementary Figure 2. Assessment of PIP calibration in simulations. In each simulation setting, the
+SNPs from all simulations in that setting (n= 100 simulations) were grouped into bins according to their PIP (10
+equally spaced bins from 0 to 1). The plots show the average PIP from each bin (x-axis) against the proportion
+of SNPs in that bin that are causal (y-axis). Bins with fewer than 30 SNPs are not shown in the plots. Error bars
+depict 2 times the empirical standard error. Note that a well-calibrated method should produce points near the
+diagonal. In each of the three simulation scenarios, data sets were simulated with N = 100 samples, T = 128
+CpGs, J = 1,500–4,000 SNPs, among which 1–20 were causal, and 10% total variance explained.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 45 =====
+Fine-mapping molecular QTLs using fSuSiE 45
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+Power
+PVE=10%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=20%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=30%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+ PVE=40%
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+Coverage
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+Mean CS size
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+Median purity
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+prior ISP SPSP
+Supplementary Figure 3. Additional assessment of fSuSiE CSs in wavelet simulations with 128 CpGs.
+“Purity” is the smallest absolute correlation (Pearson’sr) among all pairs of SNPs in a CS [23]. See the Fig. 3
+caption for definitions of power, coverage and CS size. ISP = fSuSiE with IS prior; SPSP = fSuSiE with SPS
+prior. Each plot summarizes the results from n = 300 simulations. The data sets were simulated with N = 100
+samples, and J = 1,500–4,000 SNPs.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 46 =====
+46 W. Denault et al.
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+Power
+PVE=10%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=20%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=30%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+ PVE=40%
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+Coverage
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+Mean CS size
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+Median purity
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+prior ISP SPSP
+Supplementary Figure 4. Additional assessment of fSuSiE CSs in wavelet simulations with 512 CpGs.
+“Purity” is the smallest absolute correlation (Pearson’sr) among all pairs of SNPs in a CS [23]. See the Fig. 3
+caption for definitions of power, coverage and CS size. ISP = fSuSiE with IS prior; SPSP = fSuSiE with SPS
+prior. Each plot summarizes the results from n = 300 simulations. The data sets were simulated with N = 100
+samples, and J = 1,500–4,000 SNPs.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 47 =====
+Fine-mapping molecular QTLs using fSuSiE 47
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+Power
+PVE=10%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=20%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=30%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+ PVE=40%
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+Coverage
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+Mean CS size
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+Median purity
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+prior ISP SPSP
+Supplementary Figure 5. Additional assessment of fSuSiE CSs in WGBS block simulations with 128
+CpGs. “Purity” is the smallest absolute correlation (Pearson’sr) among all pairs of SNPs in a CS [23]. See the
+Fig. 3 caption for definitions of power, coverage and CS size. ISP = fSuSiE with IS prior; SPSP = fSuSiE with
+SPS prior. Each plot summarizes the results from n = 300 simulations. The data sets were simulated with N =
+100 samples, and J = 1,500–4,000 SNPs.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 48 =====
+48 W. Denault et al.
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+Power
+PVE=10%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=20%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=30%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+ PVE=40%
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+Coverage
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+Mean CS size
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+Median purity
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+prior ISP SPSP
+Supplementary Figure 6. Additional assessment of fSuSiE CSs in WGBS block simulations with 512
+CpGs. “Purity” is the smallest absolute correlation (Pearson’sr) among all pairs of SNPs in a CS [23]. See the
+Fig. 3 caption for definitions of power, coverage and CS size. ISP = fSuSiE with IS prior; SPSP = fSuSiE with
+SPS prior. Each plot summarizes the results from n = 300 simulations. The data sets were simulated with N =
+100 samples, and J = 1,500–4,000 SNPs.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 49 =====
+Fine-mapping molecular QTLs using fSuSiE 49
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+Power
+PVE=10%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=20%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=30%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+ PVE=40%
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+Coverage
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+Mean CS size
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+Median purity
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+prior ISP SPSP
+Supplementary Figure 7. Additional assessment of fSuSiE CSs in WGBS decay simulations with 128
+CpGs. “Purity” is the smallest absolute correlation (Pearson’sr) among all pairs of SNPs in a CS [23]. See the
+Fig. 3 caption for definitions of power, coverage and CS size. ISP = fSuSiE with IS prior; SPSP = fSuSiE with
+SPS prior. Each plot summarizes the results from n = 300 simulations. The data sets were simulated with N =
+100 samples, and J = 1,500–4,000 SNPs.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 50 =====
+50 W. Denault et al.
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+Power
+PVE=10%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=20%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+PVE=30%
+0.00
+0.25
+0.50
+0.75
+1.00
+1 2 4 8 12 16
+Number of effects
+ PVE=40%
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+Coverage
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+0.80
+0.85
+0.90
+0.95
+1.00
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+Mean CS size
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+5
+10
+15
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+Median purity
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+0.900
+0.925
+0.950
+0.975
+1.000
+1 2 4 8 12 16
+Number of effects
+prior ISP SPSP
+Supplementary Figure 8. Additional assessment of fSuSiE CSs in WGBS decay simulations with 512
+CpGs. “Purity” is the smallest absolute correlation (Pearson’sr) among all pairs of SNPs in a CS [23]. See the
+Fig. 3 caption for definitions of power, coverage and CS size. ISP = fSuSiE with IS prior; SPSP = fSuSiE with
+SPS prior. Each plot summarizes the results from n = 300 simulations. The data sets were simulated with N =
+100 samples, and J = 1,500–4,000 SNPs.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 51 =====
+Fine-mapping molecular QTLs using fSuSiE 51
+WGBS block, PVE = 2.5% WGBS block, PVE = 5% WGBS block, PVE = 10%
+WGBS decay, PVE = 2.5% WGBS decay, PVE = 5% WGBS decay, PVE = 10%
+0
+0.25
+0.50
+0.75
+1
+0 0.1 0.2 0.3 0.4 0.5
+0 0.1 0.2 0.3 0.4 0.5
+FDR
+0 0.1 0.2 0.3 0.4 0.5
+FDRFDR
+0 0.1 0.2 0.3 0.4 0.5
+FDR
+0 0.1 0.2 0.3 0.4 0.5
+FDR
+0 0.1 0.2 0.3 0.4 0.5
+FDR
+power
+0
+0.25
+0.50
+0.75
+1
+power
+0
+0.25
+0.50
+0.75
+1
+power
+0
+0.25
+0.50
+0.75
+1
+power
+0
+0.25
+0.50
+0.75
+1
+power
+0
+0.25
+0.50
+0.75
+1
+power
+SNP-CpG tests
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SNP-CpG tests
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SNP-CpG tests
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SNP-CpG tests
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SNP-CpG tests
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+SNP-CpG tests
+fSuSiE (IS prior)
+fSuSiE (SPS prior)
+Supplementary Figure 9. Additional assessment of recovery of affected CpGs in simulated data sets.
+The power-FDR plots evaluate recovery of affected CpG in which the methylation levels were simulated with
+different total variance explained by the SNPs (PVE = proportion of variance explained). See the Fig. 3 caption
+for an explanation of the power-FDR plots. In each of the simulation scenarios,n = 300 data sets were simulated
+with N = 100 samples, T = 128 CpGs, and J = 1,500–4,000 SNPs, among which 1–20 were causal.
+SuSiE-topPC
+fSuSiE (SPS prior)
+fSuSiE (IS prior)
+100 SNPs 500 SNPs 1,000 SNPs
+1
+2
+3
+4
+5
+1
+2
+3
+4
+5
+1
+2
+3
+4
+5
+number of causal SNPs
+number of causal SNPs
+number of causal SNPs
+running time (s)
+0.1 1 10 100 1,000
+running time (s)
+0.1 1 10 100 1,000
+running time (s)
+0.1 1 10 100 1,000
+Supplementary Figure 10. Additional running times in simulations. Running times in simulated data sets
+with 100, 500 and 1,000 SNPs (each plot summarizes results from n = 300 simulations). The box plot whiskers
+depict 1.5× the interquartile range, the box bounds represent the upper and lower quartiles (25th and 75th
+percentiles), the center line represents the median (50th percentile), and points represent outliers. The data
+sets were simulated withN = 100 samples,T = 128 CpGs, 1–20 causal SNPs, and 10% total variance explained.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 52 =====
+52 W. Denault et al.
+CS 1
+CS 2
+CS 3
+CS 4
+CS 5
+CS 6
+CS 7
+CS 8
+CS 9
+CS 10
+CS 11
+CS 12
+CS 13
+0
+0.5
+1
+PIP
+CS 9 (rs7273557)
+CS 1 (2 SNPs, rs6127083)
+CS 2 (rs4809960)
+CS 10 (rs62203922)
+CS 5 (2 SNPs, chr20:56,393,188)
+CS 6 (rs1884913)
+CS 3 (rs17306295)
+CS 12 (rs230195)
+CS 4 (3 SNPs, rs8118732)
+CS 13 (rs6099656)
+CS 7 (rs35023929)
+CS 8 (3 SNPs, rs1276345)
+CS 11 (rs10375)
+CS 3 CS 12
+CS 4
+CS 13CS 7
+CS 8
+CS 11
+CS 9
+CS 1 CS 2
+CS 10
+CS 5
+CS 6
+−8
+−4
+0
+4
+54 54.5 55 55.5 56 56.5 57 57.5
+54 54.5 55 55.5 56 56.5 57 57.5
+base-pair position on chromosome 20 (Mb)
+A
+B
+effect on
+methylation
+credible setschr20:56,909,029
+Supplementary Figure 11. fSuSiE methylation fine-mapping example on chromosome 20.Panel A shows
+the PIPs for all SNPs analyzed in the TAD (chromosome 20, 53.9––57.5 Mb (20,320 SNPs, 300 CpGs). The
+PIP is an estimate of the probability that the SNP affects methylation levels at one or more peaks within the
+TAD. The colors indicate the different mSNPs, and the uncertainty in which SNP is the mSNP is represented
+by the 95% CS: each SNP in the CS is a candidate mSNP , with probability of being causal given by the PIP .
+More detail about the CSs is given on the right-hand side: the number of SNPs in the CS (if not given, then
+it is a single-variant CS); and the sentinel SNP , the SNP with the highest PIP in the CS. Note that a single
+SNP at base-pair position 56,909,029 with PIP = 0.70 is not included in a CS because the CS was removed
+by the CS purity filter (Online Methods). Panel B shows the effect of each mSNP on methylation at each of the
+peaks analyzed in the TAD. See Fig. 4 for an explanation of how to interpret this plot. The results within the
+blue-shaded region are examined in more detail in Fig. 6.
+0
+2
+4
+6
+8
+10
+12
+14
+16
+18
+20
+0 2 4 6 8 10 12 14
+SuSiE-topPC
+fSuSiE
+number of
+TADs
+1
+10
+100 0
+2
+4
+6
+8
+10
+12
+14
+16
+18
+20
+0 2 4 6 8 10 12 14
+SuSiE-topPC
+fSuSiE number of
+TADs
+1
+5
+10
+50
+A haSNPs per TAD B mSNPs per TAD
+Supplementary Figure 12. Additional results on fine-mapping of mSNPs and haSNPs in DLPFC. These
+plots compare the number of haSNPs and mSNPs (i.e., the number of 95% CSs) returned by SuSiE-topPC and
+fSuSiE in each TAD.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 53 =====
+Fine-mapping molecular QTLs using fSuSiE 53
+6,230
+1,2751,259
+265 57 55 50 27 3 2 15 9 6 2
+0
+1,000
+2,000
+3,000
+4,000
+5,000
+6,000
+7,000
+DNA methylation
+H3K27ac
+protein expression
+RNA expression
+number of 1-SNP CSs
+Supplementary Figure 13. Overlap among molecular trait SNPs in DLPFC.Overlap is determined based on
+base-pair position of SNPs in the single-variant CSs returned by SuSiE (RNA expression, protein expression)
+and fSuSiE (H3K9ac, DNA methylation). For reference, the total number of single-variant CSs for each trait is:
+RNA expression (1,420), protein expression (340), H3K9ac (1,372) and methylation (6,355).
+repressed
+intron
+promoter, flanking
+promoter
+coding
+3’ UTR
+super enhancer
+CTCF
+DHS peaks
+5’ UTR
+weak enhancer
+TSS
+enhancer
+−1 0 1 2 3 4
+log2 enrichment
+fSuSiE
+SuSiE-topPC
+haSNPs
+repressed
+intron
+super enhancer
+3’ UTR
+CTCF
+DHS peak
+enhancer
+promoter, flanking
+weak enhancer
+promoter
+coding
+TSS
+5’ UTR
+−2 –1 0 1 32 4
+log2 enrichment
+fSuSiE
+SuSiE-topPC
+mSNPs
+Supplementary Figure 14. Additional results on functional enrichment of haSNPs and mSNPs. Func-
+tional enrichment of the mSNPs and haSNPs is assessed by by functional annotations [64, 65]. See Online
+Methods for details on how enrichment is quantified. Points and error bars represent means and standard
+errors estimated from jackknife resampling.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
+
+===== PDF PAGE 54 =====
+54 W. Denault et al.
+10−1515−2020−2525−3030−3535−4040−4545−5050−5555−60
+–log10 p-value
+10−1515−2020−2525−3030−3535−4040−4545−5050−5555−60
+–log10 p-value
+proportion of CSs that contain 1 SNP
+SuSiE fSuSiE
+0.00
+0.25
+0.50
+0.75
+1.00
+proportion of CSs that contain 1 SNP0.00
+0.25
+0.50
+0.75
+1.00
+Supplementary Figure 15. Results of the 2-SNP simulations. “p-value” is the smallestp-value from associ-
+ation tests between SNP 1 and molecular locations 1–128.
+.CC-BY-NC-ND 4.0 International licenseavailable under a 
+(which was not certified by peer review) is the author/funder, who has granted bioRxiv a license to display the preprint in perpetuity. It is made 
+The copyright holder for this preprintthis version posted August 17, 2025. ; https://doi.org/10.1101/2025.08.17.670732doi: bioRxiv preprint 
