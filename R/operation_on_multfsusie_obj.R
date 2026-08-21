@@ -169,8 +169,6 @@ cal_partial_resid_sub <- function( multfsusie.obj, l, X, D, C, indx_lst,cord){
 #' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #' @param min_purity minimal purity within a CS
 #' @param X matrix of covariate
-#' @param allow_empty logical; if TRUE, all unsupported effects may be removed
-#'   from the final output.
 #' @return a multfsusie.obj without "dummy" credible s
 #
 #' @export
@@ -191,21 +189,21 @@ check_cs <- function(multfsusie.obj, min_purity=0.5,X,...)
 #' @keywords internal
 
 
-check_cs.multfsusie <- function(multfsusie.obj, min_purity=0.5, X,
-                                allow_empty=TRUE, ... )
+check_cs.multfsusie <- function(multfsusie.obj, min_purity=0.5, X, ... )
 {
 
 
-  dummy.cs <- which_dummy_cs(multfsusie.obj,
-                             min_purity=min_purity,
-                             X=X,
-                             allow_empty=allow_empty)
+  dummy.cs <- which_dummy_cs(multfsusie.obj, min_purity=min_purity, X=X)
 
 
   if( length(dummy.cs)==0)
   {
     return(multfsusie.obj)
   }else{
+    if(length(dummy.cs)==multfsusie.obj$L) #avoid returning empty results
+    {
+      dummy.cs <- dummy.cs[-length(dummy.cs)]
+    }
     multfsusie.obj <- discard_cs( multfsusie.obj,cs=dummy.cs, out_prep= TRUE)
     return(multfsusie.obj)
   }
@@ -274,10 +272,9 @@ discard_cs.multfsusie <- function(multfsusie.obj, cs, out_prep=FALSE, ...)
     stop("cs contains an invalid effect index")
   }
 
-  # During fitting, retain one working effect because several IBSS routines
-  # assume L >= 1. Final output preparation may discard every unsupported
-  # effect and report a genuine null result.
-  if (length(cs) == multfsusie.obj$L && !out_prep) {
+  # Retain one working effect: downstream output code and IBSS routines assume
+  # L >= 1, including after final credible-set filtering.
+  if (length(cs) == multfsusie.obj$L) {
     cs <- cs[-1L]
   }
 
@@ -2595,8 +2592,6 @@ smash_regression.multfsusie<- function(multfsusie.obj,
 #' @param min_purity minimal purity within a CS
 #' @param X matrix of covariate
 #' @param lbf_min numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value
-#' @param allow_empty logical; if TRUE, a single or final unsupported effect
-#'   may be marked as dummy. Keep FALSE during IBSS fitting.
 #' @return a list of index corresponding the the dummy effect
 #
 #' @export
@@ -2620,11 +2615,9 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj,
                                        min_purity =0.5,
                                        X,
                                        median_crit=FALSE,
-                                       lbf_min,
-                                       allow_empty=FALSE, ... ){
+                                       lbf_min, ... ){
   dummy.cs<- c()
-  if (multfsusie.obj$L == 0L ||
-      (multfsusie.obj$L == 1L && !allow_empty)) {
+  if (multfsusie.obj$L <= 1L) {
     return(dummy.cs)
   }
   if(missing(lbf_min)){
@@ -2705,7 +2698,7 @@ which_dummy_cs.multfsusie  <- function(multfsusie.obj,
   {
     return(dummy.cs)
   }else{
-    if (length(dummy.cs) == multfsusie.obj$L && !allow_empty) {
+    if (length(dummy.cs) == multfsusie.obj$L) {
       dummy.cs <- dummy.cs[-length(dummy.cs)]
     }
     return(dummy.cs)

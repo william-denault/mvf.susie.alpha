@@ -13,7 +13,6 @@ which_dummy_cs(multfsusie.obj, min_purity = 0.5, X, ...)
   X,
   median_crit = FALSE,
   lbf_min,
-  allow_empty = FALSE,
   ...
 )
 }
@@ -25,9 +24,6 @@ which_dummy_cs(multfsusie.obj, min_purity = 0.5, X, ...)
 \item{X}{matrix of covariate}
 
 \item{lbf_min}{numeric  discard low purity cs in the IBSS fitting procedure if the largest log Bayes factors is lower than this value}
-
-\item{allow_empty}{logical; if TRUE, a single or final unsupported effect
-may be marked as dummy. Keep FALSE during IBSS fitting.}
 }
 \value{
 a list of index corresponding the the dummy effect

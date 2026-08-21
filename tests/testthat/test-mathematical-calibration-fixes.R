@@ -153,7 +153,7 @@ test_that("post-hoc configurations integrate over the shared covariate", {
   expect_equal(result_with_different_alpha$config_prob, result$config_prob)
 })
 
-test_that("final filtering can return a coherent null result", {
+test_that("final filtering retains one working effect", {
   obj <- structure(list(
     L = 1L,
     P = 2L,
@@ -177,21 +177,39 @@ test_that("final filtering can return a coherent null result", {
   ), class = "multfsusie")
 
   expect_equal(unlist(get_pi0(obj, l = 1L)), 1)
-  expect_equal(
-    which_dummy_cs(obj, X = matrix(rnorm(8), nrow = 4), allow_empty = TRUE),
-    1L
-  )
+  expect_length(which_dummy_cs(obj, X = matrix(rnorm(8), nrow = 4)), 0L)
 
-  filtered <- check_cs(
-    obj,
-    X = matrix(rnorm(8), nrow = 4),
-    allow_empty = TRUE
-  )
-  expect_equal(filtered$L, 0L)
-  expect_length(filtered$cs, 0L)
-  expect_length(filtered$alpha, 0L)
-  expect_length(filtered$lBF_per_trait, 0L)
-  expect_length(filtered$KL, 0L)
-  expect_length(filtered$lfsr_u, 0L)
-  expect_equal(filtered$pip, c(0, 0))
+  filtered <- check_cs(obj, X = matrix(rnorm(8), nrow = 4))
+  expect_equal(filtered$L, 1L)
+  expect_length(filtered$cs, 1L)
+  expect_length(filtered$alpha, 1L)
+  expect_length(filtered$lBF_per_trait, 1L)
+  expect_length(filtered$KL, 1L)
+  expect_length(filtered$lfsr_u, 1L)
+
+  directly_filtered <- discard_cs(obj, cs = 1L, out_prep = TRUE)
+  expect_equal(directly_filtered$L, 1L)
+  expect_length(directly_filtered$cs, 1L)
+
+  five_effects <- obj
+  for (field in c("alpha", "lBF", "lBF_per_trait", "cs", "est_pi",
+                  "fitted_u", "fitted_u2", "lfsr_u")) {
+    five_effects[[field]] <- rep(five_effects[[field]], 5L)
+  }
+  five_effects$KL <- rep(five_effects$KL, 5L)
+  five_effects$L <- 5L
+
+  X <- matrix(c(0, 1, 0, 1, 1, 0, 1, 0), nrow = 4)
+  expect_equal(which_dummy_cs(five_effects, X = X), 1:4)
+
+  filtered_five <- check_cs(five_effects, X = X)
+  expect_equal(filtered_five$L, 1L)
+  expect_length(filtered_five$cs, 1L)
+  expect_length(filtered_five$alpha, 1L)
+  expect_length(filtered_five$lBF_per_trait, 1L)
+  expect_length(filtered_five$est_pi, 1L)
+
+  filtered_five$posthoc <- posthoc_multfsusie(filtered_five)
+  expect_length(filtered_five$posthoc, 1L)
+  expect_length(filtered_five$posthoc[[1]]$posthoc, 1L)
 })
