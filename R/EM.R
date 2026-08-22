@@ -49,10 +49,12 @@ EM_pi_multsusie <- function(G_prior, effect_estimate, list_indx_lst,
   u_logBF <- apply(lBF_per_trait$u_logBF, 2, sum)
   lBF     <- f_logBF + u_logBF
 
-  if (!is.null(effect_estimate$res_uni)) {
-    J <- nrow(effect_estimate$res_uni$Bhat)
-  } else {
+  if (!is.null(effect_estimate$res_u)) {
+    J <- nrow(effect_estimate$res_u$Bhat)
+  } else if (!is.null(effect_estimate$res_f)) {
     J <- nrow(effect_estimate$res_f[[1]]$Bhat)
+  } else {
+    stop("effect_estimate must contain at least one univariate or functional modality")
   }
 
   if (length(lBF) > max_SNP_EM) {

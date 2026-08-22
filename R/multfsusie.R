@@ -298,30 +298,16 @@ multfsusie <- function(Y, X, L = 2,
     list_wdfs <- list()
     list_indx_lst  <-  list()
     Y0=Y
+    # Define these for univariate-only analyses as well. Functional
+    # post-processing is skipped when Y$Y_f is NULL.
+    interpolated_Y <- Y
+    outing_grid <- NULL
     if( !is.null(Y$Y_f)){
       outing_grid <- list()
-
-      if( is.null(pos)){
-        pos <- list()
-        for (i in 1:length(Y$Y_f))
-        {
-          pos[[i]] <- 1:ncol(Y$Y_f[[i]])
-        }
-      }
-      for (i in 1:length(Y$Y_f)){
-        if ( !(length(pos[[i]])==ncol(Y$Y_f[[i]]))) #miss matching positions and number of observations
-        {
-          stop(paste("Error: number of position provided different from the number of column of Y$Y_f, entry",i))
-        }
-      }
+      pos <- .normalize_function_positions(Y$Y_f, pos)
 
 
-      interpolated_Y <- Y
-
-
-
-
-      for ( k in 1:length(Y$Y_f))
+      for ( k in seq_along(Y$Y_f))
       {
 
 
@@ -341,10 +327,9 @@ multfsusie <- function(Y, X, L = 2,
         if( ( post_processing=="smash"|post_processing=="HMM") & length(unique(diff(pos[[k]])))==1){
           Y0$Y_f[[k]] <-  Y$Y_f[[k]]
           interpolated_Y$Y_f[[k]]<-  Y$Y_f[[k]]
-          outing_grid[[k]] =pos
+          outing_grid[[k]] <- pos[[k]]
         }else{
           Y0$Y_f[[k]] <-  map_data$Y
-          outing_grid[[k]] =outing_grid[[k]]
           interpolated_Y$Y_f[[k]] <-  map_data$Y
         }
 
@@ -520,19 +505,26 @@ multfsusie <- function(Y, X, L = 2,
                                         e               = e)
 
 
-    multfsusie.obj <- update_ELBO(multfsusie.obj,
-                                  get_objective( multfsusie.obj = multfsusie.obj,
-                                                 Y         = Y_data ,
-                                                 X         = X,
-                                                 ind_analysis = ind_analysis
-                                  )
-    )
-
     sigma2    <- estimate_residual_variance(multfsusie.obj,
                                             Y=Y_data,
                                             X=X,
                                             ind_analysis = ind_analysis)
     multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
+
+    if (cal_obj) {
+      multfsusie.obj <- update_KL(multfsusie.obj,
+                                  Y = Y_data,
+                                  X = X,
+                                  list_indx_lst = list_indx_lst,
+                                  ind_analysis = ind_analysis)
+      multfsusie.obj <- update_ELBO(
+        multfsusie.obj,
+        get_objective(multfsusie.obj = multfsusie.obj,
+                      Y = Y_data,
+                      X = X,
+                      ind_analysis = ind_analysis)
+      )
+    }
 
   }else{
     ##### Start While -----

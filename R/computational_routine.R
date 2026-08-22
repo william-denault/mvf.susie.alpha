@@ -8,9 +8,8 @@
 #' @param X          N x p predictor matrix.
 #' @param sigma2     multfsusie.obj$sigma2 — a list with components
 #'                     $sd_u  (length K_u, per univariate trait), and/or
-#'                     $sd_f  (length M scalars per modality, or a length-M
-#'                            list of length-T_m vectors if you have moved
-#'                            to per-position residual variance).
+#'                     $sd_f  (numeric vector of length M, with exactly one
+#'                            scalar residual variance per modality).
 #' @param low_trait  list of low-count masks: $low_u (vec of trait indices to
 #'                   mask) and $low_wc (length-M list of position-index vecs).
 #' @param ind_analysis  named list with $idx_u (length K_u of row vectors)
@@ -59,9 +58,17 @@ cal_Bhat_Shat_multfsusie <- function(Y, X, sigma2,
       stop("cal_Bhat_Shat_multfsusie: Y$Y_f present but sigma2$sd_f is NULL.")
     }
     M <- length(Y$Y_f)
+    if (is.list(sigma2$sd_f) || length(sigma2$sd_f) != M ||
+        anyNA(sigma2$sd_f) || any(!is.finite(sigma2$sd_f)) ||
+        any(sigma2$sd_f <= 0)) {
+      stop(paste0(
+        "cal_Bhat_Shat_multfsusie: sigma2$sd_f must be a positive numeric ",
+        "vector of length ", M, ", with one variance per functional modality."
+      ))
+    }
 
     res_f <- lapply(seq_len(M), function(m) {
-      sigma2_m <- if (is.list(sigma2$sd_f)) sigma2$sd_f[[m]] else sigma2$sd_f[m]
+      sigma2_m <- sigma2$sd_f[m]
       ind_m    <- if (has_ind) ind_analysis$idx_f[[m]] else NULL
       fsusieR:::cal_Bhat_Shat(Y            = Y$Y_f[[m]],
                               X            = X,
@@ -220,7 +227,7 @@ log_BFu <- function (G_prior, Bhat, Shat,low_u=FALSE,df=NULL, ...) {
       for (o in 1:length(G_prior$fitted_g$pi)){
         tt <- tt + pi_k[o] *LaplacesDemon::dstp(Bhat,tau = 1/(sd_k[o]^2 + Shat ^2), nu=df)
       }
-      out <- sum(log(tt) - LaplacesDemon::dstp(Bhat ,tau = 1/Shat ^2,nu=df,log = TRUE))
+      out <- log(tt) - LaplacesDemon::dstp(Bhat ,tau = 1/Shat ^2,nu=df,log = TRUE)
     }
 
 
@@ -268,7 +275,7 @@ log_BF.multfsusie_prior <- function( G_prior,
       u_logBF <-  do.call(rbind, u_logBF)
     }
     if(is.null(G_prior$G_prior_f)){
-      f_logBF <-  matrix(rep(0,nrow(effect_estimate$res_u[[1]] )), nrow=1)
+      f_logBF <- matrix(0, nrow=1, ncol=nrow(effect_estimate$res_u$Bhat))
     }else{
       f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
         fsusieR::log_BF(G_prior  = G_prior$G_prior_f[[k]],
@@ -299,7 +306,7 @@ log_BF.multfsusie_prior <- function( G_prior,
       u_logBF <-  do.call(rbind, u_logBF)
     }
     if(is.null(G_prior$G_prior_f)){
-      f_logBF <- matrix(rep(0,nrow(effect_estimate$res_u[[1]] )), nrow=1)
+      f_logBF <- matrix(0, nrow=1, ncol=nrow(effect_estimate$res_u$Bhat))
     }else{
       #print( "moderated BF f ")
       f_logBF <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
@@ -355,7 +362,9 @@ get_post_mean_u <- function(G_prior, Bhat, Shat, low_u=FALSE)
 get_post_sd_u <- function(G_prior, Bhat, Shat, low_u=FALSE)
 {
   if(low_u){
-    return(rep( 1, length(Bhat)))
+    # A low-count trait is deliberately excluded from the likelihood, so its
+    # approximate posterior is a point mass at zero, not N(0, 1).
+    return(rep( 0, length(Bhat)))
   }else{
   data <-  ashr::set_data(Bhat  ,Shat  )
   return(ashr::postsd(ashr::get_fitted_g(G_prior),data))
@@ -385,17 +394,18 @@ estimate_residual_variance <- function(multfsusie.obj,Y,X,... )
 #' @keywords internal
 estimate_residual_variance.multfsusie <- function(multfsusie.obj,Y,X, ind_analysis, ... )
 {
+  variance_floor <- sqrt(.Machine$double.eps)
   if (missing(ind_analysis)){
     R2 <- get_ER2( multfsusie.obj, Y, X)
     est_sd2 <-  list()
     if(!is.null(R2$uni))
     {
-      est_sd2$sd_u <-  R2$uni/nrow(Y$Y_u)
+      est_sd2$sd_u <- pmax(R2$uni/nrow(Y$Y_u), variance_floor)
     }
     if(!is.null(R2$f)){
       n <- rep(nrow(Y$Y_f[[1]]), length(Y$Y_f) )
       t <- do.call( c, lapply(1: length(Y$Y_f), function(k) ncol(Y$Y_f[[k]] ) ))
-      est_sd2$sd_f <- R2$f / (n*t)
+      est_sd2$sd_f <- pmax(R2$f / (n*t), variance_floor)
     }
 
   }else{
@@ -403,12 +413,15 @@ estimate_residual_variance.multfsusie <- function(multfsusie.obj,Y,X, ind_analys
     est_sd2 <-  list()
     if(!is.null(R2$uni))
     {
-      est_sd2$sd_u <-  R2$uni/(nrow(Y$Y_u)- (  nrow(Y$Y_u) - lengths(ind_analysis$idx_u) ))# accounting for missing data points
+      est_sd2$sd_u <- pmax(
+        R2$uni / lengths(ind_analysis$idx_u),
+        variance_floor
+      )
     }
     if(!is.null(R2$f)){# accounting for missing data points
       n <-  do.call(c,  lapply( 1: length(Y$Y_f), function( k) (nrow(Y$Y_f[[k]])- ( nrow(Y$Y_f[[k]]) - length(ind_analysis$idx_f[[k]]) ))))
       t <- do.call( c, lapply(1: length(Y$Y_f), function(k) ncol(Y$Y_f[[k]] ) ))
-      est_sd2$sd_f <- R2$f / (n*t)
+      est_sd2$sd_f <- pmax(R2$f / (n*t), variance_floor)
     }
 
   }

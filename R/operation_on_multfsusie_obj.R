@@ -108,8 +108,8 @@ cal_partial_resid.multfsusie <- function(multfsusie.obj = multfsusie.obj,
                                         )
 
     }else{
-      id_L <- 1
-      update_Y$Y_u   <- Y$Y_u - pred_partial_u(multfsusie.obj,1,X)
+      id_L <- integer(0)
+      update_Y$Y_u   <- Y$Y_u
     }
   }
   if(!is.null(Y$Y_f)){
@@ -150,12 +150,7 @@ cal_partial_resid_sub <- function( multfsusie.obj, l, X, D, C, indx_lst,cord){
                              )
     update_Y  <- cbind(  update_D, update_C)
   }else{
-    id_L <- 1
-
-
-    update_D  <-  D - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% (multfsusie.obj$fitted_wc[[l]][[cord]][,-indx_lst[[length(indx_lst)]]])   ) )
-    update_C  <-  C - Reduce("+", lapply  ( id_L, function(l) (X*rep(multfsusie.obj$alpha[[l]], rep.int(dim(X)[1],dim(X)[2]))) %*% multfsusie.obj$fitted_wc[[l]][[cord]][,indx_lst[[length(indx_lst)]]] ) )
-    update_Y  <- cbind(  update_D, update_C)
+    update_Y <- cbind(D, C)
   }
   return(update_Y)
 
@@ -1551,13 +1546,14 @@ out_prep.multfsusie <- function(multfsusie.obj,
 
   has_reported_effect <- multfsusie.obj$L > 0L &&
     length(multfsusie.obj$cs) > 0L
+  has_functional_trait <- !is.null(Y$Y_f) && length(Y$Y_f) > 0L
 
-  if(has_reported_effect && post_processing== "none"){
+  if(has_reported_effect && has_functional_trait && post_processing== "none"){
     multfsusie.obj <-  update_cal_fit_func(multfsusie.obj,list_indx_lst)
 
   }
  # browser()
-  if(has_reported_effect && post_processing== "smash"){
+  if(has_reported_effect && has_functional_trait && post_processing== "smash"){
 
     multfsusie.obj <-  smash_regression(multfsusie.obj = multfsusie.obj,
                                      Y              = interpolated_Y,
@@ -1567,7 +1563,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                      filter.number  = filter.number,
                                      family         = family)
   }
-  if(has_reported_effect && post_processing== "TI"){
+  if(has_reported_effect && has_functional_trait && post_processing== "TI"){
 
     multfsusie.obj <-  TI_regression(multfsusie.obj = multfsusie.obj,
                                      Y              = interpolated_Y,
@@ -1577,7 +1573,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
                                      filter.number  = filter.number,
                                      family         = family)
   }
-  if(has_reported_effect && post_processing=="HMM") {
+  if(has_reported_effect && has_functional_trait && post_processing=="HMM") {
     multfsusie.obj <-  HMM_regression(multfsusie.obj = multfsusie.obj,
                                       Y               = interpolated_Y,
                                       ind_analysis    = ind_analysis,
@@ -1594,7 +1590,7 @@ out_prep.multfsusie <- function(multfsusie.obj,
 
 
 
-  if(!is.null( Y$Y_u)){
+  if(has_functional_trait){
 
     multfsusie.obj$outing_grid <- outing_grid
   }
@@ -2356,6 +2352,17 @@ update_residual_variance  <- function(multfsusie.obj,sigma2, ...)
 
 update_residual_variance.multfsusie <- function(multfsusie.obj,sigma2, ...)
 {
+  if (!is.null(multfsusie.obj$n_wac)) {
+    n_modality <- length(multfsusie.obj$n_wac)
+    if (is.null(sigma2$sd_f) || is.list(sigma2$sd_f) ||
+        length(sigma2$sd_f) != n_modality || anyNA(sigma2$sd_f) ||
+        any(!is.finite(sigma2$sd_f)) || any(sigma2$sd_f <= 0)) {
+      stop(paste0(
+        "sigma2$sd_f must contain exactly one positive residual variance ",
+        "for each of the ", n_modality, " functional modalities"
+      ))
+    }
+  }
   multfsusie.obj$sigma2 <- sigma2
   return(multfsusie.obj)
 }

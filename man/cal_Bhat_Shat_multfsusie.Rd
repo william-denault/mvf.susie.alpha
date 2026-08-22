@@ -24,9 +24,8 @@ coefficient matrices).}
 
 \item{sigma2}{multfsusie.obj$sigma2 — a list with components
 $sd_u  (length K_u, per univariate trait), and/or
-$sd_f  (length M scalars per modality, or a length-M
-       list of length-T_m vectors if you have moved
-       to per-position residual variance).}
+$sd_f  (numeric vector of length M, with exactly one
+       scalar residual variance per modality).}
 
 \item{low_trait}{list of low-count masks: $low_u (vec of trait indices to
 mask) and $low_wc (length-M list of position-index vecs).}

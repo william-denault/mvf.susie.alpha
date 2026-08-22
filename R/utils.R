@@ -386,25 +386,67 @@ which_notNA_pos <-  function( Y){
 }
 
 
+.normalize_function_positions <- function(Y_f, pos = NULL) {
+  n_modality <- length(Y_f)
+  if (is.null(pos)) {
+    pos <- vector("list", n_modality)
+  }
+  if (!is.list(pos)) {
+    stop("pos must be a list with one entry per functional modality")
+  }
+  if (length(pos) > n_modality) {
+    stop("pos has more entries than Y$Y_f")
+  }
+  if (length(pos) < n_modality) {
+    length(pos) <- n_modality
+  }
+
+  for (i in seq_along(Y_f)) {
+    if (is.null(pos[[i]])) {
+      pos[[i]] <- seq_len(ncol(Y_f[[i]]))
+    }
+    if (length(pos[[i]]) != ncol(Y_f[[i]])) {
+      stop(paste(
+        "Error: number of position provided different from the number of column of Y$Y_f, entry",
+        i
+      ))
+    }
+    if (!is.numeric(pos[[i]]) || anyNA(pos[[i]]) ||
+        any(!is.finite(pos[[i]])) || any(diff(pos[[i]]) <= 0)) {
+      stop(paste(
+        "Error: positions must be finite and strictly increasing for Y$Y_f, entry",
+        i
+      ))
+    }
+  }
+
+  pos
+}
+
+
 init_var_multf <- function(Y){
   sigma2          <- list()
+  variance_floor <- sqrt(.Machine$double.eps)
 
   if(!is.null(Y$Y_f)){
 
-    sigma2$sd_f     <- sapply(1:length(Y$Y_f) ,
+    sigma2$sd_f     <- pmax(sapply(1:length(Y$Y_f) ,
                         function( k) mean(apply( Y$Y_f[[k]],
                                                  2,
                                                  function(x) stats::var(x,
                                                                         na.rm=TRUE)
                                                  )
                                           )
-                             )
+                             ), variance_floor)
   }else {
 
     sigma2$sd_f   <- NULL
   }
   if(!is.null(Y$Y_u)){
-    sigma2$sd_u     <-   apply( Y$Y_u , 2,function(x) stats::var(x,na.rm=TRUE) )
+    sigma2$sd_u     <- pmax(
+      apply(Y$Y_u, 2, function(x) stats::var(x, na.rm=TRUE)),
+      variance_floor
+    )
 
 
   }else{

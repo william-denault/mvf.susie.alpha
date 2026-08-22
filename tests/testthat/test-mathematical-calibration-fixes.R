@@ -213,3 +213,185 @@ test_that("final filtering retains one working effect", {
   expect_length(filtered_five$posthoc, 1L)
   expect_length(filtered_five$posthoc[[1]]$posthoc, 1L)
 })
+
+test_that("low-count univariate traits contribute no posterior variance", {
+  observed <- mvf.susie.alpha:::get_post_sd_u(
+    G_prior = NULL,
+    Bhat = c(-1, 0, 1),
+    Shat = rep(1, 3),
+    low_u = TRUE
+  )
+  expect_equal(observed, rep(0, 3))
+})
+
+test_that("functional residual variance is one scalar per modality", {
+  obj <- structure(list(n_wac = list(2L, 3L)), class = "multfsusie")
+
+  updated <- update_residual_variance(
+    obj,
+    sigma2 = list(sd_f = c(0.5, 1.5), sd_u = NULL)
+  )
+  expect_equal(updated$sigma2$sd_f, c(0.5, 1.5))
+  expect_false(is.list(updated$sigma2$sd_f))
+
+  expect_error(
+    update_residual_variance(
+      obj,
+      sigma2 = list(sd_f = list(0.5, c(1, 2)), sd_u = NULL)
+    ),
+    "exactly one positive residual variance"
+  )
+  expect_error(
+    update_residual_variance(
+      obj,
+      sigma2 = list(sd_f = c(0.5, 1.5, 2.5), sd_u = NULL)
+    ),
+    "exactly one positive residual variance"
+  )
+
+  expect_error(
+    cal_Bhat_Shat_multfsusie(
+      Y = list(Y_u = NULL,
+               Y_f = list(matrix(0, nrow = 4, ncol = 2),
+                          matrix(0, nrow = 4, ncol = 3))),
+      X = matrix(rnorm(8), nrow = 4),
+      sigma2 = list(sd_u = NULL, sd_f = list(1, c(1, 1, 1))),
+      low_trait = list(low_u = integer(0),
+                       low_wc = list(integer(0), integer(0)))
+    ),
+    "one variance per functional modality"
+  )
+})
+
+test_that("NULL entries in functional positions use their modality grids", {
+  Y_f <- list(
+    matrix(0, nrow = 3, ncol = 2),
+    matrix(0, nrow = 3, ncol = 3),
+    matrix(0, nrow = 3, ncol = 4)
+  )
+  positions <- mvf.susie.alpha:::.normalize_function_positions(
+    Y_f,
+    list(NULL, c(0.1, 0.4, 0.9), NULL)
+  )
+
+  expect_equal(positions[[1]], 1:2)
+  expect_equal(positions[[2]], c(0.1, 0.4, 0.9))
+  expect_equal(positions[[3]], 1:4)
+  expect_error(
+    mvf.susie.alpha:::.normalize_function_positions(
+      Y_f,
+      list(1:2, 1:3, 1:4, 1)
+    ),
+    "more entries"
+  )
+})
+
+test_that("multivariate ELBO uses observed sample sizes and current fields", {
+  X <- matrix(c(
+    1,  0,
+    0,  2,
+    1, -1,
+    2,  1
+  ), ncol = 2, byrow = TRUE)
+  obj <- structure(list(
+    L = 1L,
+    alpha = list(c(0.6, 0.4)),
+    fitted_u = list(matrix(c(0.5, -0.2), ncol = 1)),
+    fitted_u2 = list(matrix(c(0.10, 0.05), ncol = 1)),
+    fitted_wc = list(list(matrix(c(0.3, -0.1, 0.2, 0.4), nrow = 2))),
+    fitted_wc2 = list(list(matrix(c(0.04, 0.03, 0.02, 0.01), nrow = 2))),
+    n_wac = list(2L),
+    sigma2 = list(sd_u = 0.7, sd_f = 1.3),
+    KL = 0.25
+  ), class = "multfsusie")
+  Y <- list(
+    Y_u = matrix(c(0.2, -0.3, 0.5, 0.7), ncol = 1),
+    Y_f = list(matrix(c(
+      0.1,  0.4,
+     -0.2,  0.3,
+      0.6, -0.1,
+      0.2,  0.8
+    ), ncol = 2, byrow = TRUE))
+  )
+  ind <- list(idx_u = list(c(1L, 3L, 4L)),
+              idx_f = list(c(1L, 2L, 4L)))
+
+  R2 <- get_ER2(obj, Y, X, ind_analysis = ind)
+  expected_eloglik <-
+    -length(ind$idx_u[[1]]) / 2 * log(2 * pi * obj$sigma2$sd_u) -
+      R2$uni / (2 * obj$sigma2$sd_u) -
+    length(ind$idx_f[[1]]) * ncol(Y$Y_f[[1]]) / 2 *
+      log(2 * pi * obj$sigma2$sd_f) -
+      R2$f / (2 * obj$sigma2$sd_f)
+
+  expect_equal(
+    Eloglik(obj, Y, X, ind_analysis = ind),
+    as.numeric(expected_eloglik),
+    tolerance = 1e-12
+  )
+  expect_equal(
+    get_objective(obj, Y, X, ind_analysis = ind),
+    as.numeric(expected_eloglik - obj$KL),
+    tolerance = 1e-12
+  )
+
+  EF <- get_post_F(obj, 1L)
+  EF2 <- get_post_F2(obj, 1L)
+  expected_post <- 0
+  idx <- ind$idx_u[[1]]
+  X_k <- X[idx, , drop = FALSE]
+  y_k <- Y$Y_u[idx, 1]
+  expected_post <- expected_post -
+    length(idx) / 2 * log(2 * pi * obj$sigma2$sd_u) -
+    (sum(y_k^2) - 2 * sum(y_k * (X_k %*% EF$post_u[, 1])) +
+       sum(colSums(X_k^2) * EF2$post_u_sd2[, 1])) /
+      (2 * obj$sigma2$sd_u)
+  idx <- ind$idx_f[[1]]
+  X_k <- X[idx, , drop = FALSE]
+  y_k <- Y$Y_f[[1]][idx, , drop = FALSE]
+  expected_post <- expected_post -
+    length(idx) * ncol(y_k) / 2 * log(2 * pi * obj$sigma2$sd_f) -
+    (sum(y_k^2) - 2 * sum(y_k * (X_k %*% EF$post_f[[1]])) +
+       sum(colSums(X_k^2) * rowSums(EF2$post_f_sd2[[1]]))) /
+      (2 * obj$sigma2$sd_f)
+
+  expect_equal(
+    loglik_SFR_post(obj, 1L, Y, X, ind_analysis = ind),
+    expected_post,
+    tolerance = 1e-12
+  )
+})
+
+test_that("single-effect KL uses the exact posterior identity", {
+  X <- matrix(c(1, 0, 0, 2, 1, -1, 2, 1), ncol = 2, byrow = TRUE)
+  Y <- list(Y_u = matrix(c(0.2, -0.3, 0.5, 0.7), ncol = 1),
+            Y_f = NULL)
+  ind <- list(idx_u = list(c(1L, 3L, 4L)), idx_f = NULL)
+  obj <- structure(list(
+    L = 1L,
+    alpha = list(c(0.6, 0.4)),
+    fitted_u = list(matrix(c(0.5, -0.2), ncol = 1)),
+    fitted_u2 = list(matrix(c(0.10, 0.05), ncol = 1)),
+    fitted_wc = NULL,
+    fitted_wc2 = NULL,
+    n_wac = NULL,
+    sigma2 = list(sd_u = 0.7, sd_f = NULL),
+    lBF = list(c(log(2), log(0.5)))
+  ), class = "multfsusie")
+
+  EF <- get_post_F(obj, 1L)$post_u[, 1]
+  EF2 <- get_post_F2(obj, 1L)$post_u_sd2[, 1]
+  idx <- ind$idx_u[[1]]
+  X_k <- X[idx, , drop = FALSE]
+  expected <-
+    sum(Y$Y_u[idx, 1] * (X_k %*% EF)) / obj$sigma2$sd_u -
+    sum(colSums(X_k^2) * EF2) / (2 * obj$sigma2$sd_u) -
+    log(mean(exp(obj$lBF[[1]])))
+
+  expect_equal(
+    cal_KL_l(obj, 1L, Y, X, list_indx_lst = NULL,
+             ind_analysis = ind),
+    expected,
+    tolerance = 1e-12
+  )
+})

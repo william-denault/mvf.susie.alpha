@@ -1,8 +1,10 @@
-
-
-
-
-
+.mvf_log_mean_exp <- function(x) {
+  max_x <- max(x)
+  if (is.infinite(max_x) && max_x < 0) {
+    return(-Inf)
+  }
+  max_x + log(mean(exp(x - max_x)))
+}
 
 #' @title Compute KL divergence effect l
 #
@@ -40,20 +42,50 @@ cal_KL_l <- function(multfsusie.obj, l, Y, X,   list_indx_lst,ind_analysis, ...)
 
 cal_KL_l.multfsusie <- function(multfsusie.obj, l, Y, X, list_indx_lst,ind_analysis, ...)
 {
-
-
+  # q_l is the exact single-effect posterior for the partial residual R_l.
+  # Thus KL(q_l || prior_l) is its posterior expected log-likelihood ratio
+  # minus the shared-SNP marginal log Bayes factor. This identity includes
+  # both the SNP-assignment and modality-specific coefficient-prior terms.
   R_l <- cal_partial_resid(
-                           multfsusie.obj = multfsusie.obj,
-                                l         =  (l-1),
-                                X         =  X,
-                                Y         =  Y,
-                          list_indx_lst   =  list_indx_lst
+    multfsusie.obj = multfsusie.obj,
+    l = l - 1L,
+    X = X,
+    Y = Y,
+    list_indx_lst = list_indx_lst
   )
+  EF <- get_post_F(multfsusie.obj, l)
+  EF2 <- get_post_F2(multfsusie.obj, l)
+  expected_log_likelihood_ratio <- 0
 
+  if (!is.null(Y$Y_u)) {
+    for (k in seq_len(ncol(Y$Y_u))) {
+      idx <- ind_analysis$idx_u[[k]]
+      X_k <- X[idx, , drop=FALSE]
+      expected_log_likelihood_ratio <- expected_log_likelihood_ratio +
+        sum(R_l$Y_u[idx, k] * (X_k %*% EF$post_u[, k])) /
+          multfsusie.obj$sigma2$sd_u[k] -
+        sum(colSums(X_k^2) * EF2$post_u_sd2[, k]) /
+          (2 * multfsusie.obj$sigma2$sd_u[k])
+    }
+  }
 
+  if (!is.null(Y$Y_f)) {
+    for (k in seq_along(Y$Y_f)) {
+      idx <- ind_analysis$idx_f[[k]]
+      X_k <- X[idx, , drop=FALSE]
+      expected_log_likelihood_ratio <- expected_log_likelihood_ratio +
+        sum(R_l$Y_f[[k]][idx, , drop=FALSE] *
+              (X_k %*% EF$post_f[[k]])) /
+          multfsusie.obj$sigma2$sd_f[k] -
+        sum(colSums(X_k^2) * rowSums(EF2$post_f_sd2[[k]])) /
+          (2 * multfsusie.obj$sigma2$sd_f[k])
+    }
+  }
 
-  out <-  - loglik_SFR(multfsusie.obj, l,Y,X,ind_analysis=ind_analysis)+ loglik_SFR_post(multfsusie.obj, l,R_l,X,ind_analysis=ind_analysis)
-  return(out)
+  lBF <- get_lBF(multfsusie.obj, l)
+  log_model_BF <- .mvf_log_mean_exp(lBF)
+
+  expected_log_likelihood_ratio - log_model_BF
 }
 
 
@@ -93,13 +125,7 @@ loglik_SFR <- function    (multfsusie.obj, l, Y ,X,  ...)
 loglik_SFR.multfsusie <- function(multfsusie.obj, l, Y ,X,ind_analysis , ... )
 {
   lBF <- get_lBF(multfsusie.obj,l)
-  prior_weights <- rep(1/ncol(X),ncol(X))
-  maxlBF <- max(lBF)
-  w = exp( lBF- maxlBF)
-  w_weighted = w * prior_weights
-  weighted_sum_w = sum(w_weighted)
-
-  lBF_model = maxlBF + log(weighted_sum_w)
+  lBF_model <- .mvf_log_mean_exp(lBF)
 
   sum_over_effect <-  0
   if(!is.null(Y$Y_u)){
@@ -162,35 +188,40 @@ loglik_SFR_post <- function    (multfsusie.obj, l,Y,X, ...)
 
 loglik_SFR_post.multfsusie <- function(multfsusie.obj, l,Y,X, ind_analysis,  ... )
 {
-
   EF  <- get_post_F(multfsusie.obj,l)
   EF2 <- get_post_F2(multfsusie.obj,l)
   s2  <- multfsusie.obj$sigma2
   out <- 0
-  if( !is.null(s2$sd_u))
-  {
-    n <- nrow(Y$Y_u)
-    out <-  Reduce("+",lapply(1: ncol(Y$Y_u),
-                              function(k) -0.5*n*log(2*pi*s2$sd_u[k]) - 0.5/s2$sd_u[k]*(sum(Y$Y_u[ind_analysis$idx_u[[k]],k]*Y$Y_u[ind_analysis$idx_u[[k]],k])- 2*sum(Y$Y_u[ind_analysis$idx_u[[k]],k]*X[ind_analysis$idx_u[[k]],]%*%EF$post_uni[,k])+ sum(attr(X,"d") * EF2$post_uni_sd2[,k]))
-    )
-    )
+  if (!is.null(Y$Y_u)) {
+    out <- out + sum(vapply(seq_len(ncol(Y$Y_u)), function(k) {
+      idx <- ind_analysis$idx_u[[k]]
+      X_k <- X[idx, , drop=FALSE]
+      y_k <- Y$Y_u[idx, k]
+      posterior_mean <- X_k %*% EF$post_u[, k]
+      expected_signal_ss <- sum(colSums(X_k^2) * EF2$post_u_sd2[, k])
+
+      -0.5 * length(idx) * log(2 * pi * s2$sd_u[k]) -
+        (sum(y_k^2) - 2 * sum(y_k * posterior_mean) +
+           expected_signal_ss) / (2 * s2$sd_u[k])
+    }, numeric(1)))
   }
 
-  if( !is.null(s2$sd_f))
-  {
+  if (!is.null(Y$Y_f)) {
+    out <- out + sum(vapply(seq_along(Y$Y_f), function(k) {
+      idx <- ind_analysis$idx_f[[k]]
+      X_k <- X[idx, , drop=FALSE]
+      y_k <- Y$Y_f[[k]][idx, , drop=FALSE]
+      posterior_mean <- X_k %*% EF$post_f[[k]]
+      expected_signal_ss <- sum(colSums(X_k^2) *
+                                  rowSums(EF2$post_f_sd2[[k]]))
 
-    n <- rep(nrow(Y$Y_f[[1]]), length(Y$Y_f) )
-    t <- lapply(1: length(Y$Y_f), function(k) ncol(Y$Y_f[[k]] ) )
-
-
-    tt <- Reduce("+",lapply(1: length(Y$Y_f),
-                            function(k) -0.5*n[k]*t[[k]]*log(2*pi*s2$sd_f[k]) - 0.5/s2$sd_f[k]*(sum(Y$Y_f[[k]][ind_analysis$idx_f[[k]],]*Y$Y_f[[k]][ind_analysis$idx_f[[k]],])- 2*sum(Y$Y_f[[k]][ind_analysis$idx_f[[k]],]*X[ind_analysis$idx_f[[k]],]%*%EF$post_f[[k]])+ sum(attr(X,"d") * EF2$post_f_sd2[[k]]))
-    )
-    )
-    out <- tt + out
+      -0.5 * length(idx) * ncol(y_k) * log(2 * pi * s2$sd_f[k]) -
+        (sum(y_k^2) - 2 * sum(y_k * posterior_mean) +
+           expected_signal_ss) / (2 * s2$sd_f[k])
+    }, numeric(1)))
   }
 
-  return(out)
+  out
 }
 
 
@@ -220,19 +251,21 @@ Eloglik.multfsusie <-  function (multfsusie.obj,Y ,X,ind_analysis, ... ) {
   out <- 0
   R2 <- get_ER2( multfsusie.obj, Y, X, ind_analysis=ind_analysis)
   if( !is.null( Y$Y_u)){
-    n = nrow(Y$Y_u)
     n_col <- ncol(Y$Y_u)
-    out <- out+   Reduce( "+", lapply( 1: n_col, function( k) -(n/2) * log(2*pi*multfsusie.obj$sigma2$sd_u[k]) - (1/(2*multfsusie.obj$sigma2$sd_u[k])) *R2$uni[k])
-    )
+    out <- out + sum(vapply(seq_len(n_col), function(k) {
+      n_observed <- length(ind_analysis$idx_u[[k]])
+      -(n_observed / 2) * log(2 * pi * multfsusie.obj$sigma2$sd_u[k]) -
+        R2$uni[k] / (2 * multfsusie.obj$sigma2$sd_u[k])
+    }, numeric(1)))
   }
   if( !is.null(Y$Y_f)){
-    n <- rep(nrow(Y$Y_f[[1]]), length(Y$Y_f) )
-    t <- lapply(1: length(Y$Y_f), function(k) ncol(Y$Y_f[[k]] ) )
-    tt <- Reduce("+",lapply(1: length(Y$Y_f),
-                            function(k) -(n[k]*t[[k]]/2) * log(2*pi*multfsusie.obj$sigma2$sd_f[k]) - (1/(2*multfsusie.obj$sigma2$sd_f[k])) * R2$f[k]
-                           )
-         )
-    out <- out +tt
+    out <- out + sum(vapply(seq_along(Y$Y_f), function(k) {
+      n_observed <- length(ind_analysis$idx_f[[k]])
+      n_coefficients <- ncol(Y$Y_f[[k]])
+      -(n_observed * n_coefficients / 2) *
+        log(2 * pi * multfsusie.obj$sigma2$sd_f[k]) -
+        R2$f[k] / (2 * multfsusie.obj$sigma2$sd_f[k])
+    }, numeric(1)))
   }
 
 
@@ -268,16 +301,7 @@ get_objective <- function    (multfsusie.obj,  Y, X,  ind_analysis,  ...)
 #' @keywords internal
 get_objective.multfsusie <- function    (multfsusie.obj, Y, X  ,ind_analysis, ...)
 {
-
-  o= Reduce("sum",
-            lapply(1: length(multfsusie.obj$alpha), function(i){
-              multfsusie.obj$alpha [[i]]* log( ncol(X)/ pmax(multfsusie.obj$alpha [[i]], 1e-6))
-            }
-            )
-  )
-    out <- Eloglik(multfsusie.obj, Y, X,ind_analysis=ind_analysis) - sum(multfsusie.obj$KL)+o
-
-
-  return(out)
+  Eloglik(multfsusie.obj, Y, X, ind_analysis=ind_analysis) -
+    sum(multfsusie.obj$KL)
 
 }
