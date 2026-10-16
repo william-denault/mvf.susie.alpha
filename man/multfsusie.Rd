@@ -19,7 +19,7 @@ multfsusie(
   L_start = 3,
   filter_cs = TRUE,
   init_pi0_w = 1,
-  nullweight = 0.7,
+  nullweight = 10,
   control_mixsqp = list(eps = 1e-06, numiter.em = 40, verbose = FALSE),
   quantile_trans = FALSE,
   thresh_lowcount,
@@ -40,7 +40,9 @@ multfsusie(
   max_step = 100,
   multfsusie.obj = NULL,
   posthoc_prior_active = 0.5,
-  posthoc_variant_prior = NULL
+  posthoc_variant_prior = NULL,
+  standardize_Y = TRUE,
+  residual_variance = NULL
 )
 }
 \arguments{
@@ -74,7 +76,7 @@ settings are printed to the console.}
 
 \item{tol}{A small, non-negative number specifying the convergence tolerance
 for the IBSS fitting procedure. The fitting procedure will halt when
- the difference in the variational lower bound, or ELBO
+ the difference in the penalized variational lower bound, or ELBO
   (the objective function to be maximized), is less than tol.}
 
 \item{cov_lev}{Numeric between 0 and 1, corresponding to the expected
@@ -90,10 +92,13 @@ cs and cs with estimated prior equal to 0). Set as TRUE by default.}
 \item{init_pi0_w}{Starting value of weight on null
 component in mixsqp (between 0 and 1).}
 
-\item{nullweight}{numeric value for penalizing likelihood at point mass 0. This number roughly corresponds
-to the number of zeros observation you add  (useful in small sample size). Default is 10 as recommended by Stephens in
-False discovery rate a new deal. Setting it too low tend lead to adding false discoveries. Setting it too
-high may reduce power.}
+\item{nullweight}{Finite numeric value at least 1, using the same convention
+as \code{ashr::ash}. Adds \code{(nullweight - 1) * log(pi0)} for each fitted
+mixture, where \code{pi0} is its null-component weight. The default is 10;
+1 gives no penalty. For each effect, the penalty is applied once per
+univariate trait, once per functional trait with \code{mixture_normal},
+or once per wavelet scale with \code{mixture_normal_per_scale}.
+Its coefficient does not scale with the number of SNPs or wavelet coefficients.}
 
 \item{control_mixsqp}{A list of parameters for the mixsqp function (see mixsqp package).}
 
@@ -105,7 +110,8 @@ If the median of the absolute value of the distribution of a wavelet coefficient
   Set to 0 by default. Useful when analyzing sparse data from sequence-based
    assays or small samples.}
 
-\item{cal_obj}{Logical, if TRUE computes ELBO for convergence monitoring.}
+\item{cal_obj}{Logical, if TRUE computes the ELBO including the null-weight
+penalty for convergence monitoring.}
 
 \item{greedy}{Logical, if TRUE allows greedy search for extra effects
 (up to L specified by the user). Set to TRUE by default.}
@@ -113,8 +119,10 @@ If the median of the absolute value of the distribution of a wavelet coefficient
 \item{backfit}{Logical, if TRUE allows discarding effects via backfitting.
 Set to TRUE by default. It is advised to keep this as TRUE.}
 
-\item{max_SNP_EM}{maximum number of SNP used for learning the prior. By default, set to 1000. Reducing this may help reduce
-the computational time. We advise to keep it at least larger than 50}
+\item{max_SNP_EM}{Maximum number of SNPs used for learning the prior (default
+100). Assignment probabilities are renormalized over the retained SNPs so
+that the null penalty does not depend on the retained probability mass.
+Reducing this cutoff can still change the evidence used to fit the prior.}
 
 \item{gridmult}{numeric used to control the number of components used in the mixture prior (see ashr package
 for more details). From the ash function:  multiplier by which the default grid values for mixed differ from one another.
@@ -149,6 +157,20 @@ active in a post-hoc configuration. May be a scalar or one value per modality.}
 
 \item{posthoc_variant_prior}{optional prior probabilities over covariates for
 the post-hoc configuration calculation. Defaults to a uniform prior.}
+
+\item{standardize_Y}{Logical or a named list with components \code{Y_f} and
+\code{Y_u}. A scalar applies to every outcome. In the list form, provide one
+logical value per functional modality in \code{Y_f} and one per univariate
+trait in \code{Y_u}; omitted components default to \code{TRUE}. Functional
+modalities are controlled at both the position and wavelet-coefficient
+standardization steps.}
+
+\item{residual_variance}{Optional residual variances to hold fixed. Use a
+positive scalar for every outcome, or a named list with components
+\code{Y_f} and \code{Y_u}. Each component may contain one value per modality;
+use \code{NA} for entries that should continue to be estimated. A fixed entry
+requires \code{standardize_Y = FALSE} for the same modality and cannot be
+combined with \code{quantile_trans = TRUE}.}
 }
 \value{
 A \code{"multfsusie"} object. Effect-indexed fields have length

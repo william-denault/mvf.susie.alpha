@@ -2382,6 +2382,17 @@ update_residual_variance.multfsusie <- function(multfsusie.obj,sigma2, ...)
       ))
     }
   }
+  if (!is.null(multfsusie.obj$n_univ)) {
+    n_trait <- multfsusie.obj$n_univ
+    if (is.null(sigma2$sd_u) || is.list(sigma2$sd_u) ||
+        length(sigma2$sd_u) != n_trait || anyNA(sigma2$sd_u) ||
+        any(!is.finite(sigma2$sd_u)) || any(sigma2$sd_u <= 0)) {
+      stop(paste0(
+        "sigma2$sd_u must contain exactly one positive residual variance ",
+        "for each of the ", n_trait, " univariate traits"
+      ))
+    }
+  }
   multfsusie.obj$sigma2 <- sigma2
   return(multfsusie.obj)
 }
@@ -2506,12 +2517,32 @@ update_cal_fit_func.multfsusie <- function(multfsusie.obj,list_indx_lst,... ){
     for (k in 1: length(multfsusie.obj$n_wac))
     {
       temp <- wavethresh::wd(rep(0, multfsusie.obj$n_wac[[k]]))
+      wavelet_scale <- if (is.null(multfsusie.obj$csd_Y_f_wavelet)) {
+        rep(1, multfsusie.obj$n_wac[[k]])
+      } else {
+        multfsusie.obj$csd_Y_f_wavelet[[k]]
+      }
+      position_scale <- if (is.null(multfsusie.obj$csd_Y_f_pos)) {
+        rep(1, multfsusie.obj$n_wac[[k]])
+      } else {
+        multfsusie.obj$csd_Y_f_pos[[k]]
+      }
+      if (length(wavelet_scale) != multfsusie.obj$n_wac[[k]] ||
+          length(position_scale) != multfsusie.obj$n_wac[[k]] ||
+          anyNA(wavelet_scale) || anyNA(position_scale) ||
+          any(!is.finite(wavelet_scale)) || any(!is.finite(position_scale)) ||
+          any(wavelet_scale <= 0) || any(position_scale <= 0)) {
+        stop("Functional response scales are not aligned with the wavelet coefficients")
+      }
+      scaling_index <- list_indx_lst[[k]][[length(list_indx_lst[[k]])]]
 
-      temp$D                     <- (multfsusie.obj$alpha[[l]])%*%sweep( multfsusie.obj$fitted_wc[[l]][[k]][,-list_indx_lst[[k]][[length(list_indx_lst[[k]])]]],
+      temp$D                     <- ((multfsusie.obj$alpha[[l]])%*%sweep( multfsusie.obj$fitted_wc[[l]][[k]][,-scaling_index, drop = FALSE],
                                                                          1,
-                                                                         1/(multfsusie.obj$csd_X ), "*")
-      temp$C[length(temp$C)]     <- (multfsusie.obj$alpha[[l]])%*% (multfsusie.obj$fitted_wc[[l]][[k]][,list_indx_lst[[k]][[length(list_indx_lst[[k]])]]]*( 1/(multfsusie.obj$csd_X )))
-      tl[[k]]                    <- wavethresh::wr(temp)
+                                                                         1/(multfsusie.obj$csd_X ), "*")) *
+                                           wavelet_scale[-scaling_index]
+      temp$C[length(temp$C)]     <- ((multfsusie.obj$alpha[[l]])%*% (multfsusie.obj$fitted_wc[[l]][[k]][,scaling_index]*( 1/(multfsusie.obj$csd_X )))) *
+                                           wavelet_scale[scaling_index]
+      tl[[k]]                    <- wavethresh::wr(temp) * position_scale
     }
 
     multfsusie.obj$fitted_func[[l]] <- tl
@@ -2664,9 +2695,12 @@ test_stop_cond <- function(multfsusie.obj, check, cal_obj, Y , X, list_indx_lst,
 }
 
 #' @rdname test_stop_cond
+#' @param nullweight Null-component penalty for convergence monitoring;
+#' see \code{multfsusie}.
 #' @method test_stop_cond multfsusie
 #' @export
-test_stop_cond.multfsusie <- function(multfsusie.obj, check, cal_obj, Y, X, list_indx_lst, ind_analysis, ...) {
+test_stop_cond.multfsusie <- function(multfsusie.obj, check, cal_obj, Y, X,
+                                     list_indx_lst, ind_analysis, nullweight = 1, ...) {
 
 
   if( multfsusie.obj$L==1)
@@ -2689,7 +2723,8 @@ test_stop_cond.multfsusie <- function(multfsusie.obj, check, cal_obj, Y, X, list
                                                    Y              = Y,
                                                    X              = X,
                                                    list_indx_lst  = list_indx_lst,
-                                                   ind_analysis   = ind_analysis
+                                                   ind_analysis   = ind_analysis,
+                                                   nullweight     = nullweight
                                     )
       )
 

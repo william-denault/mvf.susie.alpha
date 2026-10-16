@@ -49,11 +49,7 @@ EM_pi_multsusie <- function(G_prior, effect_estimate, list_indx_lst,
   u_logBF <- apply(lBF_per_trait$u_logBF, 2, sum)
   lBF     <- f_logBF + u_logBF
 
-  if (!is.null(effect_estimate$res_u)) {
-    J <- nrow(effect_estimate$res_u$Bhat)
-  } else if (!is.null(effect_estimate$res_f)) {
-    J <- nrow(effect_estimate$res_f[[1]]$Bhat)
-  } else {
+  if (is.null(effect_estimate$res_u) && is.null(effect_estimate$res_f)) {
     stop("effect_estimate must contain at least one univariate or functional modality")
   }
 
@@ -67,16 +63,15 @@ EM_pi_multsusie <- function(G_prior, effect_estimate, list_indx_lst,
   tpi_k     <- get_pi_G_prior(G_prior)
   oldloglik <- 0
   newloglik <- 1
-  zeta      <- rep(1 / J, J)
   k         <- 0
 
   while (k < max_step & abs(newloglik - oldloglik) >= espsilon) {
 
-    oldloglik <- fsusieR::cal_lik(lBF, zeta)
-    zeta      <- fsusieR::cal_zeta(lBF)
+    oldloglik <- .mvf_log_mean_exp(lBF) + .multfsusie_null_penalty(tpi_k, nullweight)
+    zeta      <- fsusieR::cal_zeta(lBF[idx])
 
     tpi_k <- m_step_multsusie(L_mat          = L_mat,
-                              zeta           = zeta[idx],
+                              zeta           = zeta,
                               list_indx_lst  = list_indx_lst,
                               init_pi0_w     = init_pi0_w,
                               control_mixsqp = control_mixsqp,
@@ -96,7 +91,7 @@ EM_pi_multsusie <- function(G_prior, effect_estimate, list_indx_lst,
     lBF     <- f_logBF + u_logBF
     lBF     <- ifelse(lBF == -Inf, 0, lBF)
 
-    newloglik <- fsusieR::cal_lik(lBF, zeta)
+    newloglik <- .mvf_log_mean_exp(lBF) + .multfsusie_null_penalty(tpi_k, nullweight)
     k <- k + 1
   }
 
@@ -126,8 +121,8 @@ L_mixsq_multsusie <- function(G_prior, effect_estimate, list_indx_lst,idx ) {
   }else{
     L_mat_f <- lapply( 1: length(G_prior$G_prior_f) ,function( k)
       fsusieR::L_mixsq(G_prior$G_prior_f[[k]],
-                       Bhat     = effect_estimate$res_f[[k]]$Bhat[idx,],
-                       Shat     = effect_estimate$res_f[[k]]$Shat[idx,],
+                       Bhat     = effect_estimate$res_f[[k]]$Bhat[idx,,drop=FALSE],
+                       Shat     = effect_estimate$res_f[[k]]$Shat[idx,,drop=FALSE],
                        indx_lst = list_indx_lst[[k]]
       )
     )
@@ -257,7 +252,7 @@ m_step_multsusie <- function(L_mat,
 m_step_u <- function(L, zeta, init_pi0_w, control_mixsqp, nullweight,
                      tol_null_prior = 0.001, ...)  # ← added tol_null_prior
 {
-  w       <- c(nullweight, zeta)
+  w       <- c(nullweight - 1, zeta)
   tlength <- ncol(L) - 1
 
   mixsqp_out <- mixsqp::mixsqp(L,
@@ -276,6 +271,14 @@ m_step_u <- function(L, zeta, init_pi0_w, control_mixsqp, nullweight,
 
   class(out) <- "pi_mixture_normal"
   return(out)
+}
+
+# One ASH penalty per mixture, including each functional scale when applicable.
+.multfsusie_null_penalty <- function(tpi, nullweight) {
+  if (nullweight == 1) return(0)
+  pi0_u <- vapply(tpi$est_pi_u, function(pi) pi[1], numeric(1))
+  pi0_f <- unlist(lapply(tpi$est_pi_f, fsusieR::get_pi0))
+  (nullweight - 1) * sum(log(c(pi0_u, pi0_f)))
 }
 
 

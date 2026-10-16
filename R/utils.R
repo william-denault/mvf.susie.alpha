@@ -193,14 +193,181 @@ is.functional <- function(Y, min_levres =4 ){
 
 }
 
-multi_array_colScale <- function(Y, scale=TRUE){
+.normalize_standardize_Y <- function(standardize_Y, Y) {
+  n_f <- if (is.null(Y$Y_f)) 0L else length(Y$Y_f)
+  n_u <- if (is.null(Y$Y_u)) 0L else ncol(Y$Y_u)
 
-  if( !is.null(Y$Y_u))
-  {
-    Y$Y_u <- fsusieR::colScale   (Y$Y_u,scale=scale)
+  normalize_component <- function(x, n, label) {
+    if (n == 0L) {
+      if (!is.null(x) && length(x) > 0L) {
+        stop(paste0("`standardize_Y$", label,
+                    "` was supplied but that outcome block is absent"))
+      }
+      return(logical())
+    }
+    if (is.null(x)) {
+      return(rep(TRUE, n))
+    }
+    if (!is.logical(x) || anyNA(x) || !length(x) %in% c(1L, n)) {
+      stop(paste0("`standardize_Y$", label,
+                  "` must be TRUE/FALSE or have one logical value per modality"))
+    }
+    rep_len(x, n)
   }
-  if(!is.null(Y$Y_f)){
-    Y$Y_f <- lapply( 1:length(Y$Y_f), function(k)  fsusieR::colScale(Y$Y_f[[k]],scale=scale) )
+
+  if (is.logical(standardize_Y) && length(standardize_Y) == 1L &&
+      !is.na(standardize_Y)) {
+    return(list(Y_f = rep(standardize_Y, n_f),
+                Y_u = rep(standardize_Y, n_u)))
+  }
+  if (!is.list(standardize_Y) || is.null(names(standardize_Y)) ||
+      any(names(standardize_Y) == "") ||
+      any(!names(standardize_Y) %in% c("Y_f", "Y_u")) ||
+      anyDuplicated(names(standardize_Y))) {
+    stop(paste0(
+      "`standardize_Y` must be TRUE/FALSE or a named list with ",
+      "components `Y_f` and/or `Y_u`"
+    ))
+  }
+
+  list(
+    Y_f = normalize_component(standardize_Y$Y_f, n_f, "Y_f"),
+    Y_u = normalize_component(standardize_Y$Y_u, n_u, "Y_u")
+  )
+}
+
+
+.normalize_residual_variance <- function(residual_variance, Y) {
+  n_f <- if (is.null(Y$Y_f)) 0L else length(Y$Y_f)
+  n_u <- if (is.null(Y$Y_u)) 0L else ncol(Y$Y_u)
+
+  normalize_component <- function(x, n, label) {
+    if (n == 0L) {
+      if (!is.null(x) && length(x) > 0L) {
+        stop(paste0("`residual_variance$", label,
+                    "` was supplied but that outcome block is absent"))
+      }
+      return(numeric())
+    }
+    if (is.null(x)) {
+      return(rep(NA_real_, n))
+    }
+    if (!is.numeric(x) || !length(x) %in% c(1L, n)) {
+      stop(paste0("`residual_variance$", label,
+                  "` must be numeric and have one value per modality"))
+    }
+    x <- rep_len(as.numeric(x), n)
+    if (any(!is.na(x) & (!is.finite(x) | x <= 0))) {
+      stop(paste0("Non-missing values in `residual_variance$", label,
+                  "` must be finite and positive"))
+    }
+    x
+  }
+
+  if (is.null(residual_variance)) {
+    return(list(sd_f = rep(NA_real_, n_f),
+                sd_u = rep(NA_real_, n_u)))
+  }
+  if (is.numeric(residual_variance) && length(residual_variance) == 1L) {
+    residual_variance <- list(Y_f = residual_variance,
+                              Y_u = residual_variance)
+    if (n_f == 0L) residual_variance$Y_f <- NULL
+    if (n_u == 0L) residual_variance$Y_u <- NULL
+  }
+  if (!is.list(residual_variance) || is.null(names(residual_variance)) ||
+      any(names(residual_variance) == "") || anyDuplicated(names(residual_variance))) {
+    stop(paste0(
+      "`residual_variance` must be NULL, a positive scalar, or a named list ",
+      "with components `Y_f` and/or `Y_u`"
+    ))
+  }
+
+  aliases <- c(Y_f = "Y_f", Y_u = "Y_u", sd_f = "Y_f", sd_u = "Y_u")
+  if (any(!names(residual_variance) %in% names(aliases))) {
+    stop(paste0(
+      "`residual_variance` must use components `Y_f` and/or `Y_u` ",
+      "(`sd_f` and `sd_u` are accepted aliases)"
+    ))
+  }
+  canonical_names <- unname(aliases[names(residual_variance)])
+  if (anyDuplicated(canonical_names)) {
+    stop("Specify each residual-variance outcome block only once")
+  }
+  names(residual_variance) <- canonical_names
+
+  list(
+    sd_f = normalize_component(residual_variance$Y_f, n_f, "Y_f"),
+    sd_u = normalize_component(residual_variance$Y_u, n_u, "Y_u")
+  )
+}
+
+
+.validate_multfsusie_response_controls <- function(standardize_Y,
+                                                    residual_variance,
+                                                    quantile_trans = FALSE) {
+  fixed_f <- !is.na(residual_variance$sd_f)
+  fixed_u <- !is.na(residual_variance$sd_u)
+  if (any(fixed_f & standardize_Y$Y_f) ||
+      any(fixed_u & standardize_Y$Y_u)) {
+    stop("Fixed `residual_variance` requires `standardize_Y = FALSE` for the same modality")
+  }
+  if (isTRUE(quantile_trans) && (any(fixed_f) || any(fixed_u))) {
+    stop("Fixed `residual_variance` is incompatible with `quantile_trans`")
+  }
+  invisible(TRUE)
+}
+
+
+.apply_fixed_residual_variance <- function(sigma2, residual_variance) {
+  for (component in c("sd_f", "sd_u")) {
+    requested <- residual_variance[[component]]
+    if (length(requested) == 0L) {
+      next
+    }
+    if (is.null(sigma2[[component]]) || length(sigma2[[component]]) != length(requested)) {
+      stop(paste0("Residual-variance component `", component,
+                  "` is not aligned with the outcomes"))
+    }
+    fixed <- !is.na(requested)
+    sigma2[[component]][fixed] <- requested[fixed]
+  }
+  sigma2
+}
+
+
+.outcome_scale <- function(x) {
+  scale <- attr(x, "scaled:scale")
+  if (is.null(scale)) rep(1, ncol(x)) else as.numeric(scale)
+}
+
+
+multi_array_colScale <- function(Y, scale=TRUE){
+  standardize_Y <- .normalize_standardize_Y(scale, Y)
+
+  if (!is.null(Y$Y_u)) {
+    selected <- standardize_Y$Y_u
+    if (all(selected) || !any(selected)) {
+      # Keep the pre-existing all-TRUE and all-FALSE paths exactly unchanged.
+      Y$Y_u <- fsusieR::colScale(Y$Y_u, scale = selected[1])
+    } else {
+      center <- colMeans(Y$Y_u, na.rm = TRUE)
+      scale_u <- rep(1, ncol(Y$Y_u))
+      scale_u[selected] <- matrixStats::colSds(
+        Y$Y_u[, selected, drop = FALSE],
+        center = center[selected],
+        na.rm = TRUE
+      )
+      scale_u[!is.finite(scale_u) | scale_u == 0] <- 1
+      Y$Y_u <- sweep(Y$Y_u, 2, center, "-")
+      Y$Y_u <- sweep(Y$Y_u, 2, scale_u, "/")
+      attr(Y$Y_u, "scaled:center") <- center
+      attr(Y$Y_u, "scaled:scale") <- scale_u
+    }
+  }
+  if (!is.null(Y$Y_f)) {
+    Y$Y_f <- lapply(seq_along(Y$Y_f), function(k) {
+      fsusieR::colScale(Y$Y_f[[k]], scale = standardize_Y$Y_f[k])
+    })
   }
 
  return( Y)

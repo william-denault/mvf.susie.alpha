@@ -1,0 +1,569 @@
+\documentclass[11pt]{article}
+
+\usepackage[letterpaper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs,array}
+\usepackage{xcolor}
+\usepackage{microtype}
+\usepackage[colorlinks=true,allcolors=blue!55!black]{hyperref}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\V}{\operatorname{Var}}
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\Bin}{\operatorname{Binomial}}
+\newcommand{\Pois}{\operatorname{Poisson}}
+\newcommand{\Ber}{\operatorname{Bernoulli}}
+\newcommand{\logit}{\operatorname{logit}}
+\newcommand{\sigmoid}{\operatorname{logit}^{-1}}
+\newcommand{\softplus}{\operatorname{softplus}}
+\newcommand{\KL}{\operatorname{KL}}
+\newcommand{\ELBO}{\operatorname{ELBO}}
+\newcommand{\R}{\mathbb{R}}
+
+\title{A splitting approach for variational inference in\\
+non-Gaussian latent Gaussian models}
+\author{Dongyue Xie \and Peter Carbonetto \and Matthew Stephens}
+\date{Revised working draft: \today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Many analyses of high-dimensional biological data begin by transforming
+non-Gaussian observations and then applying a Gaussian method. Examples
+include log-transforming RNA sequencing counts before factor analysis and
+transforming accessibility proportions before functional regression. These
+transformations are convenient, but they discard information about the
+observation process and can be sensitive to arbitrary choices such as a
+pseudocount. We develop a modular variational framework that couples an
+exponential-family observation model to an existing empirical Bayes Gaussian
+method through a latent Gaussian splitting variable. The resulting algorithm
+alternates between independent low-dimensional variational updates for the
+non-Gaussian observations and a Gaussian update that can be delegated to
+well-developed software for normal means, regression, smoothing, matrix
+factorization, multivariate analysis, or structured variable selection.
+
+We give explicit updates for Poisson and binomial observations. The binomial
+case is especially useful when a response is an aggregate of binary
+measurements: the number of successes and the number of trials are retained,
+so observations with different sampling depths contribute different amounts
+of information. We also clarify an important limitation. With one Bernoulli
+observation per latent mean, the splitting variance can be weakly identified
+or non-identifiable; replication within a binomial observation supplies the
+extra-binomial information needed to estimate this variance. For pure
+Bernoulli data we describe fixed-variance and data-augmentation alternatives.
+The framework therefore provides both an algorithm and a diagnostic guide for
+deciding when split variational inference is appropriate. We conclude with a
+binomial functional regression model for single-molecule chromatin
+accessibility data, in which wavelet-based functional fine-mapping is used as
+the Gaussian module on the latent log-odds scale.
+\end{abstract}
+
+\section{Introduction}
+
+Consider observations $y_i$ whose distribution belongs to an exponential
+family,
+\begin{equation}
+  y_i\mid \mu_i \sim \mathcal{D}\{h(\mu_i)\},
+  \qquad
+  \mu=(\mu_1,\ldots,\mu_m)^\mathsf{T}\sim f,
+  \label{eq:general-model}
+\end{equation}
+where $\mu_i$ is a canonical or transformed mean parameter and $h$ is the
+inverse link. Depending on the structure assigned to $f$, this formulation
+includes empirical Bayes normal means, sparse regression, smoothing,
+multivariate shrinkage, and matrix factorization. The corresponding Gaussian
+problems are often computationally mature, whereas replacing Gaussian
+observations by counts or proportions may require a new inference algorithm
+for every choice of $f$.
+
+Our goal is to reuse these Gaussian methods without first transforming the
+data. We introduce a latent Gaussian layer that separates the likelihood from
+the structured prior. This device is analogous in spirit to splitting methods
+in optimization: a difficult coupled problem is replaced by two simpler
+problems connected through low-dimensional posterior moments. One module
+handles the non-Gaussian likelihood; the other calls an empirical Bayes
+Gaussian method (EBG).
+
+The original motivation was dimension reduction for single-cell RNA
+sequencing counts. A second important use arises when binary measurements are
+aggregated within a biological sample. In Fiber-seq, for example, accessibility
+is observed on individual chromatin fibers but genetic covariates are measured
+at the donor level. The statistically relevant observation is then a number of
+accessible fibers out of a known number assayed. An analysis of the proportion
+alone cannot distinguish, say, one accessible fiber out of two from one
+hundred accessible fibers out of two hundred. A binomial likelihood preserves
+this distinction and avoids treating fibers from the same donor as independent
+genetic samples.
+
+Table~\ref{tab:gaussian-modules} lists examples of structured priors and the
+Gaussian module they induce.
+
+\begin{table}[ht]
+\centering
+\caption{Examples of structured priors and reusable Gaussian modules.}
+\label{tab:gaussian-modules}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.33\linewidth}
+                >{\raggedright\arraybackslash}p{0.28\linewidth}
+                >{\raggedright\arraybackslash}p{0.27\linewidth}}
+\toprule
+Structure for $b$ & Model & Example Gaussian engine \\
+\midrule
+$b_i\overset{\mathrm{iid}}\sim g$ & univariate mean inference & \texttt{ash}, \texttt{ebnm} \\
+$b=X\beta$, $\beta\sim g$ & regression & sparse EB regression \\
+$b$ spatially smooth & smoothing & wavelet or Gaussian-process EB \\
+$b=LF^\mathsf{T}$ & matrix factorization & \texttt{flash} \\
+$b_i\sim\sum_k\pi_k\N(0,U_k)$ & multivariate mean inference & \texttt{mash} \\
+$b=XB$, structured rows of $B$ & functional variable selection & fSuSiE \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Split variational inference}
+
+\subsection{The augmented model}
+
+Introduce a splitting variable $b=(b_1,\ldots,b_m)^\mathsf{T}$ and write
+\begin{align}
+ y_i\mid\mu_i &\sim \mathcal{D}\{h(\mu_i)\}, \nonumber\\
+ \mu_i\mid b_i,\tau_i^2 &\sim \N(b_i,\tau_i^2),
+ \label{eq:split-model}\\
+ b &\sim g. \nonumber
+\end{align}
+The variance $\tau_i^2$ can be interpreted in two ways. It may be an
+algorithmic device that connects the likelihood to a Gaussian engine, or it
+may be part of the scientific model, representing overdispersion or residual
+variation on the latent scale. This distinction matters for identifiability
+and interpretation.
+
+We use a mean-field approximation
+\[
+ q(\mu,b)=q_\mu(\mu)q_b(b)
+ =\left\{\prod_i q_{\mu_i}(\mu_i)\right\}q_b(b).
+\]
+Up to constants that do not depend on $q$, the evidence lower bound is
+\begin{align}
+ \mathcal{F}(q,g;\tau^2)
+  ={}&\sum_i\E_{q_{\mu_i}}\log p(y_i\mid\mu_i)
+   +\sum_i\E_q\log p(\mu_i\mid b_i,\tau_i^2) \nonumber\\
+  &+\E_{q_b}\log\frac{g(b)}{q_b(b)}
+   -\sum_i\E_{q_{\mu_i}}\log q_{\mu_i}(\mu_i).
+ \label{eq:split-elbo}
+\end{align}
+We take $q_{\mu_i}=\N(m_i,v_i)$. Let
+$\bar b_i=\E_{q_b}b_i$ and $V_{b_i}=\V_{q_b}(b_i)$. Conditional on the
+current Gaussian module, the update of $(m_i,v_i)$ is independent across
+$i$ and depends on $q_b$ only through $\bar b_i$; $V_{b_i}$ contributes a
+constant to this coordinate update.
+
+\subsection{The modular algorithm}
+
+For a common splitting variance $\tau^2$, coordinate ascent alternates among
+three steps:
+
+\begin{enumerate}
+\item \textbf{Non-Gaussian step.} For each $i$, update
+  $q_{\mu_i}=\N(m_i,v_i)$ using the likelihood for $y_i$, prior mean
+  $\bar b_i$, and prior variance $\tau^2$.
+\item \textbf{Gaussian step.} Treat $m=(m_1,\ldots,m_m)^\mathsf{T}$ as a
+  Gaussian response with residual variance $\tau^2$, and update $q_b$ and
+  any hyperparameters in $g$ with the selected EBG method.
+\item \textbf{Variance step.} If $\tau^2$ is estimated, update
+\begin{equation}
+ \tau^2\leftarrow \frac{1}{m}\sum_i
+ \left\{(m_i-\bar b_i)^2+v_i+V_{b_i}\right\}.
+ \label{eq:tau-update}
+\end{equation}
+\end{enumerate}
+
+The posterior variance $V_{b_i}$ in~\eqref{eq:tau-update} is essential. Omitting
+it generally underestimates the latent residual variance. The same pattern
+extends to matrices: average the corresponding quantity over all entries.
+When $\tau_i^2$ is known and heterogeneous, the Gaussian module must support
+heterogeneous observation variances.
+
+\subsection{Relation to the collapsed objective}
+
+Let
+\[
+ f_\tau(\mu)=\int \phi_\tau(\mu-b)\,dG(b)
+\]
+be the Gaussian convolution of $G$, where $\phi_\tau$ is a normal density with
+variance $\tau^2$.
+
+\begin{lemma}[Curvature of a Gaussian convolution]
+For every distribution $G$ for which the convolution is finite,
+\begin{equation}
+ \frac{d^2}{d\mu^2}\log f_\tau(\mu)
+ =-\frac{1}{\tau^2}
+  +\frac{\V(b\mid\mu)}{\tau^4}
+ \geq -\frac{1}{\tau^2}.
+ \label{eq:curvature}
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Differentiate under the integral. The first derivative is
+$(\E[b\mid\mu]-\mu)/\tau^2$; differentiating once more yields
+\eqref{eq:curvature}.
+\end{proof}
+
+Suppose $q_\mu=\N(m,v)$. The curvature bound implies
+\begin{equation}
+ \E_{q_\mu}\log f_\tau(\mu)
+ \geq \log f_\tau(m)-\frac{v}{2\tau^2}.
+ \label{eq:collapsed-bound}
+\end{equation}
+The right-hand side equals the result of profiling the splitting ELBO over
+$q_b$. Thus the split objective is a lower bound on the variational objective
+obtained after integrating out $b$. Equality holds when $G$ is a point mass;
+with a flexible $G$, the gap is the price paid for modularity.
+
+\section{Variational Gaussian updates}
+
+\subsection{Poisson observations}
+
+Let
+\[
+ y_i\mid\mu_i\sim\Pois\{s_i\exp(\mu_i)\},
+ \qquad s_i>0,
+\]
+and let the current prior mean be $\bar b_i$. Up to constants, the local
+objective for $q_{\mu_i}=\N(m_i,v_i)$ is
+\begin{align}
+ \mathcal{F}_i(m_i,v_i)
+  ={}&y_i m_i-s_i\exp(m_i+v_i/2)
+  -\frac{(m_i-\bar b_i)^2+v_i}{2\tau^2}
+  +\frac{1}{2}\log v_i.
+ \label{eq:poisson-vga}
+\end{align}
+The negative of~\eqref{eq:poisson-vga} is strictly convex. The stationary
+conditions are
+\begin{align}
+ 0&=y_i-s_i\exp(m_i+v_i/2)-\frac{m_i-\bar b_i}{\tau^2},
+ \label{eq:pois-score-m}\\
+ \frac{1}{v_i}&=s_i\exp(m_i+v_i/2)+\frac{1}{\tau^2}.
+ \label{eq:pois-score-v}
+\end{align}
+They can be solved by damped Newton iterations. Alternatively, substituting
+one equation into the other reduces the update to a stable one-dimensional
+root-finding problem. Equation~\eqref{eq:pois-score-v} also shows that
+$0<v_i<\tau^2$.
+
+\subsection{Binomial observations}
+
+Let
+\begin{equation}
+ k_i\mid\mu_i\sim\Bin\{n_i,\sigmoid(\mu_i)\},
+ \qquad 0\leq k_i\leq n_i,
+ \label{eq:binomial-model}
+\end{equation}
+where $k_i$ is the number of successes and $n_i$ is the known number of
+trials. The local objective is
+\begin{align}
+ \mathcal{F}_i(m_i,v_i)
+ ={}& k_i m_i-n_i A(m_i,v_i)
+ -\frac{(m_i-\bar b_i)^2+v_i}{2\tau^2}
+ +\frac{1}{2}\log v_i,
+ \label{eq:binomial-vga}\\
+ A(m,v)={}&\E_{Z\sim\N(m,v)}\log(1+e^Z).
+ \nonumber
+\end{align}
+There is no elementary expression for $A(m,v)$, but Gauss-Hermite quadrature
+is accurate and inexpensive:
+\begin{equation}
+ A(m,v)\approx \frac{1}{\sqrt{\pi}}
+ \sum_{r=1}^R w_r\log\left\{1+
+ \exp\left(m+\sqrt{2v}\,z_r\right)\right\},
+ \label{eq:gh}
+\end{equation}
+where $(z_r,w_r)$ are fixed Hermite nodes and weights. Stable implementations
+evaluate the logarithm with a softplus function.
+
+Useful exact derivative identities are
+\begin{align}
+ \frac{\partial A}{\partial m}
+ &=\E\{p(Z)\}, \\
+ \frac{\partial A}{\partial v}
+ &=\frac{1}{2}\E\{p(Z)[1-p(Z)]\},
+ \qquad p(z)=\sigmoid(z).
+\end{align}
+The local first-order conditions therefore become
+\begin{align}
+ 0={}&k_i-n_i\E\{p(Z_i)\}
+      -\frac{m_i-\bar b_i}{\tau^2},
+ \label{eq:bin-score-m}\\
+ \frac{1}{v_i}={}&\frac{1}{\tau^2}
+ +n_i\E\{p(Z_i)[1-p(Z_i)]\}.
+ \label{eq:bin-score-v}
+\end{align}
+As in the Poisson case, $0<v_i<\tau^2$. We recommend optimizing in
+$(m_i,\log v_i)$ with a trust-region or damped Newton method, using the same
+quadrature rule for the objective and derivatives. Warm starts from the
+previous outer iteration make these scalar updates inexpensive.
+
+\subsection{Bernoulli identifiability and the role of replication}
+
+The binomial extension requires more care than the Poisson extension because
+the splitting variance need not be identified by Bernoulli data.
+
+\begin{proposition}[A Bernoulli non-identifiability case]
+Suppose $x_i\mid\mu_i\sim\Ber\{\sigmoid(\mu_i)\}$ and
+$\mu_i\sim\N(0,\tau^2)$. Then
+$\Pr(x_i=1)=1/2$ for every $\tau^2>0$; hence the Bernoulli likelihood contains
+no information about $\tau^2$.
+\end{proposition}
+
+\begin{proof}
+The normal distribution is symmetric around zero and
+$\sigmoid(z)+\sigmoid(-z)=1$. Therefore
+$\E\{\sigmoid(\mu_i)\}=1/2$ for all $\tau^2$.
+\end{proof}
+
+With nonzero or varying prior means, a Bernoulli likelihood may contain some
+information about $\tau^2$, but it is often weak. Moreover, if the structured
+prior $g$ has an estimable scale, variation can be shifted between $g$ and
+$\tau^2$, creating a ridge or boundary solution.
+
+Replication within a binomial observation changes this. If
+$K\mid P\sim\Bin(n,P)$, then
+\begin{equation}
+ \V(K)=n\bar p(1-\bar p)+n(n-1)\V(P),
+ \qquad \bar p=\E(P).
+ \label{eq:binomial-overdispersion}
+\end{equation}
+The second term vanishes when $n=1$ and grows quadratically with $n$.
+Consequently, aggregated binomial data can identify latent heterogeneity from
+extra-binomial variation, whereas a single Bernoulli trial cannot. Practical
+identifiability still depends on the range of $n_i$, the number of independent
+biological units, the range of fitted probabilities, and the flexibility of
+$g$.
+
+We recommend three safeguards:
+\begin{enumerate}
+\item retain the trial totals $n_i$ and diagnose their distribution rather
+than analyzing proportions alone;
+\item compare estimated and fixed values of $\tau^2$, and monitor the ELBO for
+flat profiles or boundary optima;
+\item use null simulations or permutations that preserve the observed trial
+totals and dependence structure.
+\end{enumerate}
+
+\subsection{Alternative augmentations for binary data}
+
+When all $n_i=1$, a fixed splitting variance may still provide a useful
+computational approximation, but it should not be interpreted as an estimated
+overdispersion parameter. Two classic alternatives are worth considering.
+Albert--Chib augmentation introduces a truncated latent normal and is exact
+for a \emph{probit} likelihood, $\Pr(x_i=1)=\Phi(b_i)$; it is not an exact
+logistic representation. Polya--Gamma augmentation is conditionally Gaussian
+for logistic binomial models and provides exact augmentation before the
+mean-field approximation. Its Gaussian pseudo-observations have
+observation-specific precisions, so the downstream Gaussian engine must accept
+heterogeneous weights. Split VA trades this extra Gaussian-engine complexity
+for independent two-parameter local updates and a common latent residual
+variance.
+
+\section{Reusable Gaussian modules}
+
+\subsection{Empirical Bayes normal means}
+
+If $b_i\overset{\mathrm{iid}}\sim g$, the Gaussian step solves
+\[
+ m_i\mid b_i\sim\N(b_i,\tau^2),\qquad b_i\sim g.
+\]
+This is the empirical Bayes normal means problem. Scale mixtures of normals,
+unimodal families, or nonparametric priors can be fitted with existing
+software. The returned posterior means and variances feed directly into the
+next non-Gaussian and variance updates.
+
+\subsection{Regression and smoothing}
+
+Let $b=X\beta$ or let $b$ be a smooth function evaluated on a grid. The
+Gaussian step is ordinary empirical Bayes regression or smoothing with
+response $m$ and residual variance $\tau^2$. The prior on $\beta$ can induce
+sparsity, and the prior on a smooth function can be a Gaussian process or a
+sparse prior on wavelet coefficients. This modularity allows the same Poisson
+or binomial likelihood code to be paired with several notions of structure.
+
+\subsection{Matrix factorization}
+
+For observations $y_{ij}$, let
+\begin{align}
+ y_{ij}\mid\mu_{ij}&\sim\mathcal{D}\{h(\mu_{ij})\},\\
+ \mu_{ij}\mid L,F&\sim
+ \N\left(\sum_{r=1}^K l_{ir}f_{jr},\tau_{ij}^2\right).
+\end{align}
+A mean-field approximation
+$q_\mu\prod_r q(l_r)q(f_r)$ yields a non-Gaussian update for every matrix
+entry and a Gaussian factor-analysis update using the matrix of latent means
+$M=(m_{ij})$. Sparsity, non-negativity, or smoothness can be imposed through
+the factor-analysis priors without changing the observation module.
+
+\subsection{Multivariate mean inference}
+
+For multivariate effects, the Gaussian step can use a mixture
+\[
+ b_i\sim\sum_k\pi_k\N(0,U_k).
+\]
+The non-Gaussian module returns a vector of latent posterior means for every
+unit, and a multivariate adaptive-shrinkage method updates the mixture weights
+and posterior moments. Heterogeneous splitting variances require the
+multivariate engine to accept observation-specific standard errors.
+
+\subsection{Binomial functional regression and Fiber-seq}
+\label{sec:fiberseq}
+
+Let $A_{irt}\in\{0,1\}$ record whether fiber $r$ from donor $i$ is accessible
+at genomic position $t$. Define
+\[
+ K_{it}=\sum_{r=1}^{N_{it}}A_{irt},
+ \]
+where $N_{it}$ is the number of fibers observed for donor $i$ at position $t$.
+The proposed model is
+\begin{align}
+ K_{it}\mid\mu_{it}
+ &\sim\Bin\{N_{it},\sigmoid(\mu_{it})\},
+ \label{eq:fiber-binomial}\\
+ \mu_{it}\mid a_t,B,\tau^2
+ &\sim\N\{a_t+(XB)_{it},\tau^2\}.
+ \label{eq:fiber-latent}
+\end{align}
+Here $X$ contains donor-level genotypes and covariates, $a_t$ is a baseline
+accessibility curve, and the rows of $B$ are SNP effect curves on the log-odds
+scale. A functional Sum of Single Effects prior can be placed on $B$: each
+single effect selects one SNP, while a sparse wavelet prior regularizes its
+effect curve across positions.
+
+This model preserves three important features of the experiment. First, the
+binomial likelihood distinguishes different coverage totals. Second, donors,
+not fibers, remain the independent units for genetic association. Third, the
+wavelet transform is applied to latent effect functions rather than directly
+to binary observations, so the mean--variance relationship is handled by the
+likelihood.
+
+One iteration of binomial fSuSiE is:
+\begin{enumerate}
+\item update every $q(\mu_{it})=\N(m_{it},v_{it})$ using
+\eqref{eq:binomial-vga}, with prior mean
+$\bar a_t+\E_q(XB)_{it}$ and variance $\tau^2$;
+\item fit Gaussian fSuSiE to $M=(m_{it})$, holding its residual variance fixed
+at the current $\tau^2$;
+\item update the baseline curve and compute the first two posterior moments of
+$a_t+(XB)_{it}$;
+\item update $\tau^2$ by the matrix version of~\eqref{eq:tau-update}.
+\end{enumerate}
+
+The raw inputs should therefore contain both $K_{it}$ and $N_{it}$. Supplying
+only $K_{it}/N_{it}$ loses sampling precision. If fibers are more correlated
+than model~\eqref{eq:fiber-latent} can accommodate, one can enrich the latent
+model with donor- or region-specific random effects. Inference should be
+validated with simulations that reproduce the observed coverage distribution,
+baseline accessibility, within-fiber spatial dependence, and linkage
+disequilibrium among SNPs.
+
+\section{Computation and diagnostics}
+
+The local Poisson and binomial updates are embarrassingly parallel. Their cost
+is linear in the number of observations times the number of quadrature nodes;
+the Gaussian module usually dominates total running time. Useful numerical and
+statistical diagnostics include:
+\begin{itemize}
+\item monotonicity of the full split ELBO, evaluated with the same quadrature
+rule used by the updates;
+\item relative changes in latent means, fitted structured means, and
+$\tau^2$;
+\item the frequency of local solver failures and boundary values of $v_i$;
+\item profile plots of the objective over $\tau^2$;
+\item calibration under null simulations or covariate permutations;
+\item sensitivity to quadrature order, initialization, and fixed versus
+estimated splitting variance.
+\end{itemize}
+
+For binomial functional regression, additional diagnostics should compare
+observed and fitted success counts across coverage strata and positions. A
+method that fits mean accessibility but fails to reproduce the variance across
+donors is not adequately modeling the data, even if its fitted mean curves
+look plausible.
+
+\section{Discussion}
+
+Split variational inference makes non-Gaussian modeling modular: the
+likelihood is handled by simple local variational problems, while structural
+learning is delegated to a Gaussian method. This division is particularly
+attractive when the Gaussian method is sophisticated, such as adaptive
+shrinkage, multivariate empirical Bayes, matrix factorization, or functional
+fine-mapping.
+
+The binomial case adds both an important application and an important warning.
+Aggregated binary data with known trial totals are not merely ``continuous
+values between zero and one.'' They are binomial counts whose precision
+depends on the number of trials and the latent success probability. Split VA
+naturally uses this information. By contrast, pure Bernoulli data can provide
+little or no information about an extra latent variance, particularly near a
+zero linear predictor. In that setting the variance should be fixed or
+regularized, or a direct probit or Polya--Gamma augmentation should be used.
+
+For Fiber-seq fine-mapping, the binomial formulation is scientifically more
+defensible than applying a homoskedastic Gaussian model to mean accessibility.
+It is also computationally realistic because the current Gaussian fSuSiE
+engine can be reused once it accepts a latent response and a fixed residual
+variance. The main research tasks are therefore the binomial local solver,
+careful propagation of posterior uncertainty, identifiability diagnostics,
+and realistic calibration experiments rather than a redesign of functional
+fine-mapping itself.
+
+\begin{thebibliography}{99}
+
+\bibitem{albertchib1993}
+Albert, J. H. and Chib, S. (1993).
+Bayesian analysis of binary and polychotomous response data.
+\emph{Journal of the American Statistical Association}, 88:669--679.
+
+\bibitem{blei2017}
+Blei, D. M., Kucukelbir, A., and McAuliffe, J. D. (2017).
+Variational inference: A review for statisticians.
+\emph{Journal of the American Statistical Association}, 112:859--877.
+
+\bibitem{boyd2011}
+Boyd, S., Parikh, N., Chu, E., Peleato, B., and Eckstein, J. (2011).
+Distributed optimization and statistical learning via the alternating
+direction method of multipliers.
+\emph{Foundations and Trends in Machine Learning}, 3:1--122.
+
+\bibitem{denault2025}
+Denault, W. R. P. et al. (2025).
+fSuSiE enables fine-mapping of QTLs from genome-scale molecular profiles.
+\emph{bioRxiv}, doi:10.1101/2025.08.17.670732.
+
+\bibitem{jaakkola1997}
+Jaakkola, T. S. and Jordan, M. I. (1997).
+A variational approach to Bayesian logistic regression models and their
+extensions.
+In \emph{Proceedings of the Sixth International Workshop on Artificial
+Intelligence and Statistics}, 283--294.
+
+\bibitem{polson2013}
+Polson, N. G., Scott, J. G., and Windle, J. (2013).
+Bayesian inference for logistic models using Polya--Gamma latent variables.
+\emph{Journal of the American Statistical Association}, 108:1339--1349.
+
+\bibitem{stephens2017}
+Stephens, M. (2017).
+False discovery rates: a new deal.
+\emph{Biostatistics}, 18:275--294.
+
+\bibitem{wang2020}
+Wang, G., Sarkar, A., Carbonetto, P., and Stephens, M. (2020).
+A simple new approach to variable selection in regression, with application
+to genetic fine mapping.
+\emph{Journal of the Royal Statistical Society: Series B}, 82:1273--1300.
+
+\end{thebibliography}
+
+\end{document}

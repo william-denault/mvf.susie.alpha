@@ -15,8 +15,13 @@ test_stop_cond(multfsusie.obj, check, cal_obj, Y, X, list_indx_lst, ...)
   X,
   list_indx_lst,
   ind_analysis,
+  nullweight = 1,
   ...
 )
+}
+\arguments{
+\item{nullweight}{Null-component penalty for convergence monitoring;
+see \code{multfsusie}.}
 }
 \description{
 Checks whether the stopping criterion for the multfSuSiE algorithm is met.

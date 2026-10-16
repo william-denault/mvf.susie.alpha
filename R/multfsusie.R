@@ -49,7 +49,7 @@
 #'
 #' @param tol A small, non-negative number specifying the convergence tolerance
 #' for the IBSS fitting procedure. The fitting procedure will halt when
-#'  the difference in the variational lower bound, or ELBO
+#'  the difference in the penalized variational lower bound, or ELBO
 #'   (the objective function to be maximized), is less than tol.
 #'
 #' @param maxit Maximum number of IBSS iterations to perform.
@@ -57,17 +57,21 @@
 #' @param cov_lev Numeric between 0 and 1, corresponding to the expected
 #' level of coverage of the credible sets. Default is 0.95.
 #'
-#' @param cal_obj Logical, if TRUE computes ELBO for convergence monitoring.
+#' @param cal_obj Logical, if TRUE computes the ELBO including the null-weight
+#' penalty for convergence monitoring.
 #'
 #' @param min_purity Minimum purity for estimated credible sets.
 #'
 #' @param filter_cs Logical, if TRUE filters the credible sets
 #' (removing low purity credible sets and those with estimated prior equal to 0).
 #'
-#' @param nullweight numeric value for penalizing likelihood at point mass 0. This number roughly corresponds
-#' to the number of zeros observation you add  (useful in small sample size). Default is 10 as recommended by Stephens in
-#' False discovery rate a new deal. Setting it too low tend lead to adding false discoveries. Setting it too
-#' high may reduce power.
+#' @param nullweight Finite numeric value at least 1, using the same convention
+#' as \code{ashr::ash}. Adds \code{(nullweight - 1) * log(pi0)} for each fitted
+#' mixture, where \code{pi0} is its null-component weight. The default is 10;
+#' 1 gives no penalty. For each effect, the penalty is applied once per
+#' univariate trait, once per functional trait with \code{mixture_normal},
+#' or once per wavelet scale with \code{mixture_normal_per_scale}.
+#' Its coefficient does not scale with the number of SNPs or wavelet coefficients.
 #'
 #' @param min_purity minimum purity for estimated credible sets
 #'
@@ -83,8 +87,10 @@
 #'
 #' @param max_step_EM max_step_EM
 #'
-#' @param max_SNP_EM maximum number of SNP used for learning the prior. By default, set to 1000. Reducing this may help reduce
-#' the computational time. We advise to keep it at least larger than 50
+#' @param max_SNP_EM Maximum number of SNPs used for learning the prior (default
+#' 100). Assignment probabilities are renormalized over the retained SNPs so
+#' that the null penalty does not depend on the retained probability mass.
+#' Reducing this cutoff can still change the evidence used to fit the prior.
 #'
 #' @param cor_small logical set to FALSE by default. If TRUE used the Bayes factor from Valen E Johnson JRSSB 2005 instead of Wakefield approximation for Gen Epi 2009
 #' The Bayes factor from Valen E Johnson JRSSB 2005 tends to have better coverage in small sample sizes. We advise using this parameter if n<50
@@ -105,6 +111,18 @@
 #' active in a post-hoc configuration. May be a scalar or one value per modality.
 #' @param posthoc_variant_prior optional prior probabilities over covariates for
 #' the post-hoc configuration calculation. Defaults to a uniform prior.
+#' @param standardize_Y Logical or a named list with components \code{Y_f} and
+#' \code{Y_u}. A scalar applies to every outcome. In the list form, provide one
+#' logical value per functional modality in \code{Y_f} and one per univariate
+#' trait in \code{Y_u}; omitted components default to \code{TRUE}. Functional
+#' modalities are controlled at both the position and wavelet-coefficient
+#' standardization steps.
+#' @param residual_variance Optional residual variances to hold fixed. Use a
+#' positive scalar for every outcome, or a named list with components
+#' \code{Y_f} and \code{Y_u}. Each component may contain one value per modality;
+#' use \code{NA} for entries that should continue to be estimated. A fixed entry
+#' requires \code{standardize_Y = FALSE} for the same modality and cannot be
+#' combined with \code{quantile_trans = TRUE}.
 #' @param  max_step number of iteration in a given pass of the multfsusie function, see vignette on large fitting procedure for details
 #' @param multfsusie.obj a multfsusie object that was previously fitted on the same data the one currently being analysed, see vignette on large fitting procedure for details
 #' @return A \code{"multfsusie"} object. Effect-indexed fields have length
@@ -194,7 +212,7 @@ multfsusie <- function(Y, X, L = 2,
                        L_start = 3,
                        filter_cs = TRUE,
                        init_pi0_w = 1,
-                       nullweight = .7 ,
+                       nullweight = 10,
                        control_mixsqp = list(
                          eps = 1e-6,
                          numiter.em = 40,
@@ -220,13 +238,21 @@ multfsusie <- function(Y, X, L = 2,
                        max_step =100,
                        multfsusie.obj=NULL,
                        posthoc_prior_active=0.5,
-                       posthoc_variant_prior=NULL)
+                       posthoc_variant_prior=NULL,
+                       standardize_Y=TRUE,
+                       residual_variance=NULL)
 
 
 {
+  standardize_Y_missing <- missing(standardize_Y)
+  residual_variance_missing <- missing(residual_variance)
   pt <- proc.time()
 
-  prior           <- match.arg(prior)
+  if (!is.numeric(nullweight) || length(nullweight) != 1L ||
+      !is.finite(nullweight) || nullweight < 1) {
+    stop("`nullweight` must be a finite number at least 1 (1 gives no penalty)")
+  }
+  prior           <- match.arg(prior, c("mixture_normal", "mixture_normal_per_scale"))
   post_processing <- match.arg( post_processing)
   X <- as.matrix(X)
   names_colX <- colnames(X)
@@ -240,6 +266,55 @@ multfsusie <- function(Y, X, L = 2,
   if (length(L_start) != 1L || !is.finite(L_start) ||
       L_start < 1L || L_start != as.integer(L_start)) {
     stop("L_start must be a positive integer")
+  }
+
+  if (!is.null(multfsusie.obj)) {
+    if (standardize_Y_missing && !is.null(multfsusie.obj$standardize_Y)) {
+      standardize_Y <- multfsusie.obj$standardize_Y
+    }
+    if (residual_variance_missing &&
+        !is.null(multfsusie.obj$residual_variance_requested)) {
+      residual_variance <- multfsusie.obj$residual_variance_requested
+    }
+  }
+  standardize_Y <- .normalize_standardize_Y(standardize_Y, Y)
+  residual_variance <- .normalize_residual_variance(residual_variance, Y)
+  .validate_multfsusie_response_controls(
+    standardize_Y,
+    residual_variance,
+    quantile_trans = quantile_trans
+  )
+
+  if (!is.null(multfsusie.obj)) {
+    default_standardization <- list(
+      Y_f = rep(TRUE, length(standardize_Y$Y_f)),
+      Y_u = rep(TRUE, length(standardize_Y$Y_u))
+    )
+    default_residual_variance <- list(
+      sd_f = rep(NA_real_, length(residual_variance$sd_f)),
+      sd_u = rep(NA_real_, length(residual_variance$sd_u))
+    )
+    if (is.null(multfsusie.obj$standardize_Y)) {
+      if (!identical(standardize_Y, default_standardization) ||
+          !identical(residual_variance, default_residual_variance)) {
+        stop("The supplied legacy multfsusie object can only be resumed with the default response controls")
+      }
+    } else {
+      stored_standardization <- .normalize_standardize_Y(
+        multfsusie.obj$standardize_Y,
+        Y
+      )
+      stored_residual_variance <- .normalize_residual_variance(
+        multfsusie.obj$residual_variance_requested,
+        Y
+      )
+      if (!identical(standardize_Y, stored_standardization) ||
+          !isTRUE(all.equal(residual_variance,
+                           stored_residual_variance,
+                           check.attributes = FALSE))) {
+        stop("Response controls do not match the supplied multfsusie object")
+      }
+    }
   }
   original_mean_X <- colMeans(X, na.rm = TRUE)
 
@@ -297,6 +372,7 @@ multfsusie <- function(Y, X, L = 2,
     h <- 1
     list_wdfs <- list()
     list_indx_lst  <-  list()
+    csd_Y_f_pos <- NULL
     Y0=Y
     # Define these for univariate-only analyses as well. Functional
     # post-processing is skipped when Y$Y_f is NULL.
@@ -304,6 +380,7 @@ multfsusie <- function(Y, X, L = 2,
     outing_grid <- NULL
     if( !is.null(Y$Y_f)){
       outing_grid <- list()
+      csd_Y_f_pos <- vector("list", length(Y$Y_f))
       pos <- .normalize_function_positions(Y$Y_f, pos)
 
 
@@ -336,7 +413,12 @@ multfsusie <- function(Y, X, L = 2,
 
 
 ### scaling here  -----
-        temp               <- DWT2( fsusieR::colScale(map_data$Y ),
+        scaled_map_Y       <- fsusieR::colScale(
+          map_data$Y,
+          scale = standardize_Y$Y_f[k]
+        )
+        csd_Y_f_pos[[k]]   <- .outcome_scale(scaled_map_Y)
+        temp               <- DWT2( scaled_map_Y,
                                     filter.number = filter.number,
                                     family        = family)
         list_wdfs[[h]]     <- cbind( temp$D,temp$C)
@@ -366,11 +448,16 @@ multfsusie <- function(Y, X, L = 2,
 
 
   # centering input
-  Y_data <- multi_array_colScale(Y_data )
+  Y_data <- multi_array_colScale(Y_data, scale = standardize_Y)
   univariate_scale <- if (is.null(Y_data$Y_u)) {
     NULL
   } else {
-    attr(Y_data$Y_u, "scaled:scale")
+    .outcome_scale(Y_data$Y_u)
+  }
+  csd_Y_f_wavelet <- if (is.null(Y_data$Y_f)) {
+    NULL
+  } else {
+    lapply(Y_data$Y_f, .outcome_scale)
   }
   #
   if(verbose){
@@ -400,6 +487,12 @@ multfsusie <- function(Y, X, L = 2,
         if (!is.null(Y_data$Y_u)) {
           univariate_scale <- rep(1, ncol(Y_data$Y_u))
         }
+        if (!is.null(Y_data$Y_f)) {
+          csd_Y_f_wavelet <- lapply(Y_data$Y_f,
+                                    function(x) rep(1, ncol(x)))
+          csd_Y_f_pos <- lapply(csd_Y_f_pos,
+                                function(x) rep(1, length(x)))
+        }
 
 
       }
@@ -427,6 +520,23 @@ multfsusie <- function(Y, X, L = 2,
     df= NULL
   }
 
+  initial_sigma2 <- .apply_fixed_residual_variance(
+    init_var_multf(Y_data),
+    residual_variance
+  )
+  prior_sigma2 <- list(
+    sd_f = if (is.null(Y_data$Y_f)) NULL else rep(1, length(Y_data$Y_f)),
+    sd_u = if (is.null(Y_data$Y_u)) NULL else rep(1, ncol(Y_data$Y_u))
+  )
+  if (!is.null(prior_sigma2$sd_f)) {
+    prior_sigma2$sd_f[!standardize_Y$Y_f] <-
+      initial_sigma2$sd_f[!standardize_Y$Y_f]
+  }
+  if (!is.null(prior_sigma2$sd_u)) {
+    prior_sigma2$sd_u[!standardize_Y$Y_u] <-
+      initial_sigma2$sd_u[!standardize_Y$Y_u]
+  }
+
 
   if ( is.null (multfsusie.obj)) {
     temp  <- init_prior_multfsusie(Y              = Y_data ,
@@ -441,7 +551,8 @@ multfsusie <- function(Y, X, L = 2,
                                    max_SNP_EM     = max_SNP_EM,
                                    gridmult       = gridmult,
                                    max_step_EM    = max_step_EM,
-                                   tol_null_prior = tol_null_prior
+                                   tol_null_prior = tol_null_prior,
+                                   sigma2         = prior_sigma2
     )
 
     G_prior          <- temp$G_prior
@@ -460,6 +571,19 @@ multfsusie <- function(Y, X, L = 2,
                                            ind_analysis  = ind_analysis,
                                            tol_null_prior= tol_null_prior,
                                            lbf_min       = lbf_min )
+    multfsusie.obj <- update_residual_variance(
+      multfsusie.obj,
+      sigma2 = initial_sigma2
+    )
+    multfsusie.obj$standardize_Y <- standardize_Y
+    multfsusie.obj$residual_variance_requested <- residual_variance
+    multfsusie.obj$residual_variance_fixed <- list(
+      sd_f = !is.na(residual_variance$sd_f),
+      sd_u = !is.na(residual_variance$sd_u)
+    )
+    multfsusie.obj$csd_Y_f_pos <- csd_Y_f_pos
+    multfsusie.obj$csd_Y_f_wavelet <- csd_Y_f_wavelet
+    multfsusie.obj$csd_Y_u <- univariate_scale
     check <- 3*tol
     iter <- 1
   }else{
@@ -467,6 +591,23 @@ multfsusie <- function(Y, X, L = 2,
     check   <- multfsusie.obj$check
     G_prior <- multfsusie.obj$G_prior
     init    <- FALSE
+    if (is.null(multfsusie.obj$standardize_Y)) {
+      multfsusie.obj$standardize_Y <- standardize_Y
+      multfsusie.obj$residual_variance_requested <- residual_variance
+      multfsusie.obj$residual_variance_fixed <- list(
+        sd_f = !is.na(residual_variance$sd_f),
+        sd_u = !is.na(residual_variance$sd_u)
+      )
+    }
+    if (is.null(multfsusie.obj$csd_Y_f_pos)) {
+      multfsusie.obj$csd_Y_f_pos <- csd_Y_f_pos
+    }
+    if (is.null(multfsusie.obj$csd_Y_f_wavelet)) {
+      multfsusie.obj$csd_Y_f_wavelet <- csd_Y_f_wavelet
+    }
+    if (is.null(multfsusie.obj$csd_Y_u)) {
+      multfsusie.obj$csd_Y_u <- univariate_scale
+    }
   }
 
 
@@ -519,6 +660,10 @@ multfsusie <- function(Y, X, L = 2,
                                             Y=Y_data,
                                             X=X,
                                             ind_analysis = ind_analysis)
+    sigma2 <- .apply_fixed_residual_variance(
+      sigma2,
+      residual_variance
+    )
     multfsusie.obj <- update_residual_variance(multfsusie.obj, sigma2 = sigma2 )
 
     if (cal_obj) {
@@ -532,7 +677,8 @@ multfsusie <- function(Y, X, L = 2,
         get_objective(multfsusie.obj = multfsusie.obj,
                       Y = Y_data,
                       X = X,
-                      ind_analysis = ind_analysis)
+                      ind_analysis = ind_analysis,
+                      nullweight = nullweight)
       )
     }
 
@@ -618,6 +764,10 @@ multfsusie <- function(Y, X, L = 2,
                                               Y=Y_data,
                                               X=X,
                                               ind_analysis = ind_analysis)
+      sigma2 <- .apply_fixed_residual_variance(
+        sigma2,
+        residual_variance
+      )
       multfsusie.obj <- update_residual_variance(multfsusie.obj,
                                                  sigma2 = sigma2 )
 
@@ -629,7 +779,8 @@ multfsusie <- function(Y, X, L = 2,
                                        Y                   = Y_data,
                                        X                   = X,
                                        list_indx_lst       = list_indx_lst,
-                                       ind_analysis        = ind_analysis)
+                                       ind_analysis        = ind_analysis,
+                                       nullweight          = nullweight)
       check <- multfsusie.obj$check
 
 

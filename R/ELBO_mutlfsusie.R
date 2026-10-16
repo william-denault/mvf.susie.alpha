@@ -273,6 +273,8 @@ Eloglik.multfsusie <-  function (multfsusie.obj,Y ,X,ind_analysis, ... ) {
 }
 
 #' @title Get objective function from data and multfsusie object
+#' @param nullweight Null-component penalty; see \code{multfsusie}. The default
+#' of 1 returns the unpenalized ELBO.
 #'
 #' @param multfsusie.obj a multfsusie object defined by init_multfsusie_obj function
 #'
@@ -299,9 +301,14 @@ get_objective <- function    (multfsusie.obj,  Y, X,  ind_analysis,  ...)
 #' @export get_objective.multfsusie
 #' @export
 #' @keywords internal
-get_objective.multfsusie <- function    (multfsusie.obj, Y, X  ,ind_analysis, ...)
+get_objective.multfsusie <- function(multfsusie.obj, Y, X, ind_analysis,
+                                    nullweight = 1, ...)
 {
-  Eloglik(multfsusie.obj, Y, X, ind_analysis=ind_analysis) -
+  value <- Eloglik(multfsusie.obj, Y, X, ind_analysis=ind_analysis) -
     sum(multfsusie.obj$KL)
-
+  if (nullweight > 1) {
+    value <- value + sum(vapply(multfsusie.obj$est_pi, .multfsusie_null_penalty,
+                                numeric(1), nullweight = nullweight))
+  }
+  value
 }

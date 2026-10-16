@@ -23,23 +23,44 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                   max_SNP_EM,
                                   gridmult=sqrt(2),
                                   max_step_EM=100,
-                                  tol_null_prior=0.001
+                                  tol_null_prior=0.001,
+                                  sigma2=NULL
                                   )
 {
+  if (is.null(sigma2)) {
+    sigma2 <- list(
+      sd_f = if (is.null(Y$Y_f)) NULL else rep(1, length(Y$Y_f)),
+      sd_u = if (is.null(Y$Y_u)) NULL else rep(1, ncol(Y$Y_u))
+    )
+  }
+  if (!is.null(Y$Y_f) &&
+      (is.null(sigma2$sd_f) || length(sigma2$sd_f) != length(Y$Y_f) ||
+       anyNA(sigma2$sd_f) || any(!is.finite(sigma2$sd_f)) ||
+       any(sigma2$sd_f <= 0))) {
+    stop("`sigma2$sd_f` must contain one positive finite variance per functional modality")
+  }
+  if (!is.null(Y$Y_u) &&
+      (is.null(sigma2$sd_u) || length(sigma2$sd_u) != ncol(Y$Y_u) ||
+       anyNA(sigma2$sd_u) || any(!is.finite(sigma2$sd_u)) ||
+       any(sigma2$sd_u <= 0))) {
+    stop("`sigma2$sd_u` must contain one positive finite variance per univariate trait")
+  }
+
   if(is.null(Y$Y_u)){
     G_prior_u <- NULL
     res_u   <- NULL
   }else{
     if(missing(ind_analysis )){
-      res_u   <- fsusieR:::cal_Bhat_Shat(Y$Y_u,X,sigma2 = 1)
+      res_u   <- fsusieR:::cal_Bhat_Shat(Y$Y_u,X,sigma2 = sigma2$sd_u)
     }else{
-      res_u   <- fsusieR:::cal_Bhat_Shat(Y$Y_u,X,sigma2 = 1,lowc_wc=NULL,ind_analysis =ind_analysis$idx_u)
+      res_u   <- fsusieR:::cal_Bhat_Shat(Y$Y_u,X,sigma2 = sigma2$sd_u,lowc_wc=NULL,ind_analysis =ind_analysis$idx_u)
     }
 
     if (is.null(low_trait$low_u)){
               G_prior_u <- lapply(1:ncol(Y$Y_u), function(j) ashr::ash(res_u$Bhat[,j],
                                                                   res_u$Shat[,j] ,
                                                                   mixcompdist = "normal" ,
+                                                                  nullweight = nullweight,
                                                                   outputlevel=0,
                                                                   gridmult=gridmult)
                               )
@@ -50,12 +71,14 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                                       ashr::ash(0*res_u$Bhat[,j],
                                                                 res_u$Shat[,j]+1,
                                                                 mixcompdist = "normal" ,
+                                                                nullweight = nullweight,
                                                                 outputlevel=0,
                                                                 gridmult=gridmult)
                                                     }else{
                                                             ashr::ash(res_u$Bhat[,j],
                                                                 res_u$Shat[,j],
                                                                 mixcompdist = "normal" ,
+                                                                nullweight = nullweight,
                                                                 outputlevel=0,
                                                                 gridmult=gridmult)
                                                     }
@@ -90,7 +113,8 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                                                            max_SNP_EM     = max_SNP_EM,
                                                                            gridmult       = gridmult,
                                                                            max_step_EM    = max_step_EM,
-                                                                           tol_null_prior =  tol_null_prior
+                                                                           tol_null_prior =  tol_null_prior,
+                                                                           sigma2         = sigma2$sd_f[k]
                                                                            #TODO make it different depending on marks
                              )
         )
@@ -110,7 +134,8 @@ init_prior_multfsusie <- function(Y,X, v1 ,
                                                                            max_SNP_EM     = max_SNP_EM,
                                                                            gridmult       = gridmult,
                                                                            max_step_EM    = max_step_EM,
-                                                                           tol_null_prior =  tol_null_prior
+                                                                           tol_null_prior =  tol_null_prior,
+                                                                           sigma2         = sigma2$sd_f[k]
                                                                            #TODO make it different depending on marks
                              )
         )

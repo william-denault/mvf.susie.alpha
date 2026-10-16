@@ -17,7 +17,7 @@ plot(f2$sim_func, type="l", ylab="y")
 N=100
 P=20
 
-nullweight= 0
+nullweight= 1
 set.seed(23)
 G = matrix(sample(c(0, 1,2), size=N*P, replace=T), nrow=N, ncol=P) #Genotype
 beta0       <- 0
@@ -356,7 +356,7 @@ est_pi_f <- lapply(1:length(L_mat$L_mat_f) ,
                                       list_indx_lst[[k]],
                                       init_pi0_w= init_pi0_w,
                                       control_mixsqp = control_mixsqp,
-                                      nullweight = 0
+                                      nullweight = 1
                    )
 )
 
@@ -560,7 +560,7 @@ test_that("The performance  of multfsusie on  this example should be",{
                    X=G,
                    L=11 ,
                    L_start=11 ,
-                   nullweight=.1,
+                   nullweight=10,
                    cal_obj =FALSE,
                    post_processing = "smash",
                    maxit=10, verbose=FALSE)

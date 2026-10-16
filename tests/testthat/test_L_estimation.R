@@ -76,7 +76,7 @@ test_that("susiF correctly estimates number of effects when nullweight is high e
       eps = 1e-6,
       numiter.em = 40
     ),
-    nullweight = .1
+    nullweight = 10
   )
 
   m2 <- susiF(
@@ -89,7 +89,7 @@ test_that("susiF correctly estimates number of effects when nullweight is high e
       eps = 1e-6,
       numiter.em = 40
     ),
-    nullweight = .1
+    nullweight = 10
   )
 
   # count credible sets that do NOT contain any true causal SNP

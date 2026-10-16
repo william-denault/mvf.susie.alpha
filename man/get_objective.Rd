@@ -7,7 +7,7 @@
 \usage{
 get_objective(multfsusie.obj, Y, X, ind_analysis, ...)
 
-\method{get_objective}{multfsusie}(multfsusie.obj, Y, X, ind_analysis, ...)
+\method{get_objective}{multfsusie}(multfsusie.obj, Y, X, ind_analysis, nullweight = 1, ...)
 }
 \arguments{
 \item{multfsusie.obj}{a multfsusie object defined by init_multfsusie_obj function}
@@ -19,6 +19,9 @@ get_objective(multfsusie.obj, Y, X, ind_analysis, ...)
 \item{ind_analysis}{output of which_notNA_pos}
 
 \item{...}{Additional arguments passed to other functions.}
+
+\item{nullweight}{Null-component penalty; see \code{multfsusie}. The default
+of 1 returns the unpenalized ELBO.}
 }
 \value{
 objective function value
